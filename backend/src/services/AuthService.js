@@ -48,18 +48,23 @@ export class AuthService {
       role: user.role,
     });
 
-    // Send OTP verification email
-    await EmailService.sendOtpEmail(email, otp, name);
+    // Send OTP verification email (non-blocking — don't fail registration if email fails)
+    try {
+      await EmailService.sendOtpEmail(email, otp, name);
+    } catch (emailErr) {
+      console.warn('⚠️  OTP email failed (registration still succeeded):', emailErr.message);
+    }
 
     // Return user (without password) and token
-    const { password_hash, ...userWithoutPassword } = user;
+    const { password_hash, reset_otp, reset_otp_expiry, ...userWithoutSensitive } = user;
     return { 
-      user: userWithoutPassword, 
+      user: userWithoutSensitive, 
       token,
-      // In development only, return OTP. Remove or disable logic for production emails.
+      // In development, always return OTP so testing works without email
       ...(process.env.NODE_ENV === 'development' && { otp: otp })
     };
   }
+
 
   /**
    * Login user
@@ -91,9 +96,9 @@ export class AuthService {
       role: user.role,
     });
 
-    // Return user (without password) and token
-    const { password_hash, ...userWithoutPassword } = user;
-    return { user: userWithoutPassword, token };
+    // Return user (without password and OTP fields) and token
+    const { password_hash, reset_otp, reset_otp_expiry, ...userWithoutSensitive } = user;
+    return { user: userWithoutSensitive, token };
   }
 
   /**
@@ -120,19 +125,23 @@ export class AuthService {
    * @returns {Promise<Object>} Updated user
    */
   static async updateProfile(userId, updates) {
+    console.log(`[AuthService] Updating profile for user ${userId}:`, updates);
     // Don't allow updating sensitive fields
     const allowedFields = ['name', 'avatar_url', 'bio', 'location'];
     const safeUpdates = {};
 
     allowedFields.forEach((field) => {
-      if (field in updates) {
+      if (field in updates && updates[field] !== undefined) {
         safeUpdates[field] = updates[field];
       }
     });
 
+    console.log(`[AuthService] Safe updates to be applied:`, safeUpdates);
     safeUpdates.updated_at = new Date().toISOString();
 
     const user = await UserModel.update(userId, safeUpdates);
+    console.log(`[AuthService] Update successful. New user state:`, user);
+    
     const { password_hash, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }

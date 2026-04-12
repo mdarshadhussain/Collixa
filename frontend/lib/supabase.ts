@@ -6,6 +6,8 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
 // Types for Supabase
 export interface User {
   id: string
@@ -45,8 +47,12 @@ export interface Message {
 
 export interface Conversation {
   id: number
-  participant_1: string
-  participant_2: string
+  participant_1?: string
+  participant_2?: string
+  type: 'DIRECT' | 'GROUP'
+  title?: string
+  admin_id?: string
+  intent_id?: number
   last_message?: string
   updated_at: string
 }
@@ -149,20 +155,61 @@ export const intentService = {
     return data as Intent[]
   },
 
-  // Get intent by ID
-  async getIntent(id: number): Promise<Intent | null> {
-    const { data, error } = await supabase
-      .from('intents')
-      .select()
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      console.error('Error fetching intent:', error)
+  // Get intent by ID using Backend API
+  async getIntentById(id: string | number): Promise<Intent | null> {
+    try {
+      const response = await fetch(`${API_URL}/api/intents/${id}`)
+      const data = await response.json()
+      
+      if (response.ok && data.data) {
+        return data.data
+      }
+      return null
+    } catch (err) {
+      console.error('Error fetching intent by ID:', err)
       return null
     }
+  },
 
-    return data as Intent
+  // Check if user already requested
+  async getExistingRequest(userId: string, intentId: string): Promise<any> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/intents/${intentId}/request/status?userId=${userId}`, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error checking existing request:', err)
+      return { data: null }
+    }
+  },
+
+  // Instant join an intent
+  async joinProject(intentId: string, userId: string): Promise<any> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/intents/${intentId}/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ userId })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to join project')
+      }
+
+      return await response.json()
+    } catch (err) {
+      console.error('Error joining project:', err)
+      throw err
+    }
   },
 
   // Get intents by user
@@ -259,10 +306,10 @@ export const intentService = {
 // Message Functions
 export const messageService = {
   // Get conversation messages
-  async getMessages(conversationId: number): Promise<Message[]> {
+  async getMessages(conversationId: number): Promise<(Message & { sender?: User })[]> {
     const { data, error } = await supabase
       .from('messages')
-      .select()
+      .select('*, sender:users(id, name, avatar_url)')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
 
@@ -271,7 +318,7 @@ export const messageService = {
       return []
     }
 
-    return data as Message[]
+    return data as any[]
   },
 
   // Send message
@@ -316,8 +363,13 @@ export const conversationService = {
   async getConversations(userId: string): Promise<Conversation[]> {
     const { data, error } = await supabase
       .from('conversations')
-      .select('*, participant_1(id, name, avatar_url), participant_2(id, name, avatar_url)')
-      .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
+      .select(`
+        *,
+        participant_1(id, name, avatar_url),
+        participant_2(id, name, avatar_url),
+        conversation_participants!inner(user_id)
+      `)
+      .eq('conversation_participants.user_id', userId)
       .order('updated_at', { ascending: false })
 
     if (error) {
@@ -325,7 +377,52 @@ export const conversationService = {
       return []
     }
 
-    return data as any[] // Temporarily typecast as any[] effectively covering the joined nested fields
+    return data as any[]
+  },
+
+  // Find or create direct conversation between two users
+  async getOrCreateDirectConversation(user1: string, user2: string): Promise<Conversation | null> {
+    // Check if exists
+    const { data: existing, error: lookupError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('type', 'DIRECT')
+      .or(`and(participant_1.eq.${user1},participant_2.eq.${user2}),and(participant_1.eq.${user2},participant_2.eq.${user1})`)
+      .maybeSingle()
+
+    if (lookupError) {
+      console.error('Chat lookup error:', lookupError)
+    }
+
+    if (existing) return existing as Conversation
+
+    // Create new
+    const { data, error } = await supabase
+      .from('conversations')
+      .insert([{
+        participant_1: user1,
+        participant_2: user2,
+        type: 'DIRECT'
+      }])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Chat creation error:', error)
+      throw new Error(error.message)
+    }
+
+    // Add participants to participants table
+    const { error: partError } = await supabase.from('conversation_participants').insert([
+      { conversation_id: data.id, user_id: user1 },
+      { conversation_id: data.id, user_id: user2 }
+    ])
+
+    if (partError) {
+      console.error('Participant insert error:', partError)
+    }
+
+    return data as Conversation
   },
 
   // Create conversation
@@ -379,22 +476,102 @@ export const storageService = {
   },
 
   /**
-   * Upload a file to the attachments bucket
+   * Upload a file to the attachments bucket via Backend Proxy
    */
   async uploadFile(file: File, path: string): Promise<string | null> {
-    const { data, error } = await supabase.storage
-      .from('attachments')
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: true
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) throw new Error('Authentication required for upload');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('path', path);
+      formData.append('bucket', 'attachments');
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/storage/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
       });
 
-    if (error) {
-      console.error('Error uploading file:', error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      return data.path;
+    } catch (error) {
+      console.error('Error uploading file via proxy:', error);
       return null;
     }
+  }
+}
 
-    return data.path;
+/**
+ * Skill Exchange System Service
+ */
+export const skillService = {
+  /**
+   * List all available skills with filters
+   */
+  async getSkills(search?: string, category?: string) {
+    try {
+      const params = new URLSearchParams()
+      if (search) params.append('search', search)
+      if (category && category !== 'All') params.append('category', category)
+      
+      const response = await fetch(`${API_URL}/api/skills?${params.toString()}`)
+      return await response.json()
+    } catch (err) {
+      console.error('Error fetching skills:', err)
+      return { success: false, data: [] }
+    }
+  },
+
+  /**
+   * Add a new skill for current user
+   */
+  async addSkill(skillData: any) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(skillData)
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error adding skill:', err)
+      return { success: false, error: 'Failed to add skill' }
+    }
+  },
+
+  /**
+   * Request a skill exchange
+   */
+  async requestExchange(exchangeData: { skillId: string, message?: string }) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(exchangeData)
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error requesting exchange:', err)
+      return { success: false, error: 'Failed to request exchange' }
+    }
   }
 }
 

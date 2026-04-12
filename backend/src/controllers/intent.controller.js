@@ -222,6 +222,55 @@ export class IntentController {
       next(error);
     }
   }
+  
+  /**
+   * Join an intent (Instant join)
+   * POST /api/intents/:id/join
+   */
+  static async joinIntent(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const request = await IntentService.joinIntent(id, userId);
+
+      return res.status(201).json({
+        message: 'Joined project successfully',
+        data: request,
+      });
+    } catch (error) {
+      if (error.message === 'Intent not found') {
+        return res.status(404).json({ error: 'Intent not found' });
+      }
+      if (error.message.includes('owner') || error.message.includes('already')) {
+        return res.status(400).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
+
+  /**
+   * Get collaboration request status for a specific user and intent
+   * GET /api/intents/:id/request/status
+   */
+  static async getCollaborationRequestStatus(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { userId } = req.query;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      const request = await IntentModel.getExistingRequest(userId, id);
+
+      return res.status(200).json({
+        data: request,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   /**
    * Get collaboration requests for an intent

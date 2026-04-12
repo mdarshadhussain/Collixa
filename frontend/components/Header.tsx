@@ -7,6 +7,7 @@ import Avatar from './Avatar'
 import { useAuth } from '@/app/context/AuthContext'
 import { useTheme } from '@/app/context/ThemeContext'
 import { useRouter } from 'next/navigation'
+import { storageService } from '@/lib/supabase'
 
 export default function Header() {
   const router = useRouter()
@@ -28,12 +29,12 @@ export default function Header() {
   }
 
   return (
-    <header className={`sticky top-0 z-[100] w-full transition-all duration-700 ${
+    <header className={`sticky top-0 z-[100] w-full transition-all duration-500 ${
       scrolled 
-        ? 'py-4 bg-[var(--color-bg-primary)]/80 backdrop-blur-2xl border-b border-[var(--color-border)] shadow-sm' 
-        : 'py-8 bg-[var(--color-bg-primary)] border-b border-transparent'
+        ? 'bg-[var(--color-bg-primary)]/80 backdrop-blur-2xl border-b border-[var(--color-border)] shadow-sm shadow-black/5' 
+        : 'bg-[var(--color-bg-primary)] border-b border-transparent'
     }`}>
-      <div className="max-w-7xl mx-auto px-6 md:px-12 w-full flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 w-full flex justify-between items-center py-4 md:py-6">
         
         {/* ─── LOGO (EDITORIAL ARCHETYPE) ─── */}
         <Link href="/" className="flex items-center gap-6 group">
@@ -51,7 +52,7 @@ export default function Header() {
           {[
             { label: 'Projects', href: '/dashboard', icon: LayoutGrid },
             { label: 'My Projects', href: '/my-intents', icon: Search },
-            { label: 'Community', href: '/skills', icon: Zap },
+            { label: 'Tribes', href: '/skills', icon: Zap },
           ].map((item) => (
             <Link 
               key={item.label} 
@@ -68,6 +69,16 @@ export default function Header() {
         {/* ─── ACTION CLUSTER ─── */}
         <div className="hidden lg:flex items-center gap-10">
           
+          {isAuthenticated && (
+            <Link 
+              href="/create"
+              className="px-8 py-4 bg-[var(--color-accent-soft)]/30 border border-[var(--color-accent-soft)] hover:border-[var(--color-accent)] text-[var(--color-accent)] text-[9px] font-black uppercase tracking-[0.3em] rounded-full transition-all flex items-center gap-3 group"
+            >
+              <Zap size={14} className="group-hover:fill-[var(--color-accent)] transition-all" />
+              Post Project
+            </Link>
+          )}
+
           <button 
             onClick={toggleTheme}
             className="w-12 h-12 rounded-full border border-[var(--color-border)] hover:border-[var(--color-accent)] flex items-center justify-center transition-all bg-[var(--color-bg-secondary)] shadow-sm overflow-hidden group"
@@ -84,7 +95,12 @@ export default function Header() {
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-5 p-2 pr-6 rounded-[2rem] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] transition-all shadow-sm group"
               >
-                <Avatar name={user.name} size="sm" className="ring-2 ring-offset-2 ring-offset-[var(--color-bg-primary)] ring-[var(--color-accent-soft)]" />
+                <Avatar 
+                  name={user.name} 
+                  src={user.avatar_url ? storageService.getPublicUrl(user.avatar_url) : undefined} 
+                  size="sm" 
+                  className="ring-2 ring-offset-2 ring-offset-[var(--color-bg-primary)] ring-[var(--color-accent-soft)]" 
+                />
                 <div className="text-left">
                   <p className="text-[10px] font-black tracking-tight text-[var(--color-text-primary)]">{user.name.split(' ')[0]}</p>
                 </div>
@@ -94,7 +110,7 @@ export default function Header() {
               {showProfileMenu && (
                 <div className="absolute right-0 mt-6 w-64 bg-[var(--color-bg-secondary)] rounded-[2.5rem] shadow-2xl border border-[var(--color-border)] p-4 z-[200] animate-fade-in overflow-hidden">
                    <div className="p-6 mb-4 bg-[var(--color-bg-primary)] rounded-[1.5rem]">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] mb-1">Signed in as</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)] mb-1">Signed in as</p>
                       <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{user.email}</p>
                    </div>
                    <div className="space-y-1">
@@ -145,7 +161,7 @@ export default function Header() {
               {[
                 { label: 'Projects', href: '/dashboard' },
                 { label: 'My Projects', href: '/my-intents' },
-                { label: 'Community', href: '/skills' },
+                { label: 'Tribes', href: '/skills' },
                 { label: 'Messages', href: '/chat' },
               ].map((item) => (
                 <Link 

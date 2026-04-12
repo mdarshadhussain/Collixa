@@ -12,6 +12,7 @@ function VerifyOtpContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
+  const urlOtp = searchParams.get('otp')
   const { theme } = useTheme()
 
   const [otp, setOtp] = useState('')
@@ -27,6 +28,13 @@ function VerifyOtpContent() {
       router.push('/')
     }
   }, [email, router])
+
+  // Auto-fill OTP from URL (development convenience)
+  useEffect(() => {
+    if (urlOtp && urlOtp.length === 6) {
+      setOtp(urlOtp)
+    }
+  }, [urlOtp])
 
   // OTP timeout countdown
   useEffect(() => {

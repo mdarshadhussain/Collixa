@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
 import { useTheme } from '@/app/context/ThemeContext'
 import { useRouter } from 'next/navigation'
-import type { Intent } from '@/lib/supabase'
+import { Intent, intentService, storageService } from '@/lib/supabase'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 
@@ -178,18 +178,30 @@ export default function DashboardPage() {
                     onClick={() => router.push(`/intent/${intent.id}`)}
                     className="group aspect-[4/5] bg-[var(--color-bg-secondary)] rounded-[2.5rem] p-10 flex flex-col border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] hover:shadow-2xl transition-all duration-700 cursor-pointer relative overflow-hidden"
                   >
-                    <div className="absolute top-0 right-0 p-10 transform translate-x-4 -translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-700">
+                    <div className="absolute top-0 right-0 p-10 transform translate-x-4 -translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-700 z-10">
                        <ArrowUpRight size={28} className="text-[var(--color-accent)]" />
                     </div>
 
-                    <div className="mb-auto">
+                    {/* Image Header if exists */}
+                    {intent.attachment_name && (
+                      <div className="absolute top-0 left-0 w-full h-1/2 overflow-hidden rounded-t-[2.5rem] opacity-40 group-hover:opacity-60 transition-opacity">
+                        <img 
+                          src={storageService.getPublicUrl(intent.attachment_name)} 
+                          alt={intent.title} 
+                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--color-bg-secondary)]"></div>
+                      </div>
+                    )}
+
+                    <div className={`mb-auto relative z-10 ${intent.attachment_name ? 'pt-24' : ''}`}>
                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-6 block">{intent.category || 'General'}</span>
                        <h3 className="text-3xl font-serif font-black text-[var(--color-text-primary)] leading-[1.2] line-clamp-3 group-hover:text-[var(--color-accent)] transition-colors">
                          {intent.title}
                        </h3>
                     </div>
 
-                    <div className="space-y-8">
+                    <div className="space-y-8 relative z-10">
                        <div className="flex items-center gap-4 text-[var(--color-text-secondary)]">
                           <div className="flex items-center gap-2">
                              <MapPin size={16} className="text-[var(--color-accent)]" />
@@ -203,9 +215,12 @@ export default function DashboardPage() {
                        
                        <div className="pt-10 border-t border-[var(--color-border)] flex items-center justify-between">
                           <div className="flex items-center gap-4">
-                             <div className="w-10 h-10 rounded-full bg-[var(--color-accent-soft)]/50 border border-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)] font-serif font-bold text-sm">
-                               {intent.created_by && typeof intent.created_by === 'object' ? ((intent.created_by as any).name?.[0] || 'C') : 'C'}
-                             </div>
+                             <Avatar 
+                               name={intent.created_by && typeof intent.created_by === 'object' ? (intent.created_by as any).name : 'Member'}
+                               src={intent.created_by && typeof intent.created_by === 'object' && (intent.created_by as any).avatar_url ? storageService.getPublicUrl((intent.created_by as any).avatar_url) : undefined}
+                               size="sm"
+                               className="border border-[var(--color-accent-soft)]"
+                             />
                              <div>
                                 <p className="text-[8px] font-black uppercase tracking-tighter text-[var(--color-text-secondary)] leading-none mb-1.5">Project Lead</p>
                                 <p className="text-[10px] font-bold text-[var(--color-text-primary)] leading-none">{intent.created_by && typeof intent.created_by === 'object' ? ((intent.created_by as any).name || 'Member') : 'Member'}</p>

@@ -19,6 +19,7 @@ export class AuthController {
         message: 'User registered successfully',
         user: result.user,
         token: result.token,
+        ...(result.otp && { otp: result.otp }),
       });
     } catch (error) {
       next(error);

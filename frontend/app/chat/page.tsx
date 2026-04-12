@@ -58,6 +58,17 @@ export default function ChatPage() {
         const rawConvos = await conversationService.getConversations(user.id)
         
         const mapped: UIConversation[] = rawConvos.map(conv => {
+          if (conv.type === 'GROUP') {
+            return {
+              id: conv.id,
+              name: conv.title || 'Project Group',
+              avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${conv.title || 'Project'}`,
+              lastMessage: conv.last_message || 'Project group created.',
+              unread: 0,
+              status: 'online'
+            }
+          }
+
           // Because getConversations has a join, participant_1 is an object at runtime
           const p1 = typeof conv.participant_1 === 'object' ? conv.participant_1 : null
           const p2 = typeof conv.participant_2 === 'object' ? conv.participant_2 : null
@@ -71,7 +82,7 @@ export default function ChatPage() {
             avatar: other?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${other?.name || 'Unknown'}`,
             lastMessage: conv.last_message || 'New Match!',
             unread: 0,
-            status: 'online' // We can expand this with presence later
+            status: 'online'
           }
         })
         
@@ -109,16 +120,21 @@ export default function ChatPage() {
     const loadMessages = async () => {
       try {
         const rawMessages = await messageService.getMessages(selectedConversation.id)
-        const mapped: UIMessage[] = rawMessages.map(m => ({
-          id: m.id,
-          content: m.content,
-          isOwn: m.sender_id === user.id,
-          timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          author: m.sender_id === user.id ? 'You' : selectedConversation.name,
-          avatar: m.sender_id === user.id 
-            ? (user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=User`)
-            : selectedConversation.avatar
-        }))
+        const mapped: UIMessage[] = rawMessages.map(m => {
+          const isOwn = m.sender_id === user.id
+          const senderName = isOwn ? 'You' : (m.sender?.name || 'User')
+          
+          return {
+            id: m.id,
+            content: m.content,
+            isOwn: isOwn,
+            timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            author: senderName,
+            avatar: isOwn 
+              ? (user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=User`)
+              : (m.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`)
+          }
+        })
         setMessages(mapped)
       } catch(err) {
         console.error('Failed to load messages:', err)
@@ -127,8 +143,7 @@ export default function ChatPage() {
 
     loadMessages()
 
-    // Subscribe to new messages for this conversation 
-    // This allows instant updates if the other person sends a message
+    // Subscribe to new messages for this conversation (instant delivery)
     const channel = supabase.channel(`public:messages:conv_${selectedConversation.id}`)
       .on('postgres_changes', { 
         event: 'INSERT', 
@@ -138,8 +153,6 @@ export default function ChatPage() {
       }, (payload) => {
          const m = payload.new as any
          
-         // In realtime, we might get our own sent message echoed back to us depending on setup.
-         // Prevent duplicate injects by checking IDs visually, though typically Supabase echoes everything unless configured otherwise.
          setMessages(prev => {
             if (prev.some(msg => msg.id === m.id)) return prev;
             return [...prev, {
@@ -198,12 +211,11 @@ export default function ChatPage() {
       // Error handling UI omitted for brevity, but could re-inject failed msgs here
     }
   }
-
   return (
-    <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen transition-colors duration-700 font-sans flex flex-col">
+    <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] h-screen overflow-hidden transition-colors duration-700 font-sans flex flex-col">
       <Header />
 
-      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-4 md:px-8 py-8 gap-8 overflow-hidden">
+      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-4 md:px-8 pb-8 gap-8 overflow-hidden">
         
         <Sidebar />
 

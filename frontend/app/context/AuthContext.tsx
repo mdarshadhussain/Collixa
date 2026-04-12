@@ -25,6 +25,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>
   register: (email: string, password: string, name: string) => Promise<{ error: string | null; pendingVerification?: boolean }>
   logout: () => Promise<void>
+  refreshUser: () => Promise<void>
+  updateUser: (updatedUser: User) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -110,13 +112,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Store email for OTP verification
         setPendingEmail(email)
         // Don't set user/token yet, user needs to verify OTP first
-        return { error: null, pendingVerification: true }
+        return { error: null, pendingVerification: true, otp: data.otp || null }
       } else {
-        return { error: data.error || 'Registration failed' }
+        return { error: data.error || data.message || 'Registration failed' }
       }
     } catch (error) {
       console.error('Registration error:', error)
-      return { error: 'Registration failed' }
+      return { error: 'Connection failed. Is the server running?' }
     }
   }
 
@@ -146,6 +148,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const refreshUser = async () => {
+    try {
+      const currentToken = token || localStorage.getItem('auth_token')
+      if (!currentToken) return
+
+      const response = await fetch(`${API_URL}/api/auth/verify`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${currentToken}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+      }
+    } catch (error) {
+      console.error('Refresh user error:', error)
+    }
+  }
+
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser)
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -157,6 +185,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        refreshUser,
+        updateUser,
       }}
     >
       {children}

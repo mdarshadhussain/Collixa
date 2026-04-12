@@ -1,248 +1,372 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { ChevronLeft, Users, MapPin, Calendar, Zap, Heart, Share2, MessageCircle, ArrowUpRight } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import Badge from '@/components/Badge'
+import { Intent, intentService, conversationService, userService, storageService } from '@/lib/supabase'
+import { useAuth } from '@/app/context/AuthContext'
+import { 
+  MessageSquare, 
+  Users, 
+  MapPin, 
+  Calendar, 
+  Target, 
+  Plus, 
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Briefcase,
+  Avatar as AvatarIcon
+} from 'lucide-react'
 import Avatar from '@/components/Avatar'
-import { useTheme } from '@/app/context/ThemeContext'
-import type { Intent } from '@/lib/supabase'
-import { storageService } from '@/lib/supabase'
+import { motion } from 'framer-motion'
+import Badge from '@/components/Badge'
+import Button from '@/components/Button'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-
-export default function IntentDetailPage({ params }: { params: { id: string } }) {
+export default function IntentDetailPage() {
+  const { id } = useParams()
   const router = useRouter()
-  const { theme } = useTheme()
+  const { user } = useAuth()
   const [intent, setIntent] = useState<Intent | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [requestSending, setRequestSending] = useState(false)
+  const [hasRequested, setHasRequested] = useState(false)
 
   useEffect(() => {
-    const fetchIntent = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/intents/${params.id}`)
-        const data = await response.json()
-        if (response.ok) {
-          setIntent(data.data)
-        } else {
-          setError(data.error || 'Intent not found')
-        }
-      } catch (err) {
-        setError('Failed to load intent details')
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+    if (id) {
+      fetchIntent()
     }
-    fetchIntent()
-  }, [params.id])
+  }, [id])
+
+  useEffect(() => {
+    if (intent && user) {
+       checkExistingRequest()
+    }
+  }, [intent, user])
+
+  const fetchIntent = async () => {
+    try {
+      setLoading(true)
+      const data = await intentService.getIntentById(id as string)
+      setIntent(data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const checkExistingRequest = async () => {
+     if (!user || !intent) return
+     try {
+        const { data } = await intentService.getExistingRequest(user.id, intent.id as any)
+        if (data) setHasRequested(true)
+     } catch (err) {
+        console.error(err)
+     }
+  }
+
+  const handleJoinProject = async () => {
+    if (!user || !intent) return
+    try {
+      setRequestSending(true)
+      await intentService.joinProject(intent.id as any, user.id)
+      setHasRequested(true)
+      alert("Joined successfully! You can now access the project chat.")
+      router.push('/chat')
+    } catch (err: any) {
+      alert(err.message || "Failed to join project")
+    } finally {
+      setRequestSending(false)
+    }
+  }
+
+  const handleChatWithOwner = async () => {
+    if (!user || !intent) return
+    const ownerId = typeof intent.created_by === 'object' ? intent.created_by.id : intent.created_by
+    
+    if (ownerId === user.id) {
+       alert("This is your own project!")
+       return
+    }
+
+    try {
+      const conversation = await conversationService.getOrCreateDirectConversation(user.id, ownerId)
+      if (conversation) {
+        router.push('/chat')
+      } else {
+        alert("Failed to create conversation. Check browser console for details.")
+      }
+    } catch (err: any) {
+      console.error('Chat with owner error:', err)
+      alert(`Failed to open chat: ${err.message || 'Unknown error'}`)
+    }
+  }
 
   if (loading) {
     return (
-      <div className="bg-[var(--color-bg-primary)] min-h-screen transition-colors duration-700">
-        <Header />
-        <main className="max-w-6xl mx-auto px-6 md:px-12 py-12">
-          <div className="animate-pulse space-y-10">
-            <div className="h-4 w-32 bg-[var(--color-border)] rounded-full" />
-            <div className="h-64 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-               <div className="lg:col-span-2 h-96 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
-               <div className="h-96 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
-            </div>
-          </div>
-        </main>
+      <div className="flex h-screen bg-[var(--color-bg-primary)]">
+        <Sidebar activePage="dashboard" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin"></div>
+        </div>
       </div>
     )
   }
 
-  if (error || !intent) {
+  if (!intent) {
     return (
-      <div className="bg-[var(--color-bg-primary)] min-h-screen transition-colors duration-700">
-        <Header />
-        <main className="max-w-4xl mx-auto px-6 py-20 text-center">
-            <h2 className="text-5xl font-serif font-black text-[var(--color-text-primary)] mb-6 italic">Fragmented Vision.</h2>
-            <p className="text-[var(--color-text-secondary)] text-lg mb-12 uppercase tracking-[0.2em] font-bold">{error || 'This intent has dissolved into the binary.'}</p>
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="px-12 py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-text-primary)] transition-all"
-            >
-              Back to Marketplace
-            </button>
-        </main>
+      <div className="flex h-screen bg-[var(--color-bg-primary)]">
+        <Sidebar activePage="dashboard" />
+        <div className="flex-1 flex items-center justify-center flex-col gap-4">
+          <h2 className="text-2xl font-serif">Project not found</h2>
+          <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
+        </div>
       </div>
     )
   }
 
-  const creatorName = typeof intent.created_by === 'object' ? (intent.created_by as any)?.name || 'Anonymous' : 'Anonymous'
+  const owner = typeof intent.created_by === 'object' ? intent.created_by : null
+  const isOwner = user?.id === owner?.id
 
   return (
-    <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen transition-colors duration-700 font-sans">
-      <Header />
+    <div className="flex h-screen bg-[var(--color-bg-primary)] overflow-hidden">
+      <Sidebar activePage="dashboard" />
+      
+      <main className="flex-1 overflow-y-auto custom-scrollbar">
+        <Header />
+        
+        <div className="max-w-6xl mx-auto px-6 py-12 md:px-12">
+          {/* Back Button */}
+          <button 
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors mb-12"
+          >
+            <ArrowLeft size={14} /> Back
+          </button>
 
-      <main className="max-w-7xl mx-auto px-6 md:px-12 py-12">
-        {/* Back Button */}
-        <button 
-          onClick={() => router.back()}
-          className="group flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all mb-12"
-        >
-          <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-          Retrace Steps
-        </button>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Main Content */}
-          <div className="lg:col-span-8 space-y-10">
-            {/* Header Card */}
-            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-10 md:p-16 rounded-[3rem] shadow-2xl shadow-[var(--color-accent)]/5 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:opacity-100 transition-opacity duration-1000">
-                 <ArrowUpRight size={48} className="text-[var(--color-accent)]" />
-              </div>
-
-              <div className="mb-8">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-8 mb-12">
-                  <div className="space-y-4">
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] block">{intent.category || 'General Collaboration'}</span>
-                    <h1 className="text-4xl md:text-6xl font-serif font-black text-[var(--color-text-primary)] leading-[1.1]">{intent.title}</h1>
-                  </div>
-                  <Badge variant="green" className="py-2.5 px-6 rounded-full text-[9px] font-black tracking-[0.2em] uppercase bg-[var(--color-accent-soft)] text-[var(--color-accent)] border-none self-start">
-                    {intent.status === 'looking' ? 'Open Intent' : intent.status === 'completed' ? 'Fulfilled' : 'Active'}
-                  </Badge>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-10 pt-12 border-t border-[var(--color-border)]">
-                   <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)] font-serif text-lg font-black border border-[var(--color-accent)]/20 shadow-inner">
-                       {creatorName[0]}
-                     </div>
-                     <div>
-                       <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-1">Initiator</p>
-                       <p className="text-sm font-black text-[var(--color-text-primary)]">{creatorName}</p>
-                     </div>
-                   </div>
-                   <div className="h-10 w-px bg-[var(--color-border)] hidden sm:block" />
-                   <div>
-                     <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-1">Deployed</p>
-                     <p className="text-sm font-black text-[var(--color-text-primary)]">{intent.created_at ? new Date(intent.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            
+            {/* Left Column: Essential Details */}
+            <div className="lg:col-span-2 space-y-12">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center gap-4">
+                   <Badge variant="accent">{intent.category}</Badge>
+                   <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                      <Clock size={14} />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">
+                        Posted {new Date(intent.created_at || '').toLocaleDateString()}
+                      </span>
                    </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Description Section */}
-            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-10 md:p-16 rounded-[3rem]">
-              <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-10">Executive Summary</h2>
-              <div className="prose prose-lg max-w-none text-[var(--color-text-primary)] leading-[1.8] font-sans">
-                <div className="whitespace-pre-wrap text-lg opacity-90">{intent.description}</div>
-              </div>
-            </div>
+                <h1 className="text-5xl md:text-7xl font-serif font-black leading-[1.1] text-[var(--color-text-primary)]">
+                  {intent.title}
+                </h1>
 
-            {/* Goal Section */}
-            {intent.goal && (
-              <div className="bg-[var(--color-accent-soft)]/10 border border-[var(--color-accent-soft)] p-10 md:p-12 rounded-[2.5rem]">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-6">The Ultimate Goal</h2>
-                <p className="text-2xl md:text-3xl font-serif italic leading-relaxed text-[var(--color-text-primary)]">"{intent.goal}"</p>
-              </div>
-            )}
+                <div className="flex flex-wrap gap-6 py-6 border-y border-[var(--color-border)]">
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
+                         <MapPin size={18} />
+                      </div>
+                      <div>
+                         <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Location</p>
+                         <p className="text-sm font-bold">{intent.location || 'Remote'}</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center text-[var(--color-text-secondary)]">
+                         <Target size={18} />
+                      </div>
+                      <div>
+                         <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Timeline</p>
+                         <p className="text-sm font-bold">{intent.timeline || 'Flexible'}</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
+                         <Briefcase size={18} />
+                      </div>
+                      <div>
+                         <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Status</p>
+                         <p className="text-sm font-bold uppercase tracking-widest text-[var(--color-accent)]">{intent.status}</p>
+                      </div>
+                   </div>
+                </div>
+              </motion.div>
 
-            {/* Attachments Section */}
-            {intent.attachment_name && (
-              <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-10 rounded-[3rem] overflow-hidden">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-8">Visual Context & Assets</h2>
-                <div className="rounded-[2rem] overflow-hidden shadow-2xl bg-[var(--color-bg-primary)] border border-[var(--color-border)]">
-                  {intent.attachment_name.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-8 p-10 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] shadow-sm"
+              >
+                <div className="space-y-4">
+                   <h3 className="text-xl font-serif font-black">Description</h3>
+                   <p className="text-sm leading-relaxed text-[var(--color-text-secondary)] font-medium">
+                     {intent.description}
+                   </p>
+                </div>
+
+                {intent.attachment_name && (
+                  <div className="mt-8 rounded-3xl overflow-hidden border border-[var(--color-border)] shadow-xl relative group">
                     <img 
                       src={storageService.getPublicUrl(intent.attachment_name)} 
-                      alt="Intent Visualization" 
-                      className="w-full h-auto max-h-[800px] object-contain"
+                      alt={intent.title} 
+                      className="w-full h-auto max-h-[500px] object-contain bg-[var(--color-bg-primary)] p-2"
                     />
-                  ) : (
-                    <div className="p-20 flex flex-col items-center justify-center gap-8">
-                      <div className="w-24 h-24 bg-[var(--color-accent-soft)] rounded-[2rem] flex items-center justify-center text-[var(--color-accent)] shadow-xl border border-[var(--color-accent)]/10">
-                        <Zap size={40} />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-black text-xs uppercase tracking-[0.3em] text-[var(--color-text-primary)] mb-2">Encrypted Document Packet</p>
-                        <p className="text-[9px] font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">{intent.attachment_name}</p>
-                      </div>
-                      <a 
-                        href={storageService.getPublicUrl(intent.attachment_name)} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="px-10 py-5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-text-primary)] transition-all shadow-xl shadow-[var(--color-accent)]/20"
-                      >
-                        Access Archive
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-4 space-y-10">
-            {/* Meta Info Card */}
-            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-10 rounded-[3rem] sticky top-32">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-10">Technical Specifications</h3>
-              
-              <div className="space-y-10">
-                {intent.budget && (
-                  <div className="group">
-                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-3 group-hover:text-[var(--color-accent)] transition-colors">Economic Scope</p>
-                    <p className="text-xl font-serif font-black text-[var(--color-text-primary)] flex items-center gap-3">
-                      <span className="p-2 bg-[var(--color-accent-soft)] rounded-lg text-[var(--color-accent)]"><DollarSign size={20} /></span>
-                      {intent.budget}
-                    </p>
+                    <div className="absolute inset-0 ring-1 ring-inset ring-white/10 pointer-events-none rounded-3xl"></div>
                   </div>
                 )}
 
-                {intent.timeline && (
-                  <div className="group">
-                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-3 group-hover:text-[var(--color-accent)] transition-colors">Timeline Anchor</p>
-                    <p className="text-xl font-serif font-black text-[var(--color-text-primary)] flex items-center gap-3">
-                      <span className="p-2 bg-[var(--color-accent-soft)] rounded-lg text-[var(--color-accent)]"><Calendar size={20} /></span>
-                      {intent.timeline}
-                    </p>
+                {intent.goal && (
+                  <div className="space-y-4 p-8 bg-[var(--color-bg-primary)] rounded-3xl border border-[var(--color-border)]">
+                     <div className="flex items-center gap-3 mb-4">
+                        <Target className="text-[var(--color-accent)]" size={20} />
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em]">Project Goal</h4>
+                     </div>
+                     <p className="text-sm text-[var(--color-text-primary)] font-medium">{intent.goal}</p>
                   </div>
                 )}
-
-                <div className="group">
-                  <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-3 group-hover:text-[var(--color-accent)] transition-colors">Geographic Root</p>
-                  <p className="text-xl font-serif font-black text-[var(--color-text-primary)] flex items-center gap-3">
-                    <span className="p-2 bg-[var(--color-accent-soft)] rounded-lg text-[var(--color-accent)]"><MapPin size={20} /></span>
-                    {typeof intent.location === 'string' ? intent.location : 'Atmospheric (Remote)'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Sidebar Actions */}
-              <div className="mt-16 space-y-4">
-                <button className="w-full py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-text-primary)] transition-all flex items-center justify-center gap-3 shadow-2xl shadow-[var(--color-accent)]/10">
-                  Join Collective <Zap size={14} />
-                </button>
-                <button className="w-full py-6 border border-[var(--color-border)] text-[var(--color-text-primary)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-accent-soft)] transition-all flex items-center justify-center gap-3">
-                  Initiate Dialogue <MessageCircle size={14} />
-                </button>
-              </div>
-
-              {/* Utility Actions */}
-              <div className="flex gap-4 mt-8">
-                <button className="flex-1 py-4 border border-[var(--color-border)] rounded-2xl flex items-center justify-center text-[var(--color-text-secondary)] hover:text-red-500 hover:border-red-500/20 transition-all">
-                  <Heart size={20} />
-                </button>
-                <button className="flex-1 py-4 border border-[var(--color-border)] rounded-2xl flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent-soft)] transition-all">
-                  <Share2 size={20} />
-                </button>
-              </div>
+              </motion.div>
             </div>
+
+             {/* Right Column: Interaction & Social */}
+             <div className="space-y-8">
+                
+                {/* Actions Card */}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 overflow-hidden relative"
+                >
+                   <div className="relative z-10 space-y-8">
+                      <div className="space-y-2">
+                         <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60">Ready to join?</p>
+                         <h3 className="text-3xl font-serif font-bold italic underline decoration-[var(--color-accent)] decoration-2">Get Involved.</h3>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* GUEST VIEW */}
+                        {!user && (
+                          <Button 
+                            variant="accent" 
+                            fullWidth 
+                            className="py-6 rounded-2xl shadow-lg"
+                            onClick={() => router.push('/')}
+                          >
+                            Login to Participate
+                          </Button>
+                        )}
+
+                        {/* COLLABORATOR VIEW (Logged in, Not Owner) */}
+                        {user && !isOwner && (
+                          <>
+                            <Button 
+                              variant="accent" 
+                              fullWidth 
+                              className="py-6 rounded-2xl shadow-lg"
+                              onClick={handleJoinProject}
+                              disabled={requestSending || hasRequested}
+                            >
+                              {hasRequested ? (
+                                <span className="flex items-center gap-2"><CheckCircle2 size={16} /> Request Sent</span>
+                              ) : (
+                                <span className="flex items-center gap-2"><Plus size={16}/> Join Project</span>
+                              )}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              fullWidth 
+                              className="py-6 rounded-2xl border-white/20 text-white hover:bg-white/10"
+                              onClick={handleChatWithOwner}
+                            >
+                              <span className="flex items-center gap-2"><MessageSquare size={16} /> Chat with Owner</span>
+                            </Button>
+                          </>
+                        )}
+                        
+                        {/* OWNER VIEW (Logged in, Is Owner) */}
+                        {user && isOwner && (
+                          <div className="space-y-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-center opacity-70 mb-2">This is your project</p>
+                            <Button 
+                              variant="accent" 
+                              fullWidth 
+                              className="py-6 rounded-2xl bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
+                              onClick={() => router.push('/chat')}
+                            >
+                               Open Project Chat
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              fullWidth 
+                              className="py-4 rounded-2xl border-white/20 text-white hover:bg-white/10 text-[10px] font-bold uppercase tracking-widest"
+                              onClick={() => router.push(`/create?id=${intent.id}`)}
+                            >
+                               Edit Project
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                   </div>
+
+                   {/* Aesthetic backgrounds */}
+                   <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-[var(--color-accent)] opacity-10 rounded-full blur-3xl"></div>
+                </motion.div>
+
+               {/* Owner Card */}
+               <motion.div 
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: 0.2 }}
+                 className="p-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem]"
+               >
+                  <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-8">Initiated By</h4>
+                  <div className="flex items-center gap-4">
+                     <Avatar 
+                        name={owner?.name || 'Owner'} 
+                        src={owner?.avatar_url ? storageService.getPublicUrl(owner.avatar_url) : undefined} 
+                        size="lg" 
+                        className="rounded-2xl shrink-0" 
+                     />
+                     <div>
+                        <p className="text-xl font-serif font-bold">{owner?.name}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">{owner?.email}</p>
+                     </div>
+                  </div>
+               </motion.div>
+
+               {/* Stats Card */}
+               <motion.div 
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: 0.3 }}
+                 className="p-10 bg-[var(--color-accent-soft)] border border-[var(--color-accent)]/10 rounded-[2.5rem] flex justify-between items-center"
+               >
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)]">Collaborators</p>
+                    <div className="flex items-center gap-2">
+                       <Users size={16} className="text-[var(--color-accent)]" />
+                       <span className="text-2xl font-serif font-black">{intent.accepted_count || 0}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)]">Requests</p>
+                    <span className="text-2xl font-serif font-black">{intent.request_count || 0}</span>
+                  </div>
+               </motion.div>
+
+            </div>
+
           </div>
         </div>
       </main>
     </div>
   )
 }
-
-// Icon fallbacks if DollarSign not imported correctly from lulicide
-import { DollarSign } from 'lucide-react'

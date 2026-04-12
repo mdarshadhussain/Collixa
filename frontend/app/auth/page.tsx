@@ -73,10 +73,14 @@ function AuthContent() {
       } else {
         const result = await register(formData.email, formData.password, formData.name)
         if (result.error) setApiError(result.error)
-        else if (result.pendingVerification) router.push(`/verify-otp?email=${encodeURIComponent(formData.email)}`)
+        else if (result.pendingVerification) {
+          // In development, pass OTP in URL so user can verify without email
+          const otpParam = result.otp ? `&otp=${result.otp}` : ''
+          router.push(`/verify-otp?email=${encodeURIComponent(formData.email)}${otpParam}`)
+        }
       }
     } catch (err) {
-      setApiError('Identity link failure.')
+      setApiError('Connection error. Please try again.')
     } finally {
       setLoading(false)
     }

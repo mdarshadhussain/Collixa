@@ -15,3 +15,5 @@ yarn-error.log
 *.swo
 *~
 .env
+scratch/
+**/scratch/

@@ -5,6 +5,8 @@ import config from './config/env.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import intentRoutes from './routes/intent.routes.js';
+import skillRoutes from './routes/skill.routes.js';
+import storageRoutes from './routes/storageRoutes.js';
 import initializeDatabase from './utils/initDatabase.js';
 
 const app = express();
@@ -16,10 +18,22 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS
+// CORS — allow multiple local origins in development
+const allowedOrigins = [
+  config.FRONTEND_URL,
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
 app.use(
   cors({
-    origin: config.FRONTEND_URL,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, Postman, etc.)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked: ${origin}`));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   })
@@ -28,6 +42,14 @@ app.use(
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging (development)
+if (config.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    console.log(`[${req.method}] ${req.path} — Origin: ${req.headers.origin || 'none'}`);
+    next();
+  });
+}
 
 /**
  * Health check
@@ -41,6 +63,8 @@ app.get('/api/health', (req, res) => {
  */
 app.use('/api/auth', authRoutes);
 app.use('/api/intents', intentRoutes);
+app.use('/api/skills', skillRoutes);
+app.use('/api/storage', storageRoutes);
 
 /**
  * Error handling

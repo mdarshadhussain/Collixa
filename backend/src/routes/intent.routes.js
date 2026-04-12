@@ -62,6 +62,11 @@ const updateIntentValidation = [
     .optional()
     .isISO8601()
     .withMessage('Timeline must be a valid ISO8601 date'),
+  body('attachment_name')
+    .optional()
+    .trim()
+    .isLength({ max: 255 })
+    .withMessage('Attachment name must not exceed 255 characters'),
 ];
 
 /**
@@ -191,6 +196,34 @@ router.post(
     .notEmpty()
     .withMessage('Invalid intent ID'),
   IntentController.sendCollaborationRequest
+);
+
+/**
+ * POST /api/intents/:id/join
+ * Instant join project (requires authentication)
+ */
+router.post(
+  '/:id/join',
+  authMiddleware,
+  param('id')
+    .notEmpty()
+    .withMessage('Invalid intent ID'),
+  IntentController.joinIntent
+);
+
+/**
+ * GET /api/intents/:id/request/status
+ * Check user's collaboration request status for an intent
+ */
+router.get(
+  '/:id/request/status',
+  param('id')
+    .notEmpty()
+    .withMessage('Invalid intent ID'),
+  query('userId')
+    .notEmpty()
+    .withMessage('User ID is required'),
+  IntentController.getCollaborationRequestStatus
 );
 
 /**

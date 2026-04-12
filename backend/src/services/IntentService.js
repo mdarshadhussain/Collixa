@@ -18,7 +18,36 @@ export class IntentService {
       updated_at: new Date().toISOString(),
     };
 
-    return await IntentModel.create(intentData);
+    const intent = await IntentModel.create(intentData);
+
+    // AUTOMATION: Create a Project Group Chat
+    try {
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .insert([{
+          type: 'GROUP',
+          title: intent.title,
+          intent_id: intent.id,
+          admin_id: userId
+        }])
+        .select()
+        .single();
+
+      if (!convError && conversation) {
+        // Add owner as first participant
+        await supabase
+          .from('conversation_participants')
+          .insert([{
+            conversation_id: conversation.id,
+            user_id: userId
+          }]);
+      }
+    } catch (err) {
+      console.error('Failed to auto-create group chat:', err);
+      // We don't throw here to avoid failing intent creation if chat fails
+    }
+
+    return intent;
   }
 
   /**
@@ -182,6 +211,80 @@ export class IntentService {
   }
 
   /**
+   * Instant join an intent (adds to group chat immediately)
+   * @param {string} intentId - Intent ID
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Created/Updated collaboration request
+   */
+  static async joinIntent(intentId, userId) {
+    // 1. Check if intent exists
+    const intent = await IntentModel.getById(intentId);
+    if (!intent) {
+      throw new Error('Intent not found');
+    }
+
+    // 2. Cannot join own intent
+    const creatorId = typeof intent.created_by === 'object' ? intent.created_by.id : intent.created_by;
+    if (String(creatorId) === String(userId)) {
+      throw new Error('You are the owner of this project');
+    }
+
+    // 3. Check if already joined/requested
+    const existing = await IntentModel.getExistingRequest(userId, intentId);
+    if (existing && existing.status === 'ACCEPTED') {
+      return existing; // Already in
+    }
+
+    // 4. Create or update request to ACCEPTED
+    let request;
+    if (existing) {
+      request = await IntentModel.updateRequest(existing.id, 'ACCEPTED');
+    } else {
+      const requestData = {
+        intent_id: intentId,
+        user_id: userId,
+        status: 'ACCEPTED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      request = await IntentModel.createRequest(requestData);
+    }
+
+    // 5. Add to Group Chat
+    try {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('intent_id', intentId)
+        .eq('type', 'GROUP')
+        .single();
+
+      if (conversation) {
+        // Check if already a participant
+        const { data: alreadyPart } = await supabase
+          .from('conversation_participants')
+          .select('id')
+          .eq('conversation_id', conversation.id)
+          .eq('user_id', userId)
+          .single();
+
+        if (!alreadyPart) {
+          await supabase
+            .from('conversation_participants')
+            .insert([{
+              conversation_id: conversation.id,
+              user_id: userId
+            }]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to auto-add user to group chat on join:', err);
+    }
+
+    return request;
+  }
+
+  /**
    * Accept collaboration request
    * @param {string} requestId - Request ID
    * @param {string} userId - User ID (must be intent creator)
@@ -208,7 +311,31 @@ export class IntentService {
       throw new Error(`Cannot accept a ${request.status} request`);
     }
 
-    return await IntentModel.updateRequest(requestId, 'ACCEPTED');
+    const updatedRequest = await IntentModel.updateRequest(requestId, 'ACCEPTED');
+
+    // AUTOMATION: Add user to Project Group Chat
+    try {
+      // Find the group chat for this intent
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('intent_id', request.intent_id)
+        .eq('type', 'GROUP')
+        .single();
+
+      if (conversation) {
+        await supabase
+          .from('conversation_participants')
+          .insert([{
+            conversation_id: conversation.id,
+            user_id: request.user_id
+          }]);
+      }
+    } catch (err) {
+      console.error('Failed to auto-add user to group chat:', err);
+    }
+
+    return updatedRequest;
   }
 
   /**
