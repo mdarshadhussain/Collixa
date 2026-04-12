@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light Theme - Editorial Beige */
+  --color-bg-primary: #F9F7F2;
+  --color-bg-secondary: #FFFFFF;
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-accent: #4A7C59;
+  --color-accent-soft: #D4E6D3;
+  --color-border: #F3F4F6;
+  
+  --font-serif: 'Instrument Serif', serif;
+  --font-sans: 'Outfit', sans-serif;
+}
+
+.dark {
+  /* Dark Theme - Midnight Green */
+  --color-bg-primary: #0A0F0B;
+  --color-bg-secondary: #131A14;
+  --color-text-primary: #F9F7F2;
+  --color-text-secondary: #9CA3AF;
+  --color-accent: #D4E6D3;
+  --color-accent-soft: #4A7C59;
+  --color-border: #1F2923;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans antialiased selection:bg-[var(--color-accent-soft)] selection:text-[var(--color-accent)];
+}
+
+h1, h2, h3, h4, .font-serif {
+  font-family: var(--font-serif);
+  @apply tracking-tight;
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+/* Luxury transitions */
+* {
+  @apply transition-colors duration-500 ease-in-out;
+}
+
+/* Editorial Utilities */
+.editorial-card {
+  @apply bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] shadow-sm hover:shadow-xl hover:border-[var(--color-accent-soft)] transition-all duration-700;
+}
+
+.premium-button-primary {
+  @apply px-10 py-5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-[var(--color-accent)] transition-all duration-500;
+}
+
+.premium-button-secondary {
+  @apply px-10 py-5 border border-[var(--color-border)] text-[var(--color-text-primary)] text-[10px] font-bold uppercase tracking-[0.3em] hover:border-[var(--color-accent)] transition-all duration-500;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-accent-soft);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
