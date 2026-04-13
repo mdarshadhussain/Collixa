@@ -60,37 +60,37 @@ export default function LandingPage() {
       <Header />
 
       {/* ─── EDITORIAL HERO ─── */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center py-12 overflow-hidden">
+      <section className="relative min-h-[85vh] md:min-h-[90vh] flex flex-col items-center justify-center py-10 md:py-12 overflow-hidden">
         <motion.div 
           style={{ y: yHero }}
-          className="container mx-auto px-6 relative z-10 text-center"
+          className="container mx-auto px-4 sm:px-6 relative z-10 text-center"
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col items-center mb-10"
+            className="flex flex-col items-center mb-8 md:mb-10"
           >
-            <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--color-accent)] mb-6">Established 2026</span>
-            <h1 className="text-6xl md:text-8xl lg:text-[7.5rem] font-serif font-black leading-[0.9] tracking-tighter mb-8 max-w-5xl mx-auto">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.32em] sm:tracking-[0.5em] text-[var(--color-accent)] mb-5 md:mb-6">Established 2026</span>
+            <h1 className="text-h1 mb-6 md:mb-8 max-w-6xl mx-auto px-2 sm:px-4">
               Where Intent <br />
-              <span className="italic font-light">meets</span> Action.
+              <span className="italic font-light text-[var(--color-accent)]">meets</span> Action.
             </h1>
-            <p className="font-sans text-sm md:text-base text-[var(--color-text-secondary)] max-w-xl mx-auto leading-loose tracking-[0.05em] mb-12 uppercase">
+            <p className="font-sans text-xs sm:text-sm md:text-base text-[var(--color-text-secondary)] max-w-xl mx-auto leading-relaxed md:leading-loose tracking-[0.03em] sm:tracking-[0.05em] mb-8 md:mb-12 uppercase px-3 sm:px-4">
               The premium skill-exchange & collaboration ecosystem for those who build with purpose.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 w-full px-2 sm:px-4">
               <button 
                 onClick={() => router.push(isAuthenticated ? '/dashboard' : '/auth?mode=register')}
-                className="group px-10 py-5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[11px] font-bold uppercase tracking-[0.3em] flex items-center gap-4 hover:bg-[var(--color-accent)] transition-all duration-700"
+                className="w-full sm:w-auto px-6 sm:px-10 py-4 sm:py-5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.18em] sm:tracking-[0.3em] flex items-center justify-center gap-3 sm:gap-4 hover:bg-[var(--color-accent)] transition-all duration-700 shadow-xl shadow-black/10 transform active:scale-95 rounded-xl sm:rounded-none"
               >
                 Initialize Intent
                 <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
               </button>
               <button 
                 onClick={() => document.getElementById('vision')?.scrollIntoView({ behavior: 'smooth' })}
-                className="group px-6 py-5 text-[11px] font-bold uppercase tracking-[0.3em] flex items-center gap-4 hover:translate-y-1 transition-all duration-700 text-[var(--color-text-primary)]"
+                className="w-full sm:w-auto px-6 py-4 sm:py-5 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.18em] sm:tracking-[0.3em] flex items-center justify-center gap-3 sm:gap-4 hover:translate-y-1 transition-all duration-700 text-[var(--color-text-primary)] rounded-full hover:bg-[var(--color-accent-soft)]"
               >
                 The Vision 
                 <ChevronDown size={16} />
@@ -127,15 +127,15 @@ export default function LandingPage() {
       </section>
 
       {/* ─── THE MANIFESTO ─── */}
-      <section id="vision" className="py-32 md:py-48 bg-[var(--color-bg-secondary)] overflow-hidden transition-colors duration-700">
+      <section id="vision" className="py-20 md:py-48 bg-[var(--color-bg-secondary)] overflow-hidden transition-colors duration-700">
         <div className="container mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20 items-center">
             <FadeInSection>
               <h2 className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--color-accent)] mb-12">Our Philosophy</h2>
-              <p className="font-serif text-3xl md:text-5xl leading-tight text-[var(--color-text-primary)] mb-12">
+              <p className="font-serif text-2xl sm:text-3xl md:text-5xl leading-tight text-[var(--color-text-primary)] mb-8 md:mb-12">
                 We believe that the <span className="italic">future of work</span> isn't just about networking—it's about the <span className="text-[var(--color-accent)]">deliberate exchange</span> of talent.
               </p>
-              <p className="text-[var(--color-text-secondary)] font-sans leading-loose max-w-md text-sm mb-12">
+              <p className="text-[var(--color-text-secondary)] font-sans leading-relaxed md:leading-loose max-w-md text-xs sm:text-sm mb-8 md:mb-12">
                 Collixa is a sanctuary for builders, designers, and visionaries. We've removed the noise of generic talent boards, creating a space where purely qualified intents drive every interaction.
               </p>
               <button className="group text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3 border-b-2 border-[var(--color-accent)] pb-2 hover:border-[var(--color-text-primary)] transition-all">
@@ -144,7 +144,7 @@ export default function LandingPage() {
             </FadeInSection>
             
             <FadeInSection delay={0.3} className="relative">
-              <div className="aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl skew-y-1 hover:skew-y-0 transition-transform duration-1000 border border-[var(--color-border)]">
+              <div className="aspect-[4/5] rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl md:skew-y-1 hover:skew-y-0 transition-transform duration-1000 border border-[var(--color-border)]">
                 <img 
                   src="/collixa_skill_exchange_1776003081601.png" 
                   alt="Skill Exchange" 
@@ -158,16 +158,16 @@ export default function LandingPage() {
       </section>
 
       {/* ─── STAGGERED FEATURES ─── */}
-      <section id="intents" className="py-32 bg-[var(--color-bg-primary)]">
+      <section id="intents" className="py-20 md:py-32 bg-[var(--color-bg-primary)]">
         <div className="container mx-auto px-6 md:px-12">
           {/* Section Header */}
-          <FadeInSection className="text-center mb-24">
+          <FadeInSection className="text-center mb-14 md:mb-24">
             <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--color-accent)] mb-6 block">Capabilities</span>
-            <h3 className="text-4xl md:text-6xl font-serif font-black">Refined Features, <br />Purpose-Built.</h3>
+            <h3 className="text-3xl md:text-6xl font-serif font-black">Refined Features, <br />Purpose-Built.</h3>
           </FadeInSection>
 
           {/* Staggered Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
             {features.map((f, i) => (
               <FadeInSection key={i} delay={i * 0.15} className="group cursor-default">
                 <div className="mb-8 w-12 h-12 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-accent)] group-hover:bg-[var(--color-accent)] group-hover:text-[var(--color-bg-primary)] transition-all duration-700 shadow-sm">
@@ -182,7 +182,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── LIFESTYLE CALLOUT ─── */}
-      <section id="community" className="py-24 md:py-48 relative overflow-hidden bg-[var(--color-bg-secondary)] border-y border-[var(--color-border)]">
+      <section id="community" className="py-20 md:py-48 relative overflow-hidden bg-[var(--color-bg-secondary)] border-y border-[var(--color-border)]">
         <div className="absolute inset-0 opacity-10 dark:opacity-30 pointer-events-none">
           <img 
             src="/collixa_community_lifestyle_1776003104238.png" 
@@ -194,13 +194,13 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 text-center relative z-10">
           <FadeInSection>
             <h2 className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--color-accent)] mb-8">Join the collective</h2>
-            <p className="font-serif text-4xl md:text-7xl mb-12 leading-tight">
+            <p className="font-serif text-3xl sm:text-4xl md:text-7xl mb-8 md:mb-12 leading-tight">
               A community defined by <br />
               <span className="italic">craftsmanship</span> and <span className="text-[var(--color-accent)]">mutual growth</span>.
             </p>
             <button 
               onClick={() => router.push('/auth?mode=register')}
-              className="px-12 py-6 border border-[var(--color-text-primary)] text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-[var(--color-text-primary)] hover:text-[var(--color-bg-primary)] transition-all duration-700"
+              className="px-8 sm:px-12 py-4 sm:py-6 border border-[var(--color-text-primary)] text-[10px] font-bold uppercase tracking-[0.18em] sm:tracking-[0.3em] hover:bg-[var(--color-text-primary)] hover:text-[var(--color-bg-primary)] transition-all duration-700"
             >
               Request Access
             </button>
@@ -209,26 +209,26 @@ export default function LandingPage() {
       </section>
 
       {/* ─── THE JOURNAL (Stats / Last CTA) ─── */}
-      <section className="py-32 md:py-48 bg-[var(--color-bg-primary)]">
+      <section className="py-20 md:py-48 bg-[var(--color-bg-primary)]">
         <div className="container mx-auto px-6 md:px-12">
-          <div className="flex flex-col lg:flex-row items-end justify-between gap-20 border-b border-[var(--color-border)] pb-24">
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-12 md:gap-20 border-b border-[var(--color-border)] pb-16 md:pb-24">
             <FadeInSection className="lg:w-1/2">
-              <h3 className="text-4xl md:text-6xl font-serif font-black mb-10 leading-none">Ready to deploy your next intentional project?</h3>
-              <p className="text-[var(--color-text-secondary)] font-sans text-sm uppercase tracking-widest leading-loose">
+              <h3 className="text-3xl md:text-6xl font-serif font-black mb-6 md:mb-10 leading-tight md:leading-none">Ready to deploy your next intentional project?</h3>
+              <p className="text-[var(--color-text-secondary)] font-sans text-xs sm:text-sm uppercase tracking-[0.12em] sm:tracking-widest leading-relaxed md:leading-loose">
                 Post your intent today. Find the missing talent. <br />Grow your vision beyond expectations.
               </p>
             </FadeInSection>
 
             <FadeInSection className="lg:w-1/3 w-full flex flex-col gap-6">
-              <button 
+              <button
                 onClick={() => router.push('/auth?mode=register')}
-                className="w-full py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.3em] hover:shadow-2xl transition-all"
+                className="w-full py-4 sm:py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.18em] sm:tracking-[0.3em] hover:shadow-2xl transition-all rounded-xl sm:rounded-none"
               >
                 Sign Up Collectively
               </button>
               <button 
                 onClick={() => router.push('/dashboard')}
-                className="w-full py-6 border border-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.3em] bg-[var(--color-text-primary)] hover:bg-transparent hover:text-[var(--color-text-primary)] transition-all"
+                className="w-full py-4 sm:py-6 border border-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.18em] sm:tracking-[0.3em] bg-[var(--color-text-primary)] hover:bg-transparent hover:text-[var(--color-text-primary)] transition-all rounded-xl sm:rounded-none"
               >
                 Explore Marketplace
               </button>

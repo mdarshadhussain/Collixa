@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Menu, X, ChevronDown, Sun, Moon, Search, LayoutGrid, Zap } from 'lucide-react'
+import { Menu, X, ChevronDown, Sun, Moon, Zap, MessageSquare, Plus } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Avatar from './Avatar'
 import NotificationDropdown from './NotificationDropdown'
@@ -32,52 +32,40 @@ export default function Header() {
   return (
     <header className={`sticky top-0 z-[100] w-full transition-all duration-500 ${
       scrolled 
-        ? 'bg-[var(--color-bg-primary)]/80 backdrop-blur-2xl border-b border-[var(--color-border)] shadow-sm shadow-black/5' 
+        ? 'bg-[var(--color-bg-primary)] backdrop-blur-2xl bg-opacity-80 border-b border-[var(--color-border)] shadow-sm shadow-black/5' 
         : 'bg-[var(--color-bg-primary)] border-b border-transparent'
     }`}>
-      <div className="max-w-7xl mx-auto px-6 md:px-12 w-full flex justify-between items-center py-4 md:py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 w-full flex justify-between items-center py-3 md:py-6">
         
         {/* ─── LOGO (EDITORIAL ARCHETYPE) ─── */}
-        <Link href="/" className="flex items-center gap-6 group">
-          <div className="relative w-12 h-12">
+        <Link href="/" className="flex items-center gap-3 sm:gap-6 group">
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12">
             <div className="absolute inset-0 bg-[var(--color-accent)] rounded-[1.5rem] rotate-45 transform transition-transform group-hover:rotate-0 duration-700 opacity-20" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-[var(--color-accent)] font-serif text-3xl font-black italic">C.</span>
+              <span className="text-[var(--color-accent)] font-serif text-2xl sm:text-3xl font-black italic">C.</span>
             </div>
           </div>
           <span className="hidden md:block font-serif font-black tracking-[-0.05em] text-3xl text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">Collixa.</span>
         </Link>
 
-        {/* ─── DESKTOP NAVIGATION ─── */}
-        <nav className="hidden lg:flex items-center gap-16">
-          {[
-            { label: 'Projects', href: '/dashboard', icon: LayoutGrid },
-            { label: 'My Projects', href: '/my-intents', icon: Search },
-            { label: 'Tribes', href: '/skills', icon: Zap },
-          ].map((item) => (
-            <Link 
-              key={item.label} 
-              href={item.href} 
-              className="group relative text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all flex items-center gap-3"
-            >
-              <item.icon size={12} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-              {item.label}
-              <span className="absolute -bottom-2 left-0 w-0 h-[1px] bg-[var(--color-accent)] transition-all duration-500 group-hover:w-full" />
-            </Link>
-          ))}
-        </nav>
+        <div className="hidden lg:block" />
 
         {/* ─── ACTION CLUSTER ─── */}
-        <div className="hidden lg:flex items-center gap-10">
+        <div className="hidden lg:flex items-center gap-4">
+          {isAuthenticated && (
+            <div className="px-4 py-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[9px] font-black uppercase tracking-[0.12em] text-[var(--color-accent)]">
+              Credits: {user?.credits ?? 0}
+            </div>
+          )}
           
           {isAuthenticated && (
-            <Link 
-              href="/create"
-              className="px-8 py-4 bg-[var(--color-accent-soft)]/30 border border-[var(--color-accent-soft)] hover:border-[var(--color-accent)] text-[var(--color-accent)] text-[9px] font-black uppercase tracking-[0.3em] rounded-full transition-all flex items-center gap-3 group"
+            <button
+              onClick={() => router.push('/settings?tab=credits')}
+              className="px-4 py-2 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-[0.12em] rounded-full transition-all flex items-center gap-2 hover:opacity-90"
             >
-              <Zap size={14} className="group-hover:fill-[var(--color-accent)] transition-all" />
-              Post Project
-            </Link>
+              <Plus size={12} />
+              Get More Credits
+            </button>
           )}
 
           <button 
@@ -140,62 +128,85 @@ export default function Header() {
         </div>
 
         {/* ─── MOBILE CONTROLS ─── */}
-        <div className="flex lg:hidden items-center gap-4">
+        <div className="flex lg:hidden items-center gap-2 sm:gap-3">
+          {isAuthenticated && (
+            <div className="px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[8px] font-black uppercase tracking-[0.08em] text-[var(--color-accent)]">
+              {user?.credits ?? 0}
+            </div>
+          )}
           {isAuthenticated && <NotificationDropdown />}
-          <button onClick={toggleTheme} className="w-10 h-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-full flex items-center justify-center">
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          <button onClick={toggleTheme} className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-full flex items-center justify-center">
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           </button>
-          <button className="w-10 h-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full flex items-center justify-center" onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? <X size={20} /> : <Menu size={20} />}
+          <button className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full flex items-center justify-center" onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </div>
 
       {/* ─── MOBILE MENU ─── */}
       {isOpen && (
-        <div className="fixed inset-0 top-0 h-screen bg-[var(--color-bg-primary)] z-[1000] p-12 space-y-16 animate-fade-in lg:hidden">
-           <div className="flex justify-between items-center">
-              <span className="font-serif font-black text-4xl italic text-[var(--color-text-primary)]">Collixa.</span>
-              <button onClick={() => setIsOpen(false)} className="p-4 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full">
-                <X size={32} />
+        <div className="fixed inset-0 top-0 h-[100dvh] z-[1000] lg:hidden">
+          <button
+            aria-label="Close mobile menu"
+            onClick={() => setIsOpen(false)}
+            className="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
+          />
+          <div className="absolute right-3 top-16 sm:right-6 sm:top-20 w-[min(86vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-3 shadow-2xl animate-fade-in">
+           <div className="flex justify-between items-center mb-3 px-1">
+              <span className="font-serif font-black text-xl text-[var(--color-text-primary)]">Menu</span>
+              <button onClick={() => setIsOpen(false)} className="w-8 h-8 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full flex items-center justify-center">
+                <X size={16} />
               </button>
            </div>
-           
-           <nav className="flex flex-col gap-10">
+
+           <nav className="flex flex-col gap-1.5">
               {[
-                { label: 'Projects', href: '/dashboard' },
-                { label: 'My Projects', href: '/my-intents' },
-                { label: 'Tribes', href: '/skills' },
-                { label: 'Messages', href: '/chat' },
+                { label: 'Messages', href: '/chat', icon: MessageSquare },
+                { label: 'Profile', href: '/profile', icon: Zap },
               ].map((item) => (
                 <Link 
                   key={item.label} 
                   href={item.href} 
-                  className="text-5xl font-serif font-black italic text-[var(--color-text-primary)] tracking-tight hover:text-[var(--color-accent)] transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-[var(--color-text-primary)] tracking-tight hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
                   onClick={() => setIsOpen(false)}
                 >
+                  <item.icon size={15} className="text-[var(--color-accent)]" />
                   {item.label}
                 </Link>
               ))}
            </nav>
 
-           <div className="pt-12 border-t border-[var(--color-border)]">
+           <div className="pt-3 mt-3 border-t border-[var(--color-border)] space-y-2">
+              {isAuthenticated && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    router.push('/settings?tab=credits')
+                  }}
+                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] font-semibold text-sm rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                >
+                  <Plus size={12} />
+                  Get More Credits
+                </button>
+              )}
               {isAuthenticated ? (
                 <button 
                   onClick={handleLogout}
-                  className="w-full py-8 border border-red-500 text-red-500 font-serif italic text-3xl rounded-[2rem]"
+                  className="w-full py-2.5 border border-red-500 text-red-500 font-semibold text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                 >
                   Log Out
                 </button>
               ) : (
                 <button 
                   onClick={() => router.push('/auth')}
-                  className="w-full py-8 bg-[var(--color-accent)] text-[var(--color-bg-primary)] font-serif italic text-3xl rounded-[2rem]"
+                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] font-semibold text-sm rounded-lg hover:opacity-90 transition-opacity"
                 >
                   Sign In
                 </button>
               )}
            </div>
+          </div>
         </div>
       )}
 

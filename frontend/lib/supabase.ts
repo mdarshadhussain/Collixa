@@ -19,6 +19,7 @@ export interface User {
   avatar_url?: string
   hourly_rate?: number
   created_at?: string
+  credits?: number
 }
 
 export interface Intent {
@@ -615,6 +616,112 @@ export const skillService = {
     } catch (err) {
       console.error('Error requesting exchange:', err)
       return { success: false, error: 'Failed to request exchange' }
+    }
+  }
+  ,
+  /**
+   * Get current user's skill exchanges
+   */
+  async getMyExchanges() {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills/exchanges/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error fetching exchanges:', err)
+      return { success: false, data: [] }
+    }
+  },
+
+  /**
+   * Provider accepts/rejects exchange request
+   */
+  async updateExchangeStatus(exchangeId: string, status: 'ACCEPTED' | 'REJECTED' | 'SCHEDULED' | 'PENDING') {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills/exchanges/${exchangeId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error updating exchange:', err)
+      return { success: false, error: 'Failed to update exchange status' }
+    }
+  }
+}
+
+export const sessionService = {
+  async scheduleSession(payload: { requestId: string; scheduledTime: string; meetingLink?: string }) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error scheduling session:', err)
+      return { success: false, error: 'Failed to schedule session' }
+    }
+  },
+
+  async getMySessions() {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/sessions`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error fetching sessions:', err)
+      return { success: false, data: [] }
+    }
+  },
+
+  async completeSession(sessionId: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/sessions/${sessionId}/complete`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error completing session:', err)
+      return { success: false, error: 'Failed to complete session' }
+    }
+  }
+}
+
+export const reviewService = {
+  async submitReview(payload: { sessionId: string; rating: number; comment?: string }) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error submitting review:', err)
+      return { success: false, error: 'Failed to submit review' }
     }
   }
 }

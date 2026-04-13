@@ -8,7 +8,7 @@ import Avatar from './Avatar'
 interface SkillExchangeModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (message: string) => void
   skill: {
     id: string
     name: string
@@ -22,26 +22,28 @@ interface SkillExchangeModalProps {
 export default function SkillExchangeModal({ isOpen, onClose, onSuccess, skill }: SkillExchangeModalProps) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   if (!isOpen || !skill) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
     try {
       const res = await skillService.requestExchange({
         skillId: skill.id,
         message
       })
       if (res.success) {
-        onSuccess()
+        onSuccess('Request sent. You will be notified once provider accepts or rejects.')
         onClose()
       } else {
-        alert(res.error || 'Failed to request exchange')
+        setError(res.error || 'Failed to request exchange')
       }
     } catch (err) {
       console.error(err)
-      alert('An error occurred')
+      setError('An error occurred while sending request')
     } finally {
       setLoading(false)
     }
@@ -108,6 +110,11 @@ export default function SkillExchangeModal({ isOpen, onClose, onSuccess, skill }
                 </>
               )}
             </button>
+            {error && (
+              <div className="p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 text-[10px] font-semibold">
+                {error}
+              </div>
+            )}
             <p className="text-[9px] text-center font-bold uppercase tracking-widest text-[var(--color-text-secondary)] opacity-40">Connecting you for mutual growth</p>
           </form>
         </div>

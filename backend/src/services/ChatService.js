@@ -60,19 +60,23 @@ export class ChatService {
    * Get unread messages count for a user
    */
   static async getUnreadCount(userId) {
-    // We join with conversation_participants to ensure we only count messages in rooms the user belongs to
-    // and where the sender is NOT the user.
+    // First fetch participant conversation ids, then use a plain array in .in()
+    const { data: memberships, error: membershipError } = await getClient()
+      .from('conversation_participants')
+      .select('conversation_id')
+      .eq('user_id', userId);
+
+    if (membershipError) throw membershipError;
+
+    const conversationIds = (memberships || []).map((m) => m.conversation_id);
+    if (conversationIds.length === 0) return 0;
+
     const { count, error } = await getClient()
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .neq('sender_id', userId)
       .eq('is_read', false)
-      .in('conversation_id', (
-          getClient()
-            .from('conversation_participants')
-            .select('conversation_id')
-            .eq('user_id', userId)
-      ));
+      .in('conversation_id', conversationIds);
 
     if (error) throw error;
     return count || 0;

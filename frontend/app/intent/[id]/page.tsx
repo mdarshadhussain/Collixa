@@ -137,25 +137,25 @@ export default function IntentDetailPage() {
       <main className="flex-1 overflow-y-auto custom-scrollbar">
         <Header />
         
-        <div className="max-w-6xl mx-auto px-6 py-12 md:px-12">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-6 md:py-12 md:px-12">
           {/* Back Button */}
           <button 
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors mb-12"
+            className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors mb-6 md:mb-12"
           >
             <ArrowLeft size={14} /> Back
           </button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-12">
             
             {/* Left Column: Essential Details */}
-            <div className="lg:col-span-2 space-y-12">
+            <div className="lg:col-span-2 space-y-6 md:space-y-12">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                    <Badge variant="accent">{intent.category}</Badge>
                    <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
                       <Clock size={14} />
@@ -165,36 +165,36 @@ export default function IntentDetailPage() {
                    </div>
                 </div>
 
-                <h1 className="text-5xl md:text-7xl font-serif font-black leading-[1.1] text-[var(--color-text-primary)]">
+                <h1 className="text-3xl sm:text-4xl md:text-7xl font-serif font-black leading-[1.1] text-[var(--color-text-primary)]">
                   {intent.title}
                 </h1>
 
-                <div className="flex flex-wrap gap-6 py-6 border-y border-[var(--color-border)]">
+                <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-6 py-4 md:py-6 border-y border-[var(--color-border)]">
                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
                          <MapPin size={18} />
                       </div>
                       <div>
                          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Location</p>
-                         <p className="text-sm font-bold">{intent.location || 'Remote'}</p>
+                         <p className="text-xs sm:text-sm font-bold">{intent.location || 'Remote'}</p>
                       </div>
                    </div>
                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center text-[var(--color-text-secondary)]">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center text-[var(--color-text-secondary)]">
                          <Target size={18} />
                       </div>
                       <div>
                          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Timeline</p>
-                         <p className="text-sm font-bold">{intent.timeline || 'Flexible'}</p>
+                         <p className="text-xs sm:text-sm font-bold">{intent.timeline || 'Flexible'}</p>
                       </div>
                    </div>
                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
                          <Briefcase size={18} />
                       </div>
                       <div>
                          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Status</p>
-                         <p className="text-sm font-bold uppercase tracking-widest text-[var(--color-accent)]">{intent.status}</p>
+                         <p className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[var(--color-accent)]">{intent.status}</p>
                       </div>
                    </div>
                 </div>
@@ -204,17 +204,17 @@ export default function IntentDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="space-y-8 p-10 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] shadow-sm"
+                className="space-y-5 md:space-y-8 p-4 sm:p-6 md:p-10 bg-[var(--color-bg-secondary)] rounded-2xl md:rounded-[2.5rem] border border-[var(--color-border)] shadow-sm"
               >
                 <div className="space-y-4">
-                   <h3 className="text-xl font-serif font-black">Description</h3>
-                   <p className="text-sm leading-relaxed text-[var(--color-text-secondary)] font-medium">
+                   <h3 className="text-lg md:text-xl font-serif font-black">Description</h3>
+                   <p className="text-xs sm:text-sm leading-relaxed text-[var(--color-text-secondary)] font-medium">
                      {intent.description}
                    </p>
                 </div>
 
                 {intent.attachment_name && (
-                  <div className="mt-8 rounded-3xl overflow-hidden border border-[var(--color-border)] shadow-xl relative group">
+                  <div className="mt-6 md:mt-8 rounded-2xl md:rounded-3xl overflow-hidden border border-[var(--color-border)] shadow-xl relative group">
                     <img 
                       src={storageService.getPublicUrl(intent.attachment_name)} 
                       alt={intent.title} 
@@ -225,30 +225,30 @@ export default function IntentDetailPage() {
                 )}
 
                 {intent.goal && (
-                  <div className="space-y-4 p-8 bg-[var(--color-bg-primary)] rounded-3xl border border-[var(--color-border)]">
+                  <div className="space-y-3 md:space-y-4 p-4 sm:p-6 md:p-8 bg-[var(--color-bg-primary)] rounded-2xl md:rounded-3xl border border-[var(--color-border)]">
                      <div className="flex items-center gap-3 mb-4">
                         <Target className="text-[var(--color-accent)]" size={20} />
                         <h4 className="text-[10px] font-black uppercase tracking-[0.3em]">Project Goal</h4>
                      </div>
-                     <p className="text-sm text-[var(--color-text-primary)] font-medium">{intent.goal}</p>
+                     <p className="text-xs sm:text-sm text-[var(--color-text-primary)] font-medium">{intent.goal}</p>
                   </div>
                 )}
               </motion.div>
             </div>
 
              {/* Right Column: Interaction & Social */}
-             <div className="space-y-8">
+             <div className="space-y-4 md:space-y-8">
                 
                 {/* Actions Card */}
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="p-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 overflow-hidden relative"
+                  className="p-4 sm:p-6 md:p-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-2xl md:rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 overflow-hidden relative"
                 >
-                   <div className="relative z-10 space-y-8">
+                   <div className="relative z-10 space-y-5 md:space-y-8">
                       <div className="space-y-2">
                          <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60">Ready to join?</p>
-                         <h3 className="text-3xl font-serif font-bold italic underline decoration-[var(--color-accent)] decoration-2">Get Involved.</h3>
+                         <h3 className="text-2xl md:text-3xl font-serif font-bold italic underline decoration-[var(--color-accent)] decoration-2">Get Involved.</h3>
                       </div>
 
                       <div className="space-y-4">
@@ -257,7 +257,7 @@ export default function IntentDetailPage() {
                           <Button 
                             variant="accent" 
                             fullWidth 
-                            className="py-6 rounded-2xl shadow-lg"
+                            className="py-4 md:py-6 rounded-xl md:rounded-2xl shadow-lg"
                             onClick={() => router.push('/')}
                           >
                             Login to Participate
@@ -270,7 +270,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="accent" 
                               fullWidth 
-                              className="py-6 rounded-2xl shadow-lg"
+                              className="py-4 md:py-6 rounded-xl md:rounded-2xl shadow-lg"
                               onClick={handleJoinProject}
                               disabled={requestSending || hasRequested}
                             >
@@ -283,7 +283,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="outline" 
                               fullWidth 
-                              className="py-6 rounded-2xl border-white/20 text-white hover:bg-white/10"
+                              className="py-4 md:py-6 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/10"
                               onClick={handleChatWithOwner}
                             >
                               <span className="flex items-center gap-2"><MessageSquare size={16} /> Chat with Owner</span>
@@ -298,7 +298,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="accent" 
                               fullWidth 
-                              className="py-6 rounded-2xl bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
+                              className="py-4 md:py-6 rounded-xl md:rounded-2xl bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
                               onClick={() => router.push('/chat')}
                             >
                                Open Project Chat
@@ -306,7 +306,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="outline" 
                               fullWidth 
-                              className="py-4 rounded-2xl border-white/20 text-white hover:bg-white/10 text-[10px] font-bold uppercase tracking-widest"
+                              className="py-3 md:py-4 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/10 text-[9px] md:text-[10px] font-bold uppercase tracking-widest"
                               onClick={() => router.push(`/create?id=${intent.id}`)}
                             >
                                Edit Project
@@ -325,9 +325,9 @@ export default function IntentDetailPage() {
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
                  transition={{ delay: 0.2 }}
-                 className="p-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem]"
+                 className="p-4 sm:p-6 md:p-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2.5rem]"
                >
-                  <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-8">Initiated By</h4>
+                  <h4 className="text-[9px] font-black uppercase tracking-[0.28em] md:tracking-[0.4em] text-[var(--color-text-secondary)] mb-5 md:mb-8">Initiated By</h4>
                   <div className="flex items-center gap-4">
                      <Avatar 
                         name={owner?.name || 'Owner'} 
@@ -336,7 +336,7 @@ export default function IntentDetailPage() {
                         className="rounded-2xl shrink-0" 
                      />
                      <div>
-                        <p className="text-xl font-serif font-bold">{owner?.name}</p>
+                        <p className="text-lg md:text-xl font-serif font-bold">{owner?.name}</p>
                         <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">{owner?.email}</p>
                      </div>
                   </div>
@@ -347,18 +347,18 @@ export default function IntentDetailPage() {
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
                  transition={{ delay: 0.3 }}
-                 className="p-10 bg-[var(--color-accent-soft)] border border-[var(--color-accent)]/10 rounded-[2.5rem] flex justify-between items-center"
+                 className="p-4 sm:p-6 md:p-10 bg-[var(--color-accent-soft)] border border-[var(--color-accent)]/10 rounded-2xl md:rounded-[2.5rem] flex justify-between items-center"
                >
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)]">Collaborators</p>
                     <div className="flex items-center gap-2">
                        <Users size={16} className="text-[var(--color-accent)]" />
-                       <span className="text-2xl font-serif font-black">{intent.accepted_count || 0}</span>
+                       <span className="text-xl md:text-2xl font-serif font-black">{intent.accepted_count || 0}</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)]">Requests</p>
-                    <span className="text-2xl font-serif font-black">{intent.request_count || 0}</span>
+                    <span className="text-xl md:text-2xl font-serif font-black">{intent.request_count || 0}</span>
                   </div>
                </motion.div>
 

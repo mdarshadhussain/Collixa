@@ -11,6 +11,7 @@ export interface User {
   avatar_url?: string
   bio?: string
   location?: string
+  credits?: number
   is_verified?: boolean
   created_at: string
   updated_at: string

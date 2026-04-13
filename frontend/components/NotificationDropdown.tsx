@@ -117,8 +117,8 @@ export default function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-6 w-80 md:w-96 bg-[var(--color-bg-secondary)] rounded-[2.5rem] shadow-2xl border border-[var(--color-border)] p-4 z-[200] animate-fade-in overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)]">
+        <div className="absolute right-0 mt-4 w-[min(92vw,24rem)] md:w-96 bg-[var(--color-bg-secondary)] rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border border-[var(--color-border)] p-3 md:p-4 z-[200] animate-fade-in overflow-hidden">
+          <div className="flex items-center justify-between p-4 md:p-6 border-b border-[var(--color-border)]">
             <div>
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Activity.</h3>
               <p className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)] mt-1">{unreadCount} New alerts</p>
@@ -133,7 +133,7 @@ export default function NotificationDropdown() {
             )}
           </div>
 
-          <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+          <div className="max-h-[65vh] md:max-h-[400px] overflow-y-auto custom-scrollbar">
             {loading ? (
               <div className="p-12 text-center opacity-40">
                 <Bell size={24} className="mx-auto animate-pulse mb-4" />
@@ -147,7 +147,7 @@ export default function NotificationDropdown() {
             ) : (
               <div className="divide-y divide-[var(--color-border)]">
                 {notifications.map((n) => (
-                  <div key={n.id} className="p-6 hover:bg-[var(--color-bg-primary)] transition-all group relative">
+                  <div key={n.id} className="p-4 md:p-6 hover:bg-[var(--color-bg-primary)] transition-all group relative">
                     <div className="flex gap-4">
                       <div className="w-10 h-10 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] transition-all">
                         {getIcon(n.type)}

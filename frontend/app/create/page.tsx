@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 import Header from '@/components/Header'
+import Sidebar from '@/components/Sidebar'
 import { storageService } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import Badge from '@/components/Badge'
@@ -202,83 +203,65 @@ function CreateIntentContent() {
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex flex-col font-sans">
       <Header />
 
-      <div className="flex flex-1 max-w-7xl mx-auto w-full px-4 md:px-8 py-10 gap-8">
+      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-8 py-5 md:py-8 gap-4 md:gap-8">
+        <Sidebar />
         
-        {/* Navigation Sidebar */}
-        <aside className="w-64 hidden lg:flex flex-col gap-6 sticky top-24 h-fit">
-          <div className="p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-3xl space-y-6 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Navigate</p>
-            <nav className="space-y-2">
-              {navItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="flex items-center gap-3 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] rounded-xl transition-all"
-                >
-                  <item.icon size={16} />
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-          </div>
-        </aside>
-
         {/* Unified Project Form */}
-        <main className="flex-1 max-w-3xl">
+        <main className="flex-1 max-w-4xl">
           
-          <div className="mb-10 space-y-4">
+          <div className="mb-6 md:mb-8 space-y-3 md:space-y-4 bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-8">
             <Badge variant="accent" className="uppercase tracking-[0.3em]">Project Creation</Badge>
-            <h1 className="text-4xl md:text-5xl font-serif font-black tracking-tight">
+            <h1 className="text-xl sm:text-2xl md:text-4xl font-serif font-black tracking-tight">
               {editId ? 'Refine your project.' : 'Post your vision.'}
             </h1>
-            <p className="text-sm text-[var(--color-text-secondary)] font-medium">Simple. Direct. Collaborative. List your project in seconds.</p>
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] font-medium">Simple. Direct. Collaborative. List your project in seconds.</p>
           </div>
 
-          <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 md:p-12 shadow-sm">
+          <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-sm">
             <AnimatePresence mode="wait">
               {submitSuccess ? (
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex flex-col items-center justify-center py-20 text-center space-y-8"
+                  className="flex flex-col items-center justify-center py-12 md:py-20 text-center space-y-5 md:space-y-8"
                 >
-                   <div className="w-20 h-20 rounded-3xl bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
-                      <CheckCircle size={40} />
+                   <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
+                      <CheckCircle size={28} className="md:w-10 md:h-10" />
                    </div>
                    <div className="space-y-4">
-                     <h3 className="text-3xl font-serif font-black">Success!</h3>
-                     <p className="text-sm text-[var(--color-text-secondary)]">Your project is now live on the marketplace.</p>
+                     <h3 className="text-2xl md:text-3xl font-serif font-black">Success!</h3>
+                     <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Your project is now live on the marketplace.</p>
                    </div>
                 </motion.div>
               ) : isInitialLoading ? (
-                <div className="flex flex-col items-center justify-center py-32 space-y-6">
+                <div className="flex flex-col items-center justify-center py-16 md:py-32 space-y-5 md:space-y-6">
                    <Loader2 className="animate-spin text-[var(--color-accent)]" size={48} />
                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Loading details...</p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-12">
+                <form onSubmit={handleSubmit} className="space-y-7 md:space-y-10">
                   
                   {/* --- SECTION 1: CORE DETAILS --- */}
-                  <div className="space-y-8">
+                  <div className="space-y-6 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-4 md:p-6">
                     <div className="flex items-center gap-3 mb-2">
                        <FileText size={18} className="text-[var(--color-accent)]" />
-                       <h2 className="text-lg font-serif font-bold italic">Core Vision</h2>
+                       <h2 className="text-base md:text-lg font-serif font-bold italic">Core Vision</h2>
                     </div>
 
-                    <div className="space-y-6">
-                      <div className="space-y-4">
+                    <div className="space-y-5">
+                      <div className="space-y-3">
                          <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Project Title</label>
                          <input 
                             name="title"
                             value={formData.title}
                             onChange={handleChange}
                             placeholder="e.g. Building an AI Skill Marketplace"
-                            className="w-full text-2xl font-serif font-bold p-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
+                            className="w-full text-base sm:text-lg md:text-xl font-serif font-bold p-3 sm:p-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
                          />
                          {errors.title && <p className="text-[10px] font-bold text-red-500">{errors.title}</p>}
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                          <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Description & Context</label>
                          <textarea 
                             name="description"
@@ -286,7 +269,7 @@ function CreateIntentContent() {
                             value={formData.description}
                             onChange={handleChange}
                             placeholder="Describe your vision and who you're looking for..."
-                            className="w-full text-base font-medium p-6 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all resize-none leading-relaxed"
+                            className="w-full text-xs sm:text-sm font-medium p-3 sm:p-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all resize-none leading-relaxed"
                          />
                          {errors.description && <p className="text-[10px] font-bold text-red-500">{errors.description}</p>}
                       </div>
@@ -296,13 +279,13 @@ function CreateIntentContent() {
                   {/* --- SECTION 2: ARCHETYPE --- */}
                   <div className="space-y-6">
                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] block">Category</label>
-                     <div className="flex flex-wrap gap-3">
+                     <div className="flex flex-wrap gap-2.5">
                         {CATEGORIES.map(cat => (
                           <button
                             key={cat}
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
-                            className={`px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                            className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] sm:tracking-widest transition-all ${
                               formData.category === cat 
                               ? 'bg-[var(--color-accent)] text-white shadow-md' 
                               : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)]'
@@ -315,9 +298,9 @@ function CreateIntentContent() {
                   </div>
 
                   {/* --- SECTION 3: LOGISTICS --- */}
-                  <div className="p-8 bg-[var(--color-bg-primary)] rounded-3xl border border-[var(--color-border)] space-y-10">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
+                  <div className="p-4 sm:p-6 md:p-8 bg-[var(--color-bg-primary)] rounded-2xl md:rounded-3xl border border-[var(--color-border)] space-y-6 md:space-y-10">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
+                        <div className="space-y-3">
                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
                              <MapPin size={14} className="text-[var(--color-accent)]" /> Location
                            </label>
@@ -326,11 +309,11 @@ function CreateIntentContent() {
                               value={formData.location}
                               onChange={handleChange}
                               placeholder="Remote or Specific City"
-                              className="w-full text-lg font-bold p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
+                              className="w-full text-sm sm:text-base font-bold p-3 sm:p-3.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
                            />
                            {errors.location && <p className="text-[10px] font-bold text-red-500">{errors.location}</p>}
                         </div>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
                              <Clock size={14} className="text-[var(--color-accent)]" /> Target Deadline
                            </label>
@@ -339,12 +322,12 @@ function CreateIntentContent() {
                              name="timeline"
                              value={formData.timeline}
                              onChange={handleChange}
-                             className="w-full text-sm font-bold p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl focus:border-[var(--color-accent)] outline-none cursor-pointer appearance-none"
+                             className="w-full text-xs sm:text-sm font-bold p-3 sm:p-3.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none cursor-pointer appearance-none"
                            />
                         </div>
                      </div>
 
-                     <div className="space-y-4">
+                     <div className="space-y-3">
                         <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
                           <DollarSign size={14} className="text-[var(--color-accent)]" /> Budget / Exchange
                         </label>
@@ -353,14 +336,14 @@ function CreateIntentContent() {
                           value={formData.budget}
                           onChange={handleChange}
                           placeholder="e.g. $500 - $1000 or 'Skill Exchange'"
-                          className="w-full text-lg font-bold p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
+                          className="w-full text-sm sm:text-base font-bold p-3 sm:p-3.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
                         />
                      </div>
                   </div>
 
                   {/* --- SECTION 4: FINAL OBJECTIVE --- */}
-                  <div className="space-y-8">
-                     <div className="space-y-4">
+                  <div className="space-y-6 md:space-y-8">
+                     <div className="space-y-3">
                         <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
                           <Target size={14} className="text-[var(--color-accent)]" /> Ultimate Objective
                         </label>
@@ -369,26 +352,26 @@ function CreateIntentContent() {
                            value={formData.goal}
                            onChange={handleChange}
                            placeholder="What defines success for this project?"
-                           className="w-full text-lg font-bold p-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
+                           className="w-full text-sm sm:text-base font-bold p-3 sm:p-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
                         />
                      </div>
 
-                     <div className="space-y-6">
+                     <div className="space-y-4 md:space-y-6">
                         <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
                           <FileUp size={14} className="text-[var(--color-accent)]" /> Attachment (optional)
                         </label>
                         
                         {!uploadedFile ? (
-                          <label className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-border)] rounded-3xl p-10 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/20 transition-all cursor-pointer bg-[var(--color-bg-primary)] group">
+                          <label className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-border)] rounded-2xl md:rounded-3xl p-6 md:p-10 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/20 transition-all cursor-pointer bg-[var(--color-bg-primary)] group">
                              <Plus size={24} className="text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] mb-2" />
                              <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">Attach Vision Artifact</p>
                              <input type="file" onChange={handleFileUpload} className="hidden" />
                           </label>
                         ) : (
-                          <div className="p-6 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-2xl flex items-center justify-between">
+                          <div className="p-4 md:p-6 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-xl md:rounded-2xl flex items-center justify-between">
                              <div className="flex items-center gap-4">
                                 <CheckCircle size={20} className="text-[var(--color-accent)]" />
-                                <span className="text-sm font-bold truncate max-w-[200px]">{uploadedFile.name}</span>
+                                <span className="text-xs sm:text-sm font-bold truncate max-w-[180px] sm:max-w-[220px]">{uploadedFile.name}</span>
                              </div>
                              <button type="button" onClick={() => setUploadedFile(null)} className="text-[9px] font-black uppercase text-red-500 hover:underline">Remove</button>
                           </div>
@@ -405,7 +388,7 @@ function CreateIntentContent() {
                   </div>
 
                   {/* Submission Controls */}
-                  <div className="flex items-center justify-between pt-10 border-t border-[var(--color-border)]">
+                  <div className="flex items-center justify-between pt-6 md:pt-8 border-t border-[var(--color-border)]">
                      <button
                         type="button"
                         onClick={() => router.back()}
@@ -417,7 +400,7 @@ function CreateIntentContent() {
                      <Button
                        type="submit"
                        disabled={isSubmitting}
-                       className="px-12 py-5 rounded-2xl flex items-center gap-3 bg-[var(--color-accent)] shadow-xl shadow-[var(--color-accent)]/20"
+                      className="px-5 sm:px-8 md:px-12 py-3.5 sm:py-4 md:py-5 rounded-xl md:rounded-2xl flex items-center gap-2 sm:gap-3 bg-[var(--color-accent)] shadow-xl shadow-[var(--color-accent)]/20 text-[10px] sm:text-xs md:text-sm"
                      >
                        {isSubmitting ? (
                          <>

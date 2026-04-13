@@ -9,6 +9,9 @@ import skillRoutes from './routes/skill.routes.js';
 import storageRoutes from './routes/storageRoutes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import chatRoutes from './routes/chat.routes.js';
+import sessionRoutes from './routes/session.routes.js';
+import reviewRoutes from './routes/review.routes.js';
+import creditRoutes from './routes/credit.routes.js';
 import initializeDatabase from './utils/initDatabase.js';
 
 const app = express();
@@ -69,6 +72,9 @@ app.use('/api/skills', skillRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/credits', creditRoutes);
 
 /**
  * Error handling

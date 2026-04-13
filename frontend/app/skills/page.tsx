@@ -1,18 +1,22 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Star, MapPin, Briefcase, Filter, ArrowRight, RefreshCw, Plus } from 'lucide-react'
+import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'
 import { useTheme } from '@/app/context/ThemeContext'
-import { skillService } from '@/lib/supabase'
+import { skillService, sessionService, reviewService, conversationService } from '@/lib/supabase'
 import AddSkillModal from '@/components/AddSkillModal'
 import SkillExchangeModal from '@/components/SkillExchangeModal'
+import { useAuth } from '@/app/context/AuthContext'
 
 export default function SkillsPage() {
+  const router = useRouter()
   const { theme } = useTheme()
+  const { user, refreshUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
   const [sortBy, setSortBy] = useState<'rating' | 'newest'>('newest')
@@ -20,6 +24,20 @@ export default function SkillsPage() {
   const [loading, setLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedSkill, setSelectedSkill] = useState<any | null>(null)
+  const [activeTab, setActiveTab] = useState<'tribes' | 'requests'>('tribes')
+  const [exchanges, setExchanges] = useState<any[]>([])
+  const [loadingExchanges, setLoadingExchanges] = useState(true)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [sessions, setSessions] = useState<any[]>([])
+  const [loadingSessions, setLoadingSessions] = useState(true)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [scheduleTarget, setScheduleTarget] = useState<any | null>(null)
+  const [scheduleForm, setScheduleForm] = useState({ scheduledTime: '', meetingLink: '' })
+  const [submittingSchedule, setSubmittingSchedule] = useState(false)
+  const [reviewTarget, setReviewTarget] = useState<any | null>(null)
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewedSessionIds, setReviewedSessionIds] = useState<string[]>([])
 
   const CATEGORIES = ['All', 'Development', 'Design', 'Marketing', 'Data Science', 'Writing', 'Business', 'Other']
 
@@ -44,26 +62,180 @@ export default function SkillsPage() {
     return () => clearTimeout(timer)
   }, [fetchSkills])
 
+  const fetchMyExchanges = useCallback(async () => {
+    setLoadingExchanges(true)
+    try {
+      const res = await skillService.getMyExchanges()
+      if (res.success) {
+        setExchanges(res.data || [])
+      } else {
+        setFeedback({ type: 'error', text: res.error || 'Failed to load exchange requests' })
+      }
+    } catch (err) {
+      console.error(err)
+      setFeedback({ type: 'error', text: 'Failed to load exchange requests' })
+    } finally {
+      setLoadingExchanges(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchMyExchanges()
+  }, [fetchMyExchanges])
+
+  const fetchSessions = useCallback(async () => {
+    setLoadingSessions(true)
+    try {
+      const res = await sessionService.getMySessions()
+      if (res.success) {
+        setSessions(res.data || [])
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingSessions(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSessions()
+  }, [fetchSessions])
+
+  useEffect(() => {
+    const poll = setInterval(() => {
+      fetchMyExchanges()
+      fetchSessions()
+    }, 8000)
+    return () => clearInterval(poll)
+  }, [fetchMyExchanges, fetchSessions])
+
+  const handleExchangeStatus = async (exchangeId: string, status: 'ACCEPTED' | 'REJECTED') => {
+    setProcessingId(exchangeId)
+    const res = await skillService.updateExchangeStatus(exchangeId, status)
+    if (res.success) {
+      setFeedback({
+        type: 'success',
+        text: status === 'ACCEPTED'
+          ? 'Request accepted. Requester has been notified.'
+          : 'Request rejected. Requester has been notified.'
+      })
+      fetchMyExchanges()
+    } else {
+      setFeedback({ type: 'error', text: res.error || 'Could not update request status' })
+    }
+    setProcessingId(null)
+  }
+
+  const handleScheduleSession = async () => {
+    if (!scheduleTarget || !scheduleForm.scheduledTime) return
+    setSubmittingSchedule(true)
+    const res = await sessionService.scheduleSession({
+      requestId: scheduleTarget.id,
+      scheduledTime: scheduleForm.scheduledTime,
+      meetingLink: scheduleForm.meetingLink || undefined,
+    })
+    if (res.success) {
+      setFeedback({ type: 'success', text: 'Session scheduled successfully.' })
+      setScheduleTarget(null)
+      setScheduleForm({ scheduledTime: '', meetingLink: '' })
+      fetchSessions()
+      fetchMyExchanges()
+    } else {
+      setFeedback({ type: 'error', text: res.error || 'Could not schedule session' })
+    }
+    setSubmittingSchedule(false)
+  }
+
+  const handleCompleteSession = async (sessionId: string) => {
+    setProcessingId(sessionId)
+    const res = await sessionService.completeSession(sessionId)
+    if (res.success) {
+      setFeedback({ type: 'success', text: 'Session completed. Credits updated.' })
+      setReviewTarget(res.data)
+      fetchSessions()
+      refreshUser()
+    } else {
+      setFeedback({ type: 'error', text: res.error || 'Could not complete session' })
+    }
+    setProcessingId(null)
+  }
+
+  const handleSubmitReview = async () => {
+    if (!reviewTarget) return
+    setSubmittingReview(true)
+    const res = await reviewService.submitReview({
+      sessionId: reviewTarget.id,
+      rating: reviewForm.rating,
+      comment: reviewForm.comment,
+    })
+    if (res.success) {
+      setFeedback({ type: 'success', text: 'Feedback submitted successfully.' })
+      setReviewedSessionIds((prev) => [...prev, reviewTarget.id])
+      setReviewTarget(null)
+      setReviewForm({ rating: 5, comment: '' })
+    } else {
+      setFeedback({ type: 'error', text: res.error || 'Could not submit feedback' })
+    }
+    setSubmittingReview(false)
+  }
+
+  const handleOpenSessionChat = async (session: any) => {
+    if (!user) return
+    const otherUserId = session.sender_id === user.id ? session.receiver_id : session.sender_id
+    try {
+      const conversation = await conversationService.getOrCreateDirectConversation(user.id, otherUserId)
+      if (conversation) {
+        router.push('/chat')
+      }
+    } catch (err) {
+      console.error(err)
+      setFeedback({ type: 'error', text: 'Failed to open chat for this session' })
+    }
+  }
+
+  const incomingRequests = exchanges.filter((x) => x.provider_id === user?.id)
+  const outgoingRequests = exchanges.filter((x) => x.requester_id === user?.id)
+  const upcomingSessions = sessions.filter((s) => s.status !== 'COMPLETED')
+  const completedSessions = sessions.filter((s) => s.status === 'COMPLETED')
+
+  const statusBadgeClass = (status: string) => {
+    if (status === 'PENDING') return 'bg-yellow-100 text-yellow-700 border-yellow-300'
+    if (status === 'ACCEPTED') return 'bg-green-100 text-green-700 border-green-300'
+    if (status === 'SCHEDULED') return 'bg-blue-100 text-blue-700 border-blue-300'
+    if (status === 'COMPLETED') return 'bg-gray-100 text-gray-700 border-gray-300'
+    return 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] border-[var(--color-border)]'
+  }
+
   return (
     <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen transition-colors duration-700 font-sans">
       <Header />
 
-      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-4 md:px-8 py-8 gap-8">
+      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-8 py-5 md:py-8 gap-4 md:gap-8">
         
         <Sidebar />
 
-        <main className="flex-1 space-y-12 overflow-y-auto">
+        <main className="flex-1 space-y-6 md:space-y-12 overflow-y-auto">
+          {feedback && (
+            <div className={`border rounded-xl px-4 py-3 text-[10px] font-semibold ${
+              feedback.type === 'success'
+                ? 'bg-[var(--color-accent-soft)]/30 border-[var(--color-accent)]/30 text-[var(--color-text-primary)]'
+                : 'bg-red-500/10 border-red-500/30 text-red-500'
+            }`}>
+              {feedback.text}
+            </div>
+          )}
+
           {/* Editorial Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-[var(--color-border)] pb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-8 bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-8">
             <div className="space-y-3">
                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)]">Tribes Directory</span>
-               <h1 className="text-5xl md:text-6xl font-serif font-black tracking-tighter italic leading-none">Tribes.</h1>
-               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)]">Discover talented collaborators</p>
+               <h1 className="text-3xl sm:text-4xl md:text-6xl font-serif font-black tracking-tighter italic leading-none">Tribes.</h1>
+               <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-[var(--color-text-secondary)]">Discover talented collaborators</p>
             </div>
             <div className="flex items-center gap-4">
                <button 
                  onClick={() => setIsAddModalOpen(true)}
-                 className="flex items-center gap-4 px-8 py-5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-accent)] transition-all shadow-xl group"
+                 className="flex items-center gap-2 sm:gap-4 px-4 sm:px-7 py-3.5 sm:py-4 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-xl sm:rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.32em] hover:bg-[var(--color-accent)] transition-all shadow-xl group"
                >
                  <Plus size={16} className="group-hover:rotate-90 transition-transform" />
                  List Your expertise
@@ -72,27 +244,27 @@ export default function SkillsPage() {
           </div>
 
           {/* Search & Intelligence Filters */}
-          <div className="flex flex-col gap-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="flex flex-col gap-5 md:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                <div className="lg:col-span-8 group">
                   <div className="relative">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={20} />
+                    <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={18} />
                     <input
                       type="text"
                       placeholder="Search by expertise (e.g. React, UI Design)..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-16 pr-8 py-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl text-[13px] font-medium focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all placeholder:text-[var(--color-text-secondary)]/30"
+                      className="w-full pl-12 sm:pl-16 pr-4 sm:pr-8 py-3.5 sm:py-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl sm:rounded-2xl text-xs sm:text-[13px] font-medium focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all placeholder:text-[var(--color-text-secondary)]/30"
                     />
                   </div>
                </div>
                <div className="lg:col-span-4">
                   <div className="relative group">
-                    <Filter className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--color-accent)] opacity-40 group-focus-within:opacity-100 transition-opacity" size={18} />
+                    <Filter className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-[var(--color-accent)] opacity-40 group-focus-within:opacity-100 transition-opacity" size={16} />
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="w-full pl-16 pr-8 py-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all appearance-none cursor-pointer"
+                      className="w-full pl-12 sm:pl-16 pr-8 py-3.5 sm:py-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="newest">Sort: Recently Added</option>
                       <option value="rating">Sort: High Rating</option>
@@ -102,12 +274,12 @@ export default function SkillsPage() {
                </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-8 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
+                  className={`px-4 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-widest transition-all ${
                     activeCategory === cat 
                       ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] shadow-lg shadow-[var(--color-accent)]/20' 
                       : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent)]'
@@ -119,64 +291,253 @@ export default function SkillsPage() {
             </div>
           </div>
 
-          {/* Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl p-2">
+            <button
+              onClick={() => setActiveTab('tribes')}
+              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-[0.12em] ${
+                activeTab === 'tribes'
+                  ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]'
+                  : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
+              }`}
+            >
+              Tribes
+            </button>
+            <button
+              onClick={() => setActiveTab('requests')}
+              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-[0.12em] ${
+                activeTab === 'requests'
+                  ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]'
+                  : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
+              }`}
+            >
+              Requests
+            </button>
+          </div>
+
+          {activeTab === 'requests' ? (
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm sm:text-base font-serif font-bold">Skill Exchange Requests</h2>
+                <button
+                  onClick={fetchMyExchanges}
+                  className="text-[9px] uppercase tracking-[0.12em] font-black text-[var(--color-accent)]"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              {loadingExchanges ? (
+                <p className="text-[10px] text-[var(--color-text-secondary)]">Loading requests...</p>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">Incoming (you can accept/reject/schedule)</p>
+                    {incomingRequests.length === 0 ? (
+                      <p className="text-[10px] text-[var(--color-text-secondary)]">No pending incoming requests.</p>
+                    ) : (
+                      incomingRequests.map((req) => (
+                        <div key={req.id} className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-bg-primary)]">
+                          <p className="text-[10px] font-semibold">{req.requester?.name || 'Requester'} requested <span className="text-[var(--color-accent)]">{req.skill?.name}</span></p>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded-full border ${statusBadgeClass(req.status)}`}>
+                              {req.status}
+                            </span>
+                            <span className="text-[8px] text-[var(--color-text-secondary)]">Request → Accepted → Scheduled → Completed</span>
+                          </div>
+                          {req.message && <p className="text-[9px] text-[var(--color-text-secondary)] mt-1 line-clamp-2">"{req.message}"</p>}
+                          <div className="flex gap-2 mt-3">
+                            {req.status === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleExchangeStatus(req.id, 'ACCEPTED')}
+                                  disabled={processingId === req.id}
+                                  className="px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] disabled:opacity-50"
+                                >
+                                  {processingId === req.id ? 'Working...' : 'Accept'}
+                                </button>
+                                <button
+                                  onClick={() => handleExchangeStatus(req.id, 'REJECTED')}
+                                  disabled={processingId === req.id}
+                                  className="px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] rounded-lg border border-red-500 text-red-500 disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {req.status === 'ACCEPTED' && (
+                              <button
+                                onClick={() => setScheduleTarget(req)}
+                                className="px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] flex items-center gap-1"
+                              >
+                                <CalendarClock size={10} /> Schedule Session
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">Your request status</p>
+                    {outgoingRequests.length === 0 ? (
+                      <p className="text-[10px] text-[var(--color-text-secondary)]">No requests sent yet.</p>
+                    ) : (
+                      outgoingRequests.map((req) => (
+                        <div key={req.id} className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-bg-primary)]">
+                          <p className="text-[10px] font-semibold">{req.skill?.name}</p>
+                          <p className="text-[9px] text-[var(--color-text-secondary)] mt-1">
+                            Status: <span className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase ${statusBadgeClass(req.status)}`}>{req.status}</span>
+                          </p>
+                          <p className="text-[8px] text-[var(--color-text-secondary)] mt-1">Request → Accepted → Scheduled → Completed</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-5">
             {loading ? (
               [...Array(6)].map((_, i) => (
-                <div key={i} className="h-[400px] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] animate-pulse" />
+                <div key={i} className="h-[190px] sm:h-[240px] md:h-[290px] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg sm:rounded-xl md:rounded-2xl animate-pulse" />
               ))
             ) : skills.map((skill) => (
-              <Card key={skill.id} className="group relative overflow-hidden flex flex-col p-0 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5 hover:border-[var(--color-accent-soft)]">
+              <Card key={skill.id} className="group relative overflow-hidden flex flex-col p-0 bg-[var(--color-bg-secondary)] rounded-lg sm:rounded-xl md:rounded-2xl border border-[var(--color-border)] transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-[var(--color-accent)]/5 hover:border-[var(--color-accent-soft)] min-h-[190px] sm:min-h-[240px] md:min-h-[290px]">
                 {/* Header Visual */}
-                <div className="p-10 flex-1">
-                  <div className="flex items-start justify-between mb-8">
-                    <div className="relative">
-                      <Avatar name={skill.user?.name || 'User'} src={skill.user?.avatar_url} size="xl" className="ring-8 ring-[var(--color-accent-soft)]/20 shadow-xl transition-transform group-hover:scale-105" />
-                      <div className="absolute -bottom-2 -right-2 px-3 py-1 bg-[var(--color-accent)] text-[var(--color-bg-primary)] rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg">
+                <div className="p-2 sm:p-3 md:p-4 flex-1">
+                  <div className="flex items-start gap-2 sm:gap-3 mb-2.5 sm:mb-4 md:mb-5">
+                    <div className="relative shrink-0">
+                      <Avatar name={skill.user?.name || 'User'} src={skill.user?.avatar_url} size="sm" className="ring-1 sm:ring-2 ring-[var(--color-accent-soft)]/20 shadow-sm transition-transform group-hover:scale-105" />
+                      <div className="absolute -bottom-1 -right-1 px-1 py-[1px] bg-[var(--color-accent-soft)] text-[var(--color-accent)] border border-[var(--color-accent)]/30 rounded-full text-[5px] font-semibold uppercase tracking-[0.02em] leading-none shadow-sm">
                         {skill.level}
                       </div>
                     </div>
-                    <span className="px-4 py-2 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] opacity-40">
-                      {skill.category}
-                    </span>
-                  </div>
-
-                  <div className="space-y-4 mb-10">
-                     <div>
-                       <h3 className="text-2xl font-serif font-black tracking-tight group-hover:text-[var(--color-accent)] transition-colors">{skill.name}</h3>
-                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)] mt-1.5 line-clamp-1">Expertise by {skill.user?.name}</p>
-                     </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[11px] sm:text-sm md:text-base font-serif font-black tracking-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 leading-tight">
+                        {skill.name}
+                      </h3>
+                      <p className="text-[6px] sm:text-[8px] md:text-[9px] font-semibold tracking-[0.04em] text-[var(--color-text-secondary)] mt-0.5 line-clamp-1">
+                        Expertise by {skill.user?.name}
+                      </p>
+                      <p className="text-[6px] sm:text-[7px] font-black uppercase tracking-[0.08em] text-[var(--color-accent)] mt-1 line-clamp-1">
+                        {skill.category}
+                      </p>
+                    </div>
                   </div>
 
                   {skill.description && (
-                    <div className="p-6 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl mb-10">
-                       <p className="text-[11px] leading-relaxed text-[var(--color-text-secondary)] italic">"{skill.description}"</p>
+                    <div className="p-1.5 sm:p-2.5 md:p-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-md sm:rounded-lg mb-2.5 sm:mb-4 md:mb-5">
+                       <p className="text-[7px] sm:text-[8px] md:text-[9px] leading-snug text-[var(--color-text-secondary)] italic line-clamp-2">"{skill.description}"</p>
                     </div>
                   )}
 
                   {/* Skills tags (If user had multiple, we'd show them, but here it's 1 skill per card) */}
-                  <div className="flex items-center gap-3 py-4 border-t border-[var(--color-border)] opacity-50">
-                     <span className="text-[8px] font-black uppercase tracking-widest">Active Since</span>
-                     <span className="text-[10px] font-bold">{new Date(skill.created_at).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-1 py-1.5 sm:py-2 md:py-2.5 border-t border-[var(--color-border)] opacity-60">
+                     <span className="text-[6px] sm:text-[7px] font-black uppercase tracking-[0.06em] sm:tracking-[0.1em]">Active Since</span>
+                     <span className="text-[7px] sm:text-[8px] md:text-[9px] font-bold">{new Date(skill.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
 
                 {/* Action Layer */}
-                <div className="p-8 border-t border-[var(--color-border)] bg-[var(--color-bg-primary)]/10 group-hover:bg-[var(--color-accent-soft)]/30 transition-colors">
+                <div className="p-2 sm:p-3 md:p-4 border-t border-[var(--color-border)] bg-[var(--color-bg-primary)]/10 group-hover:bg-[var(--color-accent-soft)]/30 transition-colors">
                   <button
                     onClick={() => setSelectedSkill(skill)}
-                    className="w-full py-5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] rounded-2xl group-hover:bg-[var(--color-accent)] transition-all flex items-center justify-center gap-4 group/btn shadow-sm"
+                    className="w-full py-1.5 sm:py-2 md:py-2.5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[6px] sm:text-[7px] md:text-[8px] font-black uppercase tracking-[0.06em] sm:tracking-[0.1em] md:tracking-[0.18em] rounded-md sm:rounded-lg group-hover:bg-[var(--color-accent)] transition-all flex items-center justify-center gap-1 sm:gap-2 group/btn shadow-sm"
                   >
                     Request Exchange
-                    <ArrowRight size={16} className="group-hover/btn:translate-x-2 transition-transform" />
+                    <ArrowRight size={9} className="sm:w-[10px] sm:h-[10px] md:w-3 md:h-3 group-hover/btn:translate-x-1 transition-transform" />
                   </button>
                 </div>
               </Card>
             ))}
           </div>
+          )}
+
+          {activeTab === 'requests' && (
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-6">
+              <h3 className="text-sm sm:text-base font-serif font-bold mb-3">Upcoming Sessions</h3>
+              {loadingSessions ? (
+                <p className="text-[10px] text-[var(--color-text-secondary)]">Loading sessions...</p>
+              ) : upcomingSessions.length === 0 ? (
+                <p className="text-[10px] text-[var(--color-text-secondary)]">No scheduled sessions yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {upcomingSessions.map((session) => (
+                    <div key={session.id} className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-bg-primary)]">
+                      <p className="text-[10px] font-semibold">{session.exchange?.skill?.name || 'Skill session'}</p>
+                      <p className="text-[9px] text-[var(--color-text-secondary)] mt-1">
+                        {new Date(session.scheduled_time).toLocaleString()}
+                      </p>
+                      {session.meeting_link && (
+                        <a href={session.meeting_link} target="_blank" rel="noreferrer" className="text-[8px] text-[var(--color-accent)] mt-1 inline-flex items-center gap-1">
+                          <Link2 size={10} /> Meeting link
+                        </a>
+                      )}
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase ${statusBadgeClass(session.status)}`}>
+                          {session.status}
+                        </span>
+                        {session.status === 'SCHEDULED' && (
+                          <button
+                            onClick={() => handleCompleteSession(session.id)}
+                            disabled={processingId === session.id}
+                            className="px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[8px] font-black uppercase tracking-[0.1em] disabled:opacity-50 flex items-center gap-1"
+                          >
+                            <CheckCircle2 size={10} />
+                            {processingId === session.id ? 'Working...' : 'Mark Completed'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleOpenSessionChat(session)}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[8px] font-black uppercase tracking-[0.1em]"
+                        >
+                          Chat
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'requests' && (
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-6">
+              <h3 className="text-sm sm:text-base font-serif font-bold mb-3">Completed Sessions & Feedback</h3>
+              {completedSessions.length === 0 ? (
+                <p className="text-[10px] text-[var(--color-text-secondary)]">No completed sessions yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {completedSessions.map((session) => {
+                    const reviewed = reviewedSessionIds.includes(session.id)
+                    return (
+                      <div key={session.id} className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-bg-primary)]">
+                        <p className="text-[10px] font-semibold">{session.exchange?.skill?.name || 'Skill session'}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase ${statusBadgeClass(session.status)}`}>Completed</span>
+                          {reviewed ? (
+                            <span className="text-[8px] font-semibold text-[var(--color-accent)]">Feedback Submitted</span>
+                          ) : (
+                            <button
+                              onClick={() => setReviewTarget(session)}
+                              className="px-3 py-1.5 rounded-lg bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[8px] font-black uppercase tracking-[0.1em]"
+                            >
+                              Give Feedback
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {!loading && skills.length === 0 && (
-            <div className="text-center py-32 border-2 border-dashed border-[var(--color-border)] rounded-[3rem] bg-[var(--color-bg-secondary)]/30">
+            <div className="text-center py-20 md:py-28 border-2 border-dashed border-[var(--color-border)] rounded-2xl md:rounded-[2rem] bg-[var(--color-bg-secondary)]/30">
               <div className="w-20 h-20 bg-[var(--color-accent-soft)] text-[var(--color-accent)] rounded-3xl flex items-center justify-center mx-auto mb-8">
                  <Search size={32} />
               </div>
@@ -196,9 +557,84 @@ export default function SkillsPage() {
       <SkillExchangeModal 
         isOpen={!!selectedSkill} 
         onClose={() => setSelectedSkill(null)} 
-        onSuccess={() => alert('Request sent successfully!')}
+        onSuccess={(message) => {
+          setFeedback({ type: 'success', text: message })
+          fetchMyExchanges()
+        }}
         skill={selectedSkill}
       />
+
+      {scheduleTarget && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setScheduleTarget(null)} />
+          <div className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-serif font-bold text-[var(--color-accent)]">Schedule Session</h3>
+              <button onClick={() => setScheduleTarget(null)}><X size={16} /></button>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] uppercase font-black tracking-[0.12em] text-[var(--color-text-secondary)]">Date & time</label>
+              <input
+                type="datetime-local"
+                min={new Date().toISOString().slice(0, 16)}
+                value={scheduleForm.scheduledTime}
+                onChange={(e) => setScheduleForm((p) => ({ ...p, scheduledTime: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-bg-primary)] text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] uppercase font-black tracking-[0.12em] text-[var(--color-text-secondary)]">Meeting link (optional)</label>
+              <input
+                type="url"
+                placeholder="https://meet.google.com/..."
+                value={scheduleForm.meetingLink}
+                onChange={(e) => setScheduleForm((p) => ({ ...p, meetingLink: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-bg-primary)] text-sm"
+              />
+            </div>
+            <button
+              onClick={handleScheduleSession}
+              disabled={submittingSchedule || !scheduleForm.scheduledTime}
+              className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] disabled:opacity-50 shadow-lg"
+            >
+              {submittingSchedule ? 'Scheduling...' : 'Confirm Schedule'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {reviewTarget && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setReviewTarget(null)} />
+          <div className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-serif font-bold">Give Feedback</h3>
+              <button onClick={() => setReviewTarget(null)}><X size={16} /></button>
+            </div>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button key={star} onClick={() => setReviewForm((p) => ({ ...p, rating: star }))} className="p-1">
+                  <Star size={18} className={star <= reviewForm.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
+                </button>
+              ))}
+            </div>
+            <textarea
+              rows={4}
+              placeholder="Share your session feedback..."
+              value={reviewForm.comment}
+              onChange={(e) => setReviewForm((p) => ({ ...p, comment: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm resize-none"
+            />
+            <button
+              onClick={handleSubmitReview}
+              disabled={submittingReview}
+              className="w-full py-2.5 rounded-lg bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] disabled:opacity-50"
+            >
+              {submittingReview ? 'Submitting...' : 'Submit Feedback'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

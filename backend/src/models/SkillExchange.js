@@ -3,6 +3,10 @@ import { supabase, supabaseAdmin } from '../config/database.js';
 const getClient = () => supabaseAdmin || supabase;
 
 export class SkillExchangeModel {
+  static getClient() {
+    return getClient();
+  }
+
   /**
    * Create a new skill exchange request
    */

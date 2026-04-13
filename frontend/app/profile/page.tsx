@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus } from 'lucide-react'
 import Header from '@/components/Header'
+import Sidebar from '@/components/Sidebar'
 import Button from '@/components/Button'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
@@ -20,6 +21,8 @@ const AVATAR_PRESETS = [
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const profileUid = searchParams.get('uid')
   const { user, isAuthenticated, loading: authLoading, token, refreshUser, updateUser } = useAuth()
   const { theme } = useTheme()
   const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews'>('intents')
@@ -36,6 +39,9 @@ export default function ProfilePage() {
   })
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [externalUser, setExternalUser] = useState<any | null>(null)
+  const [loadingExternalUser, setLoadingExternalUser] = useState(false)
+  const [showQrModal, setShowQrModal] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -50,16 +56,41 @@ export default function ProfilePage() {
   }, [user])
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated && !profileUid) {
       router.push('/')
     }
-  }, [isAuthenticated, authLoading, router])
+  }, [isAuthenticated, authLoading, router, profileUid])
 
   useEffect(() => {
     if (token) {
       fetchMyIntents()
     }
   }, [token])
+
+  useEffect(() => {
+    if (!profileUid) return
+    if (user?.id === profileUid) {
+      setExternalUser(null)
+      return
+    }
+
+    const fetchExternalUser = async () => {
+      setLoadingExternalUser(true)
+      try {
+        const response = await fetch(`/api/users/${profileUid}`)
+        const data = await response.json()
+        if (response.ok && data.data) {
+          setExternalUser(data.data)
+        }
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoadingExternalUser(false)
+      }
+    }
+
+    fetchExternalUser()
+  }, [profileUid, user?.id])
   const fetchMyIntents = async () => {
     setLoadingIntents(true)
     try {
@@ -158,7 +189,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (authLoading || !user) {
+  if (authLoading || (!user && !profileUid) || loadingExternalUser) {
     return (
       <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
         <div className="w-12 h-12 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
@@ -166,15 +197,22 @@ export default function ProfilePage() {
     )
   }
 
-  const joinDate = user.created_at
-    ? `Joined ${new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+  const profileUser = externalUser || user
+  const isOwnProfile = !!user && (!profileUid || user.id === profileUid)
+  const profileShareUrl = profileUser
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/profile?uid=${profileUser.id}`
+    : ''
+
+  const joinDate = profileUser?.created_at
+    ? `Joined ${new Date(profileUser.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
     : 'Member since launch'
 
   return (
     <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen transition-colors duration-700 font-sans">
       <Header />
-
-      <main className="max-w-6xl mx-auto px-6 md:px-12 py-12">
+      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-8 py-5 md:py-8 gap-4 md:gap-8">
+      <Sidebar />
+      <main className="flex-1">
         {/* Back */}
         <button 
           onClick={() => router.push('/dashboard')}
@@ -184,12 +222,12 @@ export default function ProfilePage() {
           Back to Sanctuary
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 gap-8">
           {/* Profile Sidebar/Header Area */}
-          <div className="lg:col-span-4 space-y-8">
-            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-10 rounded-[3rem] shadow-2xl shadow-[var(--color-accent)]/5 text-center relative overflow-hidden">
+          <div className="space-y-6">
+            <div className="bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] p-4 sm:p-6 md:p-8 rounded-2xl md:rounded-[2rem] shadow-xl shadow-[var(--color-accent)]/5 relative overflow-hidden">
               
-              {isEditing ? (
+              {isEditing && isOwnProfile ? (
                 <div className="space-y-6">
                   <div className="relative group mx-auto w-32 h-32 mb-4">
                     <div className="w-full h-full rounded-full overflow-hidden border-2 border-[var(--color-accent)] group-hover:opacity-50 transition-opacity">
@@ -275,72 +313,89 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <>
-                  <div className="flex justify-center mb-8 relative group">
-                    <Avatar name={user.name || 'User'} src={user.avatar_url ? (user.avatar_url.startsWith('http') ? user.avatar_url : storageService.getPublicUrl(user.avatar_url)) : undefined} size="xl" className="ring-4 ring-[var(--color-accent-soft)]" />
-                    <button 
-                      onClick={() => setIsEditing(true)}
-                      className="absolute bottom-0 right-1/2 translate-x-12 translate-y-2 p-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[var(--color-accent)] shadow-xl hover:scale-110 transition-all"
-                    >
-                       <Edit2 size={16} />
-                    </button>
-                  </div>
-                  <h1 className="text-3xl font-serif font-black text-[var(--color-text-primary)] mb-2">{user.name || 'User'}</h1>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] mb-4">{user.email}</p>
-                  
-                  {user.location && (
-                    <div className="flex items-center justify-center gap-2 text-[var(--color-text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-6">
-                      <MapPin size={12} className="text-[var(--color-accent)]" />
-                      {user.location}
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4 mb-4 relative group">
+                        <Avatar name={profileUser?.name || 'User'} src={profileUser?.avatar_url ? (profileUser.avatar_url.startsWith('http') ? profileUser.avatar_url : storageService.getPublicUrl(profileUser.avatar_url)) : undefined} size="xl" className="ring-4 ring-[var(--color-accent-soft)]" />
+                        <button 
+                          disabled={!isOwnProfile}
+                          onClick={() => setIsEditing(true)}
+                          className="absolute left-16 top-14 p-2 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[var(--color-accent)] shadow-xl hover:scale-110 transition-all disabled:opacity-40 disabled:hover:scale-100"
+                        >
+                           <Edit2 size={14} />
+                        </button>
+                        <div>
+                          <h1 className="text-2xl md:text-3xl font-serif font-black text-[var(--color-text-primary)] mb-1">{profileUser?.name || 'User'}</h1>
+                          <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] md:tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
+                        </div>
+                      </div>
+                      
+                      {profileUser?.location && (
+                        <div className="flex items-center gap-2 text-[var(--color-text-secondary)] text-[9px] md:text-[10px] font-bold uppercase tracking-[0.1em] md:tracking-widest mb-2">
+                          <MapPin size={12} className="text-[var(--color-accent)]" />
+                          {profileUser.location}
+                        </div>
+                      )}
+
+                      {profileUser?.bio && (
+                        <p className="text-[11px] md:text-xs text-[var(--color-text-secondary)] font-medium leading-relaxed italic mb-3 border-t border-b border-[var(--color-border)] py-2 line-clamp-2 break-words">
+                          "{profileUser.bio}"
+                        </p>
+                      )}
                     </div>
-                  )}
-
-                  {user.bio && (
-                    <p className="text-xs text-[var(--color-text-secondary)] font-medium leading-relaxed italic mb-8 border-t border-b border-[var(--color-border)] py-6 line-clamp-3">
-                      "{user.bio}"
-                    </p>
-                  )}
-                  
-                  <div className="grid grid-cols-2 gap-6 pt-10">
+                  <div className="grid grid-cols-2 gap-4 pt-2 lg:pt-0 lg:min-w-[260px]">
                      <div className="text-center">
-                        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-2">Deployed</p>
-                        <p className="text-xl font-serif font-black">{myIntents.length}</p>
+                        <p className="text-[8px] font-black uppercase tracking-[0.18em] md:tracking-[0.4em] text-[var(--color-text-secondary)] mb-1.5">Deployed</p>
+                        <p className="text-lg md:text-xl font-serif font-black">{myIntents.length}</p>
                      </div>
                      <div className="text-center">
-                        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-2">Rating</p>
-                        <p className="text-xl font-serif font-black">4.9</p>
+                        <p className="text-[8px] font-black uppercase tracking-[0.18em] md:tracking-[0.4em] text-[var(--color-text-secondary)] mb-1.5">Credits</p>
+                        <p className="text-lg md:text-xl font-serif font-black inline-flex items-center gap-1">
+                          {profileUser?.credits ?? 0}
+                          {isOwnProfile && <Plus size={12} className="text-[var(--color-accent)]" />}
+                        </p>
                      </div>
                   </div>
 
-                  <div className="mt-12 space-y-4">
+                  <div className="mt-0 lg:ml-4 space-y-3 lg:min-w-[240px]">
+                     <button
+                        onClick={() => setShowQrModal(true)}
+                        className="w-full py-3 border border-[var(--color-border)] text-[var(--color-text-secondary)] text-[9px] font-black uppercase tracking-[0.16em] hover:text-[var(--color-text-primary)] transition-all flex items-center justify-center gap-2 rounded-xl"
+                     >
+                        <QrCode size={12} /> View QR
+                     </button>
+                     {isOwnProfile && (
                      <button 
                         onClick={() => setIsEditing(true)}
-                        className="w-full py-5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[var(--color-text-primary)] transition-all rounded-2xl"
+                        className="w-full py-3.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] md:text-[10px] font-black uppercase tracking-[0.16em] md:tracking-[0.3em] hover:bg-[var(--color-text-primary)] transition-all rounded-xl"
                       >
                         Edit Statistics & Identity
                      </button>
-                     <button className="w-full py-5 border border-[var(--color-border)] text-[var(--color-text-secondary)] text-[10px] font-black uppercase tracking-[0.3em] hover:text-[var(--color-text-primary)] transition-all flex items-center justify-center gap-3 rounded-2xl">
+                     )}
+                     <button className="w-full py-3 border border-[var(--color-border)] text-[var(--color-text-secondary)] text-[9px] md:text-[10px] font-black uppercase tracking-[0.16em] md:tracking-[0.3em] hover:text-[var(--color-text-primary)] transition-all flex items-center justify-center gap-2 rounded-xl">
                         <Share2 size={14} /> Share Packet
                      </button>
+                  </div>
                   </div>
                 </>
               )}
             </div>
 
-            <div className="bg-[var(--color-accent-soft)]/10 border border-[var(--color-accent-soft)] p-8 rounded-[2.5rem]">
+            <div className="bg-[var(--color-accent-soft)]/10 border border-[var(--color-accent-soft)] p-5 md:p-6 rounded-2xl md:rounded-[2rem]">
                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-4">Membership Archive</p>
                <p className="text-sm font-serif italic text-[var(--color-text-primary)]">{joinDate}</p>
             </div>
           </div>
 
           {/* Activity Area */}
-          <div className="lg:col-span-8 flex flex-col space-y-10">
+          <div className="flex flex-col space-y-10">
             {/* Tabs */}
-            <div className="flex gap-8 border-b border-[var(--color-border)]">
+            <div className="flex gap-3 sm:gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-3 sm:px-4">
               {['intents', 'skills', 'reviews'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
-                  className={`pb-6 text-[10px] font-black uppercase tracking-[0.4em] border-b-2 transition-all ${
+                  className={`py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.32em] border-b-2 transition-all ${
                     activeTab === tab
                       ? 'text-[var(--color-accent)] border-[var(--color-accent)]'
                       : 'text-[var(--color-text-secondary)] border-transparent hover:text-[var(--color-text-primary)]'
@@ -357,13 +412,13 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 gap-8">
                   {loadingIntents ? (
                     [1, 2, 3].map((i) => (
-                      <div key={i} className="h-40 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] animate-pulse" />
+                      <div key={i} className="h-32 bg-[var(--color-bg-secondary)] rounded-2xl md:rounded-[2rem] border border-[var(--color-border)] animate-pulse" />
                     ))
                   ) : myIntents.length > 0 ? (
                     myIntents.map((intent) => (
                       <div 
                         key={intent.id} 
-                        className="group bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] p-10 rounded-[2.5rem] hover:shadow-2xl transition-all duration-700 cursor-pointer relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-8" 
+                        className="group bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] p-5 md:p-8 rounded-2xl md:rounded-[2rem] hover:shadow-2xl transition-all duration-700 cursor-pointer relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-8" 
                         onClick={() => router.push(`/intent/${intent.id}`)}
                       >
                         <div className="space-y-4 flex-1">
@@ -387,7 +442,7 @@ export default function ProfilePage() {
                       </div>
                     ))
                   ) : (
-                    <div className="bg-[var(--color-bg-secondary)] border-2 border-dashed border-[var(--color-border)] p-24 rounded-[3rem] text-center">
+                    <div className="bg-[var(--color-bg-secondary)] border-2 border-dashed border-[var(--color-border)] p-10 md:p-16 rounded-2xl md:rounded-[2rem] text-center">
                       <Briefcase size={56} className="mx-auto text-[var(--color-border)] mb-8" />
                       <h3 className="text-3xl font-serif italic text-[var(--color-text-primary)] mb-4">No active broadcasts.</h3>
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-12">Initialize your first collaboration intent.</p>
@@ -403,13 +458,13 @@ export default function ProfilePage() {
               )}
 
               {activeTab === 'skills' && (
-                <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-12 rounded-[3rem] text-center">
+                <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 rounded-2xl md:rounded-[2rem] text-center">
                   <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)]">Skill Proficiency Archive <br /><span className="italic font-light">(Restricted Access)</span></p>
                 </div>
               )}
 
               {activeTab === 'reviews' && (
-                <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-12 rounded-[3rem] text-center">
+                <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 rounded-2xl md:rounded-[2rem] text-center">
                   <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)]">Reputation Ledger <br /><span className="italic font-light">(Pending Endorsements)</span></p>
                 </div>
               )}
@@ -417,6 +472,31 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
+      </div>
+
+      {showQrModal && profileShareUrl && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowQrModal(false)} />
+          <div className="relative w-full max-w-sm bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-5 text-center space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-serif font-bold">Profile QR</h3>
+              <button onClick={() => setShowQrModal(false)}><X size={16} /></button>
+            </div>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(profileShareUrl)}`}
+              alt="Profile QR Code"
+              className="w-44 h-44 mx-auto rounded-lg border border-[var(--color-border)]"
+            />
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(profileShareUrl)}
+              className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-2"
+            >
+              <Copy size={12} /> Copy Profile Link
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

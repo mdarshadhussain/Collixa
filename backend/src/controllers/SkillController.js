@@ -47,6 +47,21 @@ export class SkillController {
   }
 
   /**
+   * Get exchanges for current user
+   */
+  static async getMyExchanges(req, res, next) {
+    try {
+      const exchanges = await SkillService.getUserExchanges(req.user.id);
+      res.status(200).json({
+        success: true,
+        data: exchanges
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Update exchange status (Accept/Reject/Schedule)
    */
   static async updateStatus(req, res, next) {

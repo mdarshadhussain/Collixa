@@ -69,6 +69,17 @@ export class NotificationService {
     );
   }
 
+  static async notifySessionScheduled(requesterId, providerName, skillName, scheduledTime) {
+    const formatted = new Date(scheduledTime).toLocaleString();
+    return await this.send(
+      requesterId,
+      'REQUEST_ACCEPTED',
+      'Session Scheduled',
+      `${providerName} scheduled your ${skillName} session for ${formatted}.`,
+      '/skills'
+    );
+  }
+
   static async notifyNewMessage(recipientId, senderName, conversationId) {
     return await this.send(
       recipientId,

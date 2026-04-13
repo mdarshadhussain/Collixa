@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, MessageSquare, Users, Settings, PlusCircle } from 'lucide-react'
+import { LayoutDashboard, FileText, MessageSquare, Users, User } from 'lucide-react'
 import { messageService, supabase } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 
@@ -12,6 +12,7 @@ const navItems = [
   { icon: FileText, label: 'My Projects', href: '/my-intents' },
   { icon: MessageSquare, label: 'Messages', href: '/chat' },
   { icon: Users, label: 'Tribes', href: '/skills' },
+  { icon: User, label: 'Profile', href: '/profile' },
 ]
 
 export default function Sidebar() {
@@ -48,8 +49,10 @@ export default function Sidebar() {
   }, [isAuthenticated])
 
   return (
-    <aside className="w-72 border border-[var(--color-border)] hidden lg:flex flex-col p-8 rounded-[2.5rem] sticky top-28 h-full bg-[var(--color-bg-secondary)]/50 backdrop-blur-md shadow-xl shadow-black/5">
-      <div className="flex flex-col h-full">
+    <>
+    <div className="hidden lg:block w-72 shrink-0" />
+    <aside className="w-72 border border-[var(--color-border)] hidden lg:flex flex-col p-8 rounded-[2.5rem] fixed top-28 h-[calc(100vh-8rem)] bg-[var(--color-bg-secondary)]/50 backdrop-blur-md shadow-xl shadow-black/5 overflow-y-auto">
+      <div className="flex flex-col min-h-full">
         <div className="space-y-2">
           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-8 ml-4 opacity-60">Menu</p>
           <nav className="space-y-3">
@@ -91,5 +94,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   )
 }

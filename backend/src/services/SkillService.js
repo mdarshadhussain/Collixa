@@ -44,7 +44,7 @@ export class SkillService {
     // Notify provider
     try {
       const { data: requester } = await SkillModel.getClient().from('users').select('name').eq('id', requesterId).single();
-      await NotificationService.notifySkillRequest(skill.user_id, requester?.name || 'A user', skill.title);
+      await NotificationService.notifySkillRequest(skill.user_id, requester?.name || 'A user', skill.name);
     } catch (err) {
       console.error('Failed to send notification:', err);
     }
@@ -52,29 +52,51 @@ export class SkillService {
     return exchange;
   }
 
+  static async getUserExchanges(userId) {
+    return await SkillExchangeModel.getByUser(userId);
+  }
+
   /**
    * Schedule or update status
    */
   static async updateExchangeStatus(userId, exchangeId, status, data) {
-    // Basic verification could go here (e.g., only provider can accept)
+    const client = SkillExchangeModel.getClient();
+    const { data: existing, error } = await client
+      .from('skill_exchanges')
+      .select('id, requester_id, provider_id, skill_id, status')
+      .eq('id', exchangeId)
+      .single();
+
+    if (error || !existing) {
+      throw new Error('Exchange request not found');
+    }
+
+    if (existing.provider_id !== userId) {
+      throw new Error('Only the skill provider can update this request');
+    }
+
+    if (existing.status !== 'PENDING' && (status === 'ACCEPTED' || status === 'REJECTED')) {
+      throw new Error(`Cannot update a ${existing.status} request`);
+    }
+
     const updated = await SkillExchangeModel.updateStatus(exchangeId, status, data);
     
     // Notify requester
     try {
       if (status === 'ACCEPTED' || status === 'REJECTED') {
-        const { data: exchange } = await SkillExchangeModel.getClient()
+        const { data: exchange } = await client
           .from('skill_exchanges')
           .select('requester_id, skill_id, provider_id')
           .eq('id', exchangeId)
           .single();
         
-        const { data: provider } = await SkillExchangeModel.getClient().from('users').select('name').eq('id', exchange.provider_id).single();
-        const { data: skill } = await SkillExchangeModel.getClient().from('skills').select('title').eq('id', exchange.skill_id).single();
+        const { data: provider } = await client.from('users').select('name').eq('id', exchange.provider_id).single();
+        const { data: skill } = await client.from('skills').select('name').eq('id', exchange.skill_id).single();
         
         await NotificationService.notifyRequestResponse(
           exchange.requester_id, 
           provider?.name || 'A provider', 
-          skill?.title || 'skill', 
+          skill?.name || 'skill',
           status === 'ACCEPTED'
         );
       }

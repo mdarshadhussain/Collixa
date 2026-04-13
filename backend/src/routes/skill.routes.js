@@ -49,6 +49,16 @@ router.post(
 );
 
 /**
+ * GET /api/skills/exchanges/me
+ * Get current user's exchange requests (incoming/outgoing)
+ */
+router.get(
+  '/exchanges/me',
+  authMiddleware,
+  SkillController.getMyExchanges
+);
+
+/**
  * PATCH /api/skills/exchanges/:id
  * Update status (Accept/Reject/Schedule)
  */
