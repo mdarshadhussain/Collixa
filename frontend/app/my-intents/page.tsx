@@ -106,7 +106,7 @@ export default function MyIntentsPage() {
       
       <Header />
 
-      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-8 py-5 md:py-8 gap-4 md:gap-8">
+      <div className="flex flex-1 max-w-[1700px] mx-auto w-full px-6 sm:px-10 md:px-16 py-6 md:py-12 gap-6 md:gap-12">
         
         <Sidebar />
 

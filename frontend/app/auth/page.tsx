@@ -151,8 +151,8 @@ function AuthContent() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-3">Full Name</label>
+              <div className="space-y-2">
+                 <label className="editorial-label">Identity Name</label>
                  <Input
                   name="name"
                   type="text"
@@ -161,54 +161,56 @@ function AuthContent() {
                   onChange={handleChange}
                   error={errors.name}
                   icon={<User size={16} className="opacity-30" />}
-                  className="bg-transparent border-[var(--color-border)] rounded-2xl py-4 focus:border-[var(--color-accent)] transition-all"
+                  className="editorial-input"
                  />
               </div>
             )}
 
-            <div className="space-y-1">
-               <label className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-3">Email Address</label>
-               <Input
-                name="email"
-                type="email"
-                placeholder="name@email.com"
-                value={formData.email}
-                onChange={handleChange}
-                error={errors.email}
-                icon={<Mail size={16} className="opacity-30" />}
-                className="bg-transparent border-[var(--color-border)] rounded-2xl py-4 focus:border-[var(--color-accent)] transition-all"
-               />
-            </div>
+             <div className="space-y-6">
+               <div className="space-y-2">
+                  <label className="editorial-label">Email Record</label>
+                  <Input
+                   name="email"
+                   type="email"
+                   placeholder="name@email.com"
+                   value={formData.email}
+                   onChange={handleChange}
+                   error={errors.email}
+                   icon={<Mail size={16} className="opacity-30" />}
+                   className="editorial-input"
+                  />
+               </div>
 
-            <div className="space-y-1">
-               <label className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-3">Password</label>
-               <Input
-                name="password"
-                type="password"
-                placeholder="Enter password"
-                value={formData.password}
-                onChange={handleChange}
-                error={errors.password}
-                icon={<Lock size={16} className="opacity-30" />}
-                className="bg-transparent border-[var(--color-border)] rounded-2xl py-4 focus:border-[var(--color-accent)] transition-all"
-               />
-            </div>
+               <div className="space-y-2">
+                  <label className="editorial-label">Secure Access Key</label>
+                  <Input
+                   name="password"
+                   type="password"
+                   placeholder="Enter password"
+                   value={formData.password}
+                   onChange={handleChange}
+                   error={errors.password}
+                   icon={<Lock size={16} className="opacity-30" />}
+                   className="editorial-input"
+                  />
+               </div>
+             </div>
 
-            {!isLogin && (
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-3">Confirm Password</label>
-                 <Input
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Confirm password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  error={errors.confirmPassword}
-                  icon={<Lock size={16} className="opacity-30" />}
-                  className="bg-transparent border-[var(--color-border)] rounded-2xl py-4 focus:border-[var(--color-accent)] transition-all"
-                 />
-              </div>
-            )}
+             {!isLogin && (
+               <div className="space-y-2">
+                  <label className="editorial-label">Confirm Key</label>
+                  <Input
+                   name="confirmPassword"
+                   type="password"
+                   placeholder="Confirm password"
+                   value={formData.confirmPassword}
+                   onChange={handleChange}
+                   error={errors.confirmPassword}
+                   icon={<Lock size={16} className="opacity-30" />}
+                   className="editorial-input"
+                  />
+               </div>
+             )}
 
             <button
               type="submit"

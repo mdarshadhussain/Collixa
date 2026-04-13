@@ -77,6 +77,38 @@ export class SkillController {
       next(error);
     }
   }
+
+  /**
+   * Update a skill
+   */
+  static async updateSkill(req, res, next) {
+    try {
+      const { id } = req.params;
+      const skill = await SkillService.updateSkill(req.user.id, id, req.body);
+      res.status(200).json({
+        success: true,
+        data: skill
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete a skill
+   */
+  static async deleteSkill(req, res, next) {
+    try {
+      const { id } = req.params;
+      await SkillService.deleteSkill(req.user.id, id);
+      res.status(200).json({
+        success: true,
+        message: 'Skill deleted successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default SkillController;

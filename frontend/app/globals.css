@@ -112,3 +112,71 @@ h3, .text-h3 {
   transform: translateY(0);
 }
 
+/* Editorial Form Elements */
+.editorial-label {
+  @apply text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-2 block ml-1;
+}
+
+.editorial-input {
+  @apply w-full px-6 py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-xs font-semibold focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] focus:ring-opacity-20 outline-none transition-all placeholder:text-[var(--color-text-secondary)] placeholder:text-opacity-30;
+}
+
+.editorial-textarea {
+  @apply w-full px-6 py-5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[1.5rem] md:rounded-[2rem] text-xs font-medium focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] focus:ring-opacity-20 outline-none transition-all placeholder:text-[var(--color-text-secondary)] placeholder:text-opacity-30 resize-none min-h-[120px];
+}
+
+.editorial-select {
+  @apply w-full px-12 py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[10px] font-black uppercase tracking-[0.2em] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] focus:ring-opacity-20 outline-none appearance-none cursor-pointer transition-all;
+}
+
+.editorial-select-wrapper {
+  @apply relative;
+}
+
+.editorial-select-wrapper::after {
+  content: '↓';
+  @apply absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-text-secondary)] opacity-50 text-[10px];
+}
+
+/* Premium Date/Time Input Styling */
+input[type="datetime-local"],
+input[type="date"] {
+  position: relative;
+}
+
+::-webkit-calendar-picker-indicator {
+  background: transparent;
+  bottom: 0;
+  color: transparent;
+  cursor: pointer;
+  height: auto;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: auto;
+  z-index: 10;
+}
+
+.custom-datetime-container {
+  @apply relative flex items-center;
+}
+
+.custom-datetime-container input {
+  @apply pl-10 pr-4 py-3 w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-xs font-semibold focus:border-[var(--color-accent)] outline-none transition-all;
+}
+
+.custom-datetime-container input:focus {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.custom-datetime-container .icon {
+  @apply absolute left-4 text-[var(--color-accent)] pointer-events-none z-0 opacity-60;
+}
+
+/* Hide default calendar icon for some browsers if possible */
+input::-webkit-inner-spin-button,
+input::-webkit-clear-button {
+  display: none;
+}
+

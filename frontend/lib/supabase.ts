@@ -563,11 +563,12 @@ export const skillService = {
   /**
    * List all available skills with filters
    */
-  async getSkills(search?: string, category?: string) {
+  async getSkills(search?: string, category?: string, sortBy?: string) {
     try {
       const params = new URLSearchParams()
       if (search) params.append('search', search)
       if (category && category !== 'All') params.append('category', category)
+      if (sortBy) params.append('sortBy', sortBy)
       
       const response = await fetch(`${API_URL}/api/skills?${params.toString()}`)
       return await response.json()
@@ -595,6 +596,46 @@ export const skillService = {
     } catch (err) {
       console.error('Error adding skill:', err)
       return { success: false, error: 'Failed to add skill' }
+    }
+  },
+
+  /**
+   * Update an existing skill
+   */
+  async updateSkill(skillId: string, skillData: any) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills/${skillId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(skillData)
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error updating skill:', err)
+      return { success: false, error: 'Failed to update skill' }
+    }
+  },
+
+  /**
+   * Delete a skill
+   */
+  async deleteSkill(skillId: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills/${skillId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error deleting skill:', err)
+      return { success: false, error: 'Failed to delete skill' }
     }
   },
 

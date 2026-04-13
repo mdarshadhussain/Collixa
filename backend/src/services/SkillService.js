@@ -106,6 +106,28 @@ export class SkillService {
 
     return updated;
   }
+
+  /**
+   * Update a skill
+   */
+  static async updateSkill(userId, skillId, updateData) {
+    const skill = await SkillModel.getById(skillId);
+    if (skill.user_id !== userId) {
+      throw new Error('You are not authorized to update this skill');
+    }
+    return await SkillModel.update(skillId, updateData);
+  }
+
+  /**
+   * Delete a skill
+   */
+  static async deleteSkill(userId, skillId) {
+    const skill = await SkillModel.getById(skillId);
+    if (skill.user_id !== userId) {
+      throw new Error('You are not authorized to delete this skill');
+    }
+    return await SkillModel.delete(skillId);
+  }
 }
 
 export default SkillService;

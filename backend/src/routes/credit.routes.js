@@ -5,5 +5,10 @@ import CreditController from '../controllers/CreditController.js';
 const router = express.Router();
 
 router.get('/', authMiddleware, CreditController.getMyTransactions);
+router.post('/checkout', authMiddleware, CreditController.createCheckoutSession);
+
+// Webhook must be public because Stripe calls it, but controller handles signature verification
+// Note: This needs express.raw() in server.js to work correctly
+router.post('/webhook', CreditController.handleWebhook);
 
 export default router;

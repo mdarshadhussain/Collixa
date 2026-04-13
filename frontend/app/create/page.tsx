@@ -250,26 +250,26 @@ function CreateIntentContent() {
 
                     <div className="space-y-5">
                       <div className="space-y-3">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Project Title</label>
+                         <label className="editorial-label">Project Title</label>
                          <input 
                             name="title"
                             value={formData.title}
                             onChange={handleChange}
                             placeholder="e.g. Building an AI Skill Marketplace"
-                            className="w-full text-base sm:text-lg md:text-xl font-serif font-bold p-3 sm:p-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
+                            className="editorial-input !text-base sm:!text-lg md:!text-xl !font-serif !font-bold"
                          />
                          {errors.title && <p className="text-[10px] font-bold text-red-500">{errors.title}</p>}
                       </div>
 
                       <div className="space-y-3">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Description & Context</label>
+                         <label className="editorial-label">Description & Context</label>
                          <textarea 
                             name="description"
                             rows={5}
                             value={formData.description}
                             onChange={handleChange}
                             placeholder="Describe your vision and who you're looking for..."
-                            className="w-full text-xs sm:text-sm font-medium p-3 sm:p-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all resize-none leading-relaxed"
+                            className="editorial-textarea"
                          />
                          {errors.description && <p className="text-[10px] font-bold text-red-500">{errors.description}</p>}
                       </div>
@@ -278,7 +278,7 @@ function CreateIntentContent() {
 
                   {/* --- SECTION 2: ARCHETYPE --- */}
                   <div className="space-y-6">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] block">Category</label>
+                     <label className="editorial-label">Category</label>
                      <div className="flex flex-wrap gap-2.5">
                         {CATEGORIES.map(cat => (
                           <button
@@ -301,7 +301,7 @@ function CreateIntentContent() {
                   <div className="p-4 sm:p-6 md:p-8 bg-[var(--color-bg-primary)] rounded-2xl md:rounded-3xl border border-[var(--color-border)] space-y-6 md:space-y-10">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
                         <div className="space-y-3">
-                           <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
+                           <label className="editorial-label flex items-center gap-2">
                              <MapPin size={14} className="text-[var(--color-accent)]" /> Location
                            </label>
                            <input 
@@ -309,12 +309,12 @@ function CreateIntentContent() {
                               value={formData.location}
                               onChange={handleChange}
                               placeholder="Remote or Specific City"
-                              className="w-full text-sm sm:text-base font-bold p-3 sm:p-3.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
+                              className="editorial-input"
                            />
                            {errors.location && <p className="text-[10px] font-bold text-red-500">{errors.location}</p>}
                         </div>
                         <div className="space-y-3">
-                           <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
+                           <label className="editorial-label flex items-center gap-2">
                              <Clock size={14} className="text-[var(--color-accent)]" /> Target Deadline
                            </label>
                            <input 
@@ -322,13 +322,13 @@ function CreateIntentContent() {
                              name="timeline"
                              value={formData.timeline}
                              onChange={handleChange}
-                             className="w-full text-xs sm:text-sm font-bold p-3 sm:p-3.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none cursor-pointer appearance-none"
+                             className="editorial-input cursor-pointer"
                            />
                         </div>
                      </div>
 
                      <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
+                        <label className="editorial-label flex items-center gap-2">
                           <DollarSign size={14} className="text-[var(--color-accent)]" /> Budget / Exchange
                         </label>
                         <input 
@@ -336,7 +336,7 @@ function CreateIntentContent() {
                           value={formData.budget}
                           onChange={handleChange}
                           placeholder="e.g. $500 - $1000 or 'Skill Exchange'"
-                          className="w-full text-sm sm:text-base font-bold p-3 sm:p-3.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
+                          className="editorial-input"
                         />
                      </div>
                   </div>
@@ -344,7 +344,7 @@ function CreateIntentContent() {
                   {/* --- SECTION 4: FINAL OBJECTIVE --- */}
                   <div className="space-y-6 md:space-y-8">
                      <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
+                        <label className="editorial-label flex items-center gap-2">
                           <Target size={14} className="text-[var(--color-accent)]" /> Ultimate Objective
                         </label>
                         <input 
@@ -352,7 +352,7 @@ function CreateIntentContent() {
                            value={formData.goal}
                            onChange={handleChange}
                            placeholder="What defines success for this project?"
-                           className="w-full text-sm sm:text-base font-bold p-3 sm:p-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl md:rounded-2xl focus:border-[var(--color-accent)] outline-none transition-all"
+                           className="editorial-input"
                         />
                      </div>
 

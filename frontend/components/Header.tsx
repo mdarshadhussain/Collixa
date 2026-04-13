@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Menu, X, ChevronDown, Sun, Moon, Zap, MessageSquare, Plus } from 'lucide-react'
+import { Menu, X, ChevronDown, Sun, Moon, Zap, MessageSquare, Plus, LayoutDashboard, FileText, Users, User } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Avatar from './Avatar'
 import NotificationDropdown from './NotificationDropdown'
@@ -9,12 +9,14 @@ import { useAuth } from '@/app/context/AuthContext'
 import { useTheme } from '@/app/context/ThemeContext'
 import { useRouter } from 'next/navigation'
 import { storageService } from '@/lib/supabase'
+import CreditPurchaseModal from './CreditPurchaseModal'
 
 export default function Header() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [showCreditModal, setShowCreditModal] = useState(false)
   const { user, logout, isAuthenticated } = useAuth()
   const { theme, toggleTheme } = useTheme()
 
@@ -28,6 +30,12 @@ export default function Header() {
     await logout()
     router.push('/')
   }
+
+  const mainNavItems = [
+    { label: 'Marketplace', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'My Projects', href: '/my-intents', icon: FileText },
+    { label: 'Tribes', href: '/skills', icon: Users },
+  ]
 
   return (
     <header className={`sticky top-0 z-[100] w-full transition-all duration-500 ${
@@ -48,7 +56,18 @@ export default function Header() {
           <span className="hidden md:block font-serif font-black tracking-[-0.05em] text-3xl text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">Collixa.</span>
         </Link>
 
-        <div className="hidden lg:block" />
+        {/* ─── DESKTOP NAVIGATION ─── */}
+        <nav className="hidden lg:flex items-center gap-10">
+          {mainNavItems.map((item) => (
+            <Link 
+              key={item.label} 
+              href={item.href} 
+              className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
         {/* ─── ACTION CLUSTER ─── */}
         <div className="hidden lg:flex items-center gap-4">
@@ -60,8 +79,8 @@ export default function Header() {
           
           {isAuthenticated && (
             <button
-              onClick={() => router.push('/settings?tab=credits')}
-              className="px-4 py-2 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-[0.12em] rounded-full transition-all flex items-center gap-2 hover:opacity-90"
+              onClick={() => setShowCreditModal(true)}
+              className="px-4 py-2 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-[0.12em] rounded-full transition-all flex items-center gap-2 hover:opacity-90 active:scale-95 transform"
             >
               <Plus size={12} />
               Get More Credits
@@ -129,10 +148,23 @@ export default function Header() {
 
         {/* ─── MOBILE CONTROLS ─── */}
         <div className="flex lg:hidden items-center gap-2 sm:gap-3">
+          {isAuthenticated && user && (
+            <Link href="/profile" className="mr-1">
+              <Avatar 
+                name={user.name} 
+                src={user.avatar_url ? storageService.getPublicUrl(user.avatar_url) : undefined} 
+                size="sm" 
+                className="w-9 h-9 sm:w-10 sm:h-10 border border-[var(--color-border)]" 
+              />
+            </Link>
+          )}
           {isAuthenticated && (
-            <div className="px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[8px] font-black uppercase tracking-[0.08em] text-[var(--color-accent)]">
+            <button 
+              onClick={() => setShowCreditModal(true)}
+              className="px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[8px] font-black uppercase tracking-[0.08em] text-[var(--color-accent)] hover:border-[var(--color-accent)] active:scale-90 transition-all"
+            >
               {user?.credits ?? 0}
-            </div>
+            </button>
           )}
           {isAuthenticated && <NotificationDropdown />}
           <button onClick={toggleTheme} className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-full flex items-center justify-center">
@@ -144,6 +176,10 @@ export default function Header() {
         </div>
       </div>
 
+      {showCreditModal && (
+        <CreditPurchaseModal isOpen={showCreditModal} onClose={() => setShowCreditModal(false)} />
+      )}
+
       {/* ─── MOBILE MENU ─── */}
       {isOpen && (
         <div className="fixed inset-0 top-0 h-[100dvh] z-[1000] lg:hidden">
@@ -154,7 +190,7 @@ export default function Header() {
           />
           <div className="absolute right-3 top-16 sm:right-6 sm:top-20 w-[min(86vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-3 shadow-2xl animate-fade-in">
            <div className="flex justify-between items-center mb-3 px-1">
-              <span className="font-serif font-black text-xl text-[var(--color-text-primary)]">Menu</span>
+              <span className="font-serif font-black text-xl text-[var(--color-text-primary)]">Navigation</span>
               <button onClick={() => setIsOpen(false)} className="w-8 h-8 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full flex items-center justify-center">
                 <X size={16} />
               </button>
@@ -162,13 +198,14 @@ export default function Header() {
 
            <nav className="flex flex-col gap-1.5">
               {[
+                ...mainNavItems,
                 { label: 'Messages', href: '/chat', icon: MessageSquare },
-                { label: 'Profile', href: '/profile', icon: Zap },
+                { label: 'Profile Settings', href: '/profile', icon: User },
               ].map((item) => (
                 <Link 
                   key={item.label} 
                   href={item.href} 
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-[var(--color-text-primary)] tracking-tight hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
+                  className="flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
                   onClick={() => setIsOpen(false)}
                 >
                   <item.icon size={15} className="text-[var(--color-accent)]" />
@@ -182,9 +219,9 @@ export default function Header() {
                 <button
                   onClick={() => {
                     setIsOpen(false)
-                    router.push('/settings?tab=credits')
+                    setShowCreditModal(true)
                   }}
-                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] font-semibold text-sm rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                 >
                   <Plus size={12} />
                   Get More Credits
@@ -193,14 +230,14 @@ export default function Header() {
               {isAuthenticated ? (
                 <button 
                   onClick={handleLogout}
-                  className="w-full py-2.5 border border-red-500 text-red-500 font-semibold text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                  className="w-full py-2.5 border border-red-500 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                 >
                   Log Out
                 </button>
               ) : (
                 <button 
                   onClick={() => router.push('/auth')}
-                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] font-semibold text-sm rounded-lg hover:opacity-90 transition-opacity"
+                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity"
                 >
                   Sign In
                 </button>
@@ -220,4 +257,3 @@ export default function Header() {
     </header>
   )
 }
-

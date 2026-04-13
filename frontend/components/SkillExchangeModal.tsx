@@ -82,7 +82,7 @@ export default function SkillExchangeModal({ isOpen, onClose, onSuccess, skill }
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-3 ml-1">
+              <label className="editorial-label flex items-center gap-3">
                 <MessageSquare size={12} className="text-[var(--color-accent)]" />
                 Propose a session
               </label>
@@ -92,7 +92,7 @@ export default function SkillExchangeModal({ isOpen, onClose, onSuccess, skill }
                 rows={5}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="w-full px-6 py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-sm font-medium focus:border-[var(--color-accent)] outline-none transition-all resize-none"
+                className="editorial-textarea"
               />
             </div>
 

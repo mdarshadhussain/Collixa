@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import CustomDateTimePicker from '@/components/CustomDateTimePicker'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import Card from '@/components/Card'
@@ -38,13 +40,15 @@ export default function SkillsPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewedSessionIds, setReviewedSessionIds] = useState<string[]>([])
+  const [editingSkill, setEditingSkill] = useState<any | null>(null)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
   const CATEGORIES = ['All', 'Development', 'Design', 'Marketing', 'Data Science', 'Writing', 'Business', 'Other']
 
   const fetchSkills = useCallback(async () => {
-    setLoading(true)
+    if (skills.length === 0) setLoading(true)
     try {
-      const res = await skillService.getSkills(searchQuery, activeCategory)
+      const res = await skillService.getSkills(searchQuery, activeCategory, sortBy)
       if (res.success) {
         setSkills(res.data)
       }
@@ -53,7 +57,7 @@ export default function SkillsPage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, activeCategory])
+  }, [searchQuery, activeCategory, sortBy, skills.length])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -63,7 +67,7 @@ export default function SkillsPage() {
   }, [fetchSkills])
 
   const fetchMyExchanges = useCallback(async () => {
-    setLoadingExchanges(true)
+    if (exchanges.length === 0) setLoadingExchanges(true)
     try {
       const res = await skillService.getMyExchanges()
       if (res.success) {
@@ -77,14 +81,14 @@ export default function SkillsPage() {
     } finally {
       setLoadingExchanges(false)
     }
-  }, [])
+  }, [exchanges.length])
 
   useEffect(() => {
     fetchMyExchanges()
   }, [fetchMyExchanges])
 
   const fetchSessions = useCallback(async () => {
-    setLoadingSessions(true)
+    if (sessions.length === 0) setLoadingSessions(true)
     try {
       const res = await sessionService.getMySessions()
       if (res.success) {
@@ -95,7 +99,7 @@ export default function SkillsPage() {
     } finally {
       setLoadingSessions(false)
     }
-  }, [])
+  }, [sessions.length])
 
   useEffect(() => {
     fetchSessions()
@@ -129,29 +133,42 @@ export default function SkillsPage() {
   const handleScheduleSession = async () => {
     if (!scheduleTarget || !scheduleForm.scheduledTime) return
     setSubmittingSchedule(true)
-    const res = await sessionService.scheduleSession({
-      requestId: scheduleTarget.id,
-      scheduledTime: scheduleForm.scheduledTime,
-      meetingLink: scheduleForm.meetingLink || undefined,
-    })
-    if (res.success) {
-      setFeedback({ type: 'success', text: 'Session scheduled successfully.' })
-      setScheduleTarget(null)
-      setScheduleForm({ scheduledTime: '', meetingLink: '' })
-      fetchSessions()
-      fetchMyExchanges()
-    } else {
-      setFeedback({ type: 'error', text: res.error || 'Could not schedule session' })
+    try {
+      // Normalize to ISO string to ensure consistent storage in DB
+      const isoDateTime = new Date(scheduleForm.scheduledTime).toISOString()
+
+      const res = await sessionService.scheduleSession({
+        requestId: scheduleTarget.id,
+        scheduledTime: isoDateTime,
+        meeting_link: scheduleForm.meetingLink || undefined,
+      })
+      if (res.success) {
+        setFeedback({ type: 'success', text: 'Session scheduled successfully.' })
+        setScheduleTarget(null)
+        setScheduleForm({ scheduledTime: '', meetingLink: '' })
+        fetchSessions()
+        fetchMyExchanges()
+      } else {
+        setFeedback({ type: 'error', text: res.error || 'Could not schedule session' })
+      }
+    } catch (err) {
+      console.error('Frontend scheduling error:', err)
+      setFeedback({ type: 'error', text: 'A network error occurred while scheduling. Please check your connection.' })
+    } finally {
+      setSubmittingSchedule(false)
     }
-    setSubmittingSchedule(false)
   }
 
   const handleCompleteSession = async (sessionId: string) => {
     setProcessingId(sessionId)
     const res = await sessionService.completeSession(sessionId)
     if (res.success) {
-      setFeedback({ type: 'success', text: 'Session completed. Credits updated.' })
-      setReviewTarget(res.data)
+      if (res.data.status === 'COMPLETED') {
+        setFeedback({ type: 'success', text: 'Session completed. Credits updated.' })
+        setReviewTarget(res.data)
+      } else {
+        setFeedback({ type: 'success', text: 'Completion confirmed. Waiting for other participant.' })
+      }
       fetchSessions()
       refreshUser()
     } else {
@@ -191,6 +208,29 @@ export default function SkillsPage() {
       console.error(err)
       setFeedback({ type: 'error', text: 'Failed to open chat for this session' })
     }
+  }
+
+  const handleDeleteSkill = async (skillId: string) => {
+    if (!window.confirm('Are you sure you want to delete this skill? This cannot be undone.')) return
+    setIsDeleting(skillId)
+    try {
+      const res = await skillService.deleteSkill(skillId)
+      if (res.success) {
+        setFeedback({ type: 'success', text: 'Skill deleted successfully.' })
+        fetchSkills()
+      } else {
+        setFeedback({ type: 'error', text: res.error || 'Failed to delete skill' })
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', text: 'Error deleting skill' })
+    } finally {
+      setIsDeleting(null)
+    }
+  }
+
+  const handleEditSkill = (skill: any) => {
+    setEditingSkill(skill)
+    setIsAddModalOpen(true)
   }
 
   const incomingRequests = exchanges.filter((x) => x.provider_id === user?.id)
@@ -248,28 +288,27 @@ export default function SkillsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                <div className="lg:col-span-8 group">
                   <div className="relative">
-                    <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={18} />
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={18} />
                     <input
                       type="text"
                       placeholder="Search by expertise (e.g. React, UI Design)..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-12 sm:pl-16 pr-4 sm:pr-8 py-3.5 sm:py-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl sm:rounded-2xl text-xs sm:text-[13px] font-medium focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all placeholder:text-[var(--color-text-secondary)]/30"
+                      className="editorial-input !pl-16"
                     />
                   </div>
                </div>
                <div className="lg:col-span-4">
-                  <div className="relative group">
-                    <Filter className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-[var(--color-accent)] opacity-40 group-focus-within:opacity-100 transition-opacity" size={16} />
+                  <div className="editorial-select-wrapper group">
+                    <Filter className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--color-accent)] opacity-40 group-focus-within:opacity-100 transition-opacity z-10" size={16} />
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="w-full pl-12 sm:pl-16 pr-8 py-3.5 sm:py-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all appearance-none cursor-pointer"
+                      className="editorial-select !pl-16"
                     >
                       <option value="newest">Sort: Recently Added</option>
                       <option value="rating">Sort: High Rating</option>
                     </select>
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-text-secondary)] opacity-50">↓</div>
                   </div>
                </div>
             </div>
@@ -427,6 +466,33 @@ export default function SkillsPage() {
                     </div>
                   </div>
 
+                  {/* Rating & Actions Overlay */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full">
+                      <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                      <span className="text-[9px] font-bold">{skill.avg_rating > 0 ? skill.avg_rating.toFixed(1) : 'New'}</span>
+                      {skill.review_count > 0 && <span className="text-[8px] text-[var(--color-text-secondary)]">({skill.review_count})</span>}
+                    </div>
+                    
+                    {user?.id === skill.user_id && (
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleEditSkill(skill); }}
+                          className="p-1.5 hover:bg-[var(--color-accent-soft)] rounded-md transition-colors text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDeleteSkill(skill.id); }}
+                          disabled={isDeleting === skill.id}
+                          className="p-1.5 hover:bg-red-500/10 rounded-md transition-colors text-[var(--color-text-secondary)] hover:text-red-500"
+                        >
+                          <Trash2 size={12} className={isDeleting === skill.id ? 'animate-pulse' : ''} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {skill.description && (
                     <div className="p-1.5 sm:p-2.5 md:p-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-md sm:rounded-lg mb-2.5 sm:mb-4 md:mb-5">
                        <p className="text-[7px] sm:text-[8px] md:text-[9px] leading-snug text-[var(--color-text-secondary)] italic line-clamp-2">"{skill.description}"</p>
@@ -475,19 +541,44 @@ export default function SkillsPage() {
                           <Link2 size={10} /> Meeting link
                         </a>
                       )}
-                      <div className="mt-2 flex items-center gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase ${statusBadgeClass(session.status)}`}>
                           {session.status}
                         </span>
+                        
                         {session.status === 'SCHEDULED' && (
-                          <button
-                            onClick={() => handleCompleteSession(session.id)}
-                            disabled={processingId === session.id}
-                            className="px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[8px] font-black uppercase tracking-[0.1em] disabled:opacity-50 flex items-center gap-1"
-                          >
-                            <CheckCircle2 size={10} />
-                            {processingId === session.id ? 'Working...' : 'Mark Completed'}
-                          </button>
+                          <>
+                            {(() => {
+                              const isUserSender = session.sender_id === user?.id;
+                              const userConfirmed = isUserSender ? session.sender_confirmed : session.receiver_confirmed;
+                              const otherConfirmed = isUserSender ? session.receiver_confirmed : session.sender_confirmed;
+                              const isPastScheduled = new Date() > new Date(session.scheduled_time);
+
+                              if (userConfirmed) {
+                                return (
+                                  <span className="text-[8px] font-black uppercase text-[var(--color-accent)] px-3 py-1.5 bg-[var(--color-accent-soft)]/20 rounded-lg border border-[var(--color-accent)]/20">
+                                    {otherConfirmed ? 'Full Completion Pending' : 'Waiting for Peer'}
+                                  </span>
+                                )
+                              }
+
+                              return (
+                                <button
+                                  onClick={() => handleCompleteSession(session.id)}
+                                  disabled={processingId === session.id || !isPastScheduled}
+                                  className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-[0.1em] transition-all flex items-center gap-1 ${
+                                    isPastScheduled 
+                                      ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] hover:bg-[var(--color-text-primary)]' 
+                                      : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] border border-[var(--color-border)] cursor-not-allowed'
+                                  }`}
+                                  title={!isPastScheduled ? 'You can only complete after scheduled time' : ''}
+                                >
+                                  <CheckCircle2 size={10} />
+                                  {processingId === session.id ? 'Working...' : 'Mark Completed'}
+                                </button>
+                              )
+                            })()}
+                          </>
                         )}
                         <button
                           onClick={() => handleOpenSessionChat(session)}
@@ -550,8 +641,12 @@ export default function SkillsPage() {
 
       <AddSkillModal 
         isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
-        onSuccess={fetchSkills} 
+        onClose={() => {
+          setIsAddModalOpen(false)
+          setEditingSkill(null)
+        }} 
+        onSuccess={fetchSkills}
+        skill={editingSkill}
       />
 
       <SkillExchangeModal 
@@ -566,40 +661,73 @@ export default function SkillsPage() {
 
       {scheduleTarget && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setScheduleTarget(null)} />
-          <div className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-5 space-y-4 shadow-2xl">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => setScheduleTarget(null)} 
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 space-y-8 shadow-2xl overflow-hidden"
+          >
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-soft)]" />
+            
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-serif font-bold text-[var(--color-accent)]">Schedule Session</h3>
-              <button onClick={() => setScheduleTarget(null)}><X size={16} /></button>
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-1 block">Session Planning</span>
+                <h3 className="text-2xl font-serif font-black italic tracking-tight">Schedule Exchange</h3>
+              </div>
+              <button 
+                onClick={() => setScheduleTarget(null)}
+                className="w-10 h-10 border border-[var(--color-border)] rounded-full flex items-center justify-center hover:bg-[var(--color-bg-primary)] transition-all"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <div className="space-y-2">
-              <label className="text-[9px] uppercase font-black tracking-[0.12em] text-[var(--color-text-secondary)]">Date & time</label>
-              <input
-                type="datetime-local"
-                min={new Date().toISOString().slice(0, 16)}
-                value={scheduleForm.scheduledTime}
-                onChange={(e) => setScheduleForm((p) => ({ ...p, scheduledTime: e.target.value }))}
-                className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-bg-primary)] text-sm"
-              />
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-1">Proposed Date & Time</label>
+                <CustomDateTimePicker
+                  value={scheduleForm.scheduledTime}
+                  onChange={(val) => setScheduleForm((p) => ({ ...p, scheduledTime: val }))}
+                  minDate={new Date().toISOString()}
+                />
+                <p className="text-[8px] text-[var(--color-text-secondary)] italic ml-1">* Credits will be exchanged after session completion</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-1">Virtual Meeting Link</label>
+                <div className="relative flex items-center group">
+                  <Link2 className="absolute left-4 text-[var(--color-accent)] opacity-60 group-focus-within:opacity-100 transition-opacity" size={16} />
+                  <input
+                    type="url"
+                    placeholder="Zoom, Google Meet, or Teams link"
+                    value={scheduleForm.meetingLink}
+                    onChange={(e) => setScheduleForm((p) => ({ ...p, meetingLink: e.target.value }))}
+                    className="w-full pl-10 pr-4 py-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-xs font-semibold focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none transition-all"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-[9px] uppercase font-black tracking-[0.12em] text-[var(--color-text-secondary)]">Meeting link (optional)</label>
-              <input
-                type="url"
-                placeholder="https://meet.google.com/..."
-                value={scheduleForm.meetingLink}
-                onChange={(e) => setScheduleForm((p) => ({ ...p, meetingLink: e.target.value }))}
-                className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-bg-primary)] text-sm"
-              />
-            </div>
+
             <button
               onClick={handleScheduleSession}
               disabled={submittingSchedule || !scheduleForm.scheduledTime}
-              className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] disabled:opacity-50 shadow-lg"
+              className="w-full py-4 rounded-full bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[var(--color-accent)] transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
             >
-              {submittingSchedule ? 'Scheduling...' : 'Confirm Schedule'}
+              {submittingSchedule ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 size={14} className="animate-spin" />
+                  Finalizing...
+                </span>
+              ) : (
+                'Confirm Schedule'
+              )}
             </button>
-          </div>
+          </motion.div>
         </div>
       )}
 

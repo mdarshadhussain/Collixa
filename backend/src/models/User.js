@@ -10,18 +10,35 @@ export class UserModel {
    * @returns {Promise<Object>} User object or null
    */
   static async findByEmail(email) {
-    const { data, error } = await getClient()
+    const { data: user, error } = await getClient()
       .from('users')
       .select('*')
       .eq('email', email)
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      // PGRST116 = no rows found
       throw new Error(`Database error: ${error.message}`);
     }
 
-    return data || null;
+    if (!user) return null;
+
+    // Fetch ratings separately to avoid relationship cache issues
+    const { data: ratings } = await getClient()
+      .from('user_ratings')
+      .select('avg_rating, total_reviews')
+      .eq('user_id', user.id);
+
+    const ratingData = ratings && ratings.length > 0 ? ratings[0] : null;
+
+    if (ratingData) {
+      user.avg_rating = ratingData.avg_rating || 0;
+      user.total_reviews = ratingData.total_reviews || 0;
+    } else {
+      user.avg_rating = 0;
+      user.total_reviews = 0;
+    }
+
+    return user;
   }
 
   /**
@@ -30,7 +47,7 @@ export class UserModel {
    * @returns {Promise<Object>} User object or null
    */
   static async findById(id) {
-    const { data, error } = await getClient()
+    const { data: user, error } = await getClient()
       .from('users')
       .select('*')
       .eq('id', id)
@@ -40,7 +57,25 @@ export class UserModel {
       throw new Error(`Database error: ${error.message}`);
     }
 
-    return data || null;
+    if (!user) return null;
+
+    // Fetch ratings separately
+    const { data: ratings } = await getClient()
+      .from('user_ratings')
+      .select('avg_rating, total_reviews')
+      .eq('user_id', user.id);
+
+    const ratingData = ratings && ratings.length > 0 ? ratings[0] : null;
+
+    if (ratingData) {
+      user.avg_rating = ratingData.avg_rating || 0;
+      user.total_reviews = ratingData.total_reviews || 0;
+    } else {
+      user.avg_rating = 0;
+      user.total_reviews = 0;
+    }
+
+    return user;
   }
 
   /**

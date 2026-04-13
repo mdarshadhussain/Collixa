@@ -25,6 +25,7 @@ export class SessionService {
       throw new Error('Only the skill provider can schedule the session');
     }
 
+    console.log(`[SessionService] Starting session schedule for request ${requestId} by user ${userId}`);
     const { data: existingSession } = await SessionModel.getClient()
       .from('sessions')
       .select('id, status')
@@ -33,9 +34,11 @@ export class SessionService {
       .maybeSingle();
 
     if (existingSession) {
+      console.warn(`[SessionService] Session already exists for request ${requestId}`);
       throw new Error('A session is already scheduled for this request');
     }
 
+    console.log(`[SessionService] Creating session record...`);
     const session = await SessionModel.create({
       request_id: requestId,
       sender_id: exchange.requester_id,
@@ -45,9 +48,11 @@ export class SessionService {
       status: 'SCHEDULED',
     });
 
+    console.log(`[SessionService] Session created: ${session.id}. Updating exchange status...`);
     await SkillExchangeModel.updateStatus(requestId, 'SCHEDULED');
 
     try {
+      console.log(`[SessionService] Sending notification to requester ${exchange.requester_id}...`);
       const provider = await UserModel.findById(exchange.provider_id);
       const { data: skill } = await SkillExchangeModel.getClient()
         .from('skills')
@@ -61,10 +66,12 @@ export class SessionService {
         skill?.name || 'skill',
         scheduledTime
       );
+      console.log(`[SessionService] Notification sent.`);
     } catch (err) {
-      console.error('Failed to notify requester about session scheduling:', err);
+      console.error('[SessionService] Failed to notify requester about session scheduling:', err);
     }
 
+    console.log(`[SessionService] Scheduling complete.`);
     return session;
   }
 
@@ -78,29 +85,52 @@ export class SessionService {
     if (session.sender_id !== userId && session.receiver_id !== userId) {
       throw new Error('You are not allowed to complete this session');
     }
+    
+    // Check if scheduled time has passed
+    const now = new Date();
+    const scheduledTime = new Date(session.scheduled_time);
+    if (now < scheduledTime) {
+      throw new Error(`Session completion is only allowed after the scheduled time (${scheduledTime.toLocaleString()})`);
+    }
+
     if (session.status === 'COMPLETED') {
       throw new Error('Session is already completed');
     }
 
-    const learner = await UserModel.findById(session.sender_id);
-    const teacher = await UserModel.findById(session.receiver_id);
-
-    if (!learner || !teacher) {
-      throw new Error('Session participants were not found');
-    }
-    if ((learner.credits || 0) < 10) {
-      throw new Error('Learner has insufficient credits');
+    const updates = {};
+    if (session.sender_id === userId) {
+      updates.sender_confirmed = true;
+    } else {
+      updates.receiver_confirmed = true;
     }
 
-    await UserModel.update(learner.id, { credits: (learner.credits || 0) - 10 });
-    await UserModel.update(teacher.id, { credits: (teacher.credits || 0) + 10 });
+    // Safety check for existing state
+    const isSenderAlreadyConfirmed = session.sender_confirmed === true || updates.sender_confirmed === true;
+    const isReceiverAlreadyConfirmed = session.receiver_confirmed === true || updates.receiver_confirmed === true;
 
-    await CreditTransactionModel.createMany([
-      { user_id: teacher.id, amount: 10, type: 'EARN', session_id: session.id },
-      { user_id: learner.id, amount: -10, type: 'SPEND', session_id: session.id },
-    ]);
+    if (isSenderAlreadyConfirmed && isReceiverAlreadyConfirmed) {
+      const learner = await UserModel.findById(session.sender_id);
+      const teacher = await UserModel.findById(session.receiver_id);
 
-    return await SessionModel.update(session.id, { status: 'COMPLETED' });
+      if (!learner || !teacher) {
+        throw new Error('Session participants were not found');
+      }
+      if ((learner.credits || 0) < 10) {
+        throw new Error('Learner has insufficient credits');
+      }
+
+      await UserModel.update(learner.id, { credits: (learner.credits || 0) - 10 });
+      await UserModel.update(teacher.id, { credits: (teacher.credits || 0) + 10 });
+
+      await CreditTransactionModel.createMany([
+        { user_id: teacher.id, amount: 10, type: 'EARN', session_id: session.id },
+        { user_id: learner.id, amount: -10, type: 'SPEND', session_id: session.id },
+      ]);
+
+      updates.status = 'COMPLETED';
+    }
+
+    return await SessionModel.update(session.id, updates);
   }
 }
 

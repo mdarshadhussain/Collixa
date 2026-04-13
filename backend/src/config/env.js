@@ -37,6 +37,11 @@ export const config = {
 
   // CORS
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3001',
+
+  // Stripe
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+  STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
 };
 
 // Validate required env vars

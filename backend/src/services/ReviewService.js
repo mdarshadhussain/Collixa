@@ -28,6 +28,10 @@ export class ReviewService {
       comment: comment || null,
     });
   }
+
+  static async getReviewsForUser(userId) {
+    return await ReviewModel.getByReviewee(userId);
+  }
 }
 
 export default ReviewService;

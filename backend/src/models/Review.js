@@ -25,6 +25,27 @@ export class ReviewModel {
     if (error) throw new Error(`Failed to fetch review: ${error.message}`);
     return data || null;
   }
+
+  static async getByReviewee(revieweeId) {
+    const { data, error } = await getClient()
+      .from('session_reviews')
+      .select(`
+        *,
+        reviewer:users!session_reviews_reviewer_id_fkey(id, name, avatar_url),
+        session:sessions(
+          id, 
+          exchange:skill_exchanges(
+            id,
+            skill:skills(name, category)
+          )
+        )
+      `)
+      .eq('reviewee_id', revieweeId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(`Failed to fetch reviews: ${error.message}`);
+    return data || [];
+  }
 }
 
 export default ReviewModel;

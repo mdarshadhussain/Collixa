@@ -73,4 +73,34 @@ router.patch(
   SkillController.updateStatus
 );
 
+/**
+ * PATCH /api/skills/:id
+ * Update a skill (protected)
+ */
+router.patch(
+  '/:id',
+  authMiddleware,
+  [
+    param('id').isUUID().withMessage('Invalid skill ID'),
+    body('name').optional().notEmpty().withMessage('Skill name cannot be empty'),
+    body('level').optional().isString(),
+    body('category').optional().isString(),
+    body('description').optional().isString(),
+  ],
+  SkillController.updateSkill
+);
+
+/**
+ * DELETE /api/skills/:id
+ * Delete a skill (protected)
+ */
+router.delete(
+  '/:id',
+  authMiddleware,
+  [
+    param('id').isUUID().withMessage('Invalid skill ID'),
+  ],
+  SkillController.deleteSkill
+);
+
 export default router;

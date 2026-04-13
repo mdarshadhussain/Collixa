@@ -29,6 +29,7 @@ export default function Avatar({
 
   // Deterministic fallback preset based on name
   const fallbackPreset = useMemo(() => {
+    if (!name) return AVATAR_PRESETS[0]
     const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % AVATAR_PRESETS.length
     return AVATAR_PRESETS[index]
   }, [name])

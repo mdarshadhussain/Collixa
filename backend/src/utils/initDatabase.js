@@ -25,22 +25,34 @@ export const initializeDatabase = async () => {
         scheduled_time TIMESTAMP WITH TIME ZONE NOT NULL,
         status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED',
         meeting_link TEXT,
+        sender_confirmed BOOLEAN DEFAULT FALSE,
+        receiver_confirmed BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Ensure columns exist in case table was created previously
+      ALTER TABLE sessions ADD COLUMN IF NOT EXISTS sender_confirmed BOOLEAN DEFAULT FALSE;
+      ALTER TABLE sessions ADD COLUMN IF NOT EXISTS receiver_confirmed BOOLEAN DEFAULT FALSE;
 
       CREATE INDEX IF NOT EXISTS idx_sessions_request_id ON sessions(request_id);
       CREATE INDEX IF NOT EXISTS idx_sessions_sender_id ON sessions(sender_id);
       CREATE INDEX IF NOT EXISTS idx_sessions_receiver_id ON sessions(receiver_id);
       CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
 
+
       CREATE TABLE IF NOT EXISTS credit_transactions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         amount INTEGER NOT NULL,
-        type VARCHAR(10) NOT NULL CHECK (type IN ('EARN', 'SPEND')),
-        session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+        type VARCHAR(10) NOT NULL CHECK (type IN ('EARN', 'SPEND', 'PURCHASE')),
+        session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Migration for existing table structure if needed
+      ALTER TABLE credit_transactions DROP CONSTRAINT IF EXISTS credit_transactions_type_check;
+      ALTER TABLE credit_transactions ADD CONSTRAINT credit_transactions_type_check CHECK (type IN ('EARN', 'SPEND', 'PURCHASE'));
+      ALTER TABLE credit_transactions ALTER COLUMN session_id DROP NOT NULL;
 
       CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
       CREATE INDEX IF NOT EXISTS idx_credit_transactions_session_id ON credit_transactions(session_id);
@@ -58,6 +70,25 @@ export const initializeDatabase = async () => {
 
       CREATE INDEX IF NOT EXISTS idx_session_reviews_session_id ON session_reviews(session_id);
       CREATE INDEX IF NOT EXISTS idx_session_reviews_reviewee_id ON session_reviews(reviewee_id);
+
+      -- Views for Aggregated Ratings
+      CREATE OR REPLACE VIEW skill_ratings AS
+      SELECT 
+        e.skill_id,
+        AVG(r.rating) as avg_rating,
+        COUNT(r.id) as review_count
+      FROM session_reviews r
+      JOIN sessions s ON r.session_id = s.id
+      JOIN skill_exchanges e ON s.request_id = e.id
+      GROUP BY e.skill_id;
+
+      CREATE OR REPLACE VIEW user_ratings AS
+      SELECT 
+        reviewee_id as user_id,
+        AVG(rating) as avg_rating,
+        COUNT(id) as total_reviews
+      FROM session_reviews
+      GROUP BY reviewee_id;
     `;
 
     const { error } = await supabaseAdmin.rpc('exec', { sql: bootstrapSQL });

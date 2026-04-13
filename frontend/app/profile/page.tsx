@@ -8,9 +8,10 @@ import Sidebar from '@/components/Sidebar'
 import Button from '@/components/Button'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
+import CreditPurchaseModal from '@/components/CreditPurchaseModal'
 import { useAuth } from '@/app/context/AuthContext'
 import { useTheme } from '@/app/context/ThemeContext'
-import { Intent, storageService } from '@/lib/supabase'
+import { Intent, storageService, conversationService } from '@/lib/supabase'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -28,6 +29,10 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews'>('intents')
   const [myIntents, setMyIntents] = useState<Intent[]>([])
   const [loadingIntents, setLoadingIntents] = useState(true)
+  const [userSkills, setUserSkills] = useState<any[]>([])
+  const [loadingSkills, setLoadingSkills] = useState(false)
+  const [reviews, setReviews] = useState<any[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(false)
 
   // Edit Profile States
   const [isEditing, setIsEditing] = useState(false)
@@ -42,6 +47,35 @@ export default function ProfilePage() {
   const [externalUser, setExternalUser] = useState<any | null>(null)
   const [loadingExternalUser, setLoadingExternalUser] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
+  const [showCreditModal, setShowCreditModal] = useState(false)
+
+  // Derived state for the user being displayed
+  const profileUser = profileUid && profileUid !== user?.id ? externalUser : user
+  const isOwnProfile = !profileUid || profileUid === user?.id
+
+  const handleStartChat = async () => {
+    if (!user || !profileUser || isOwnProfile) return
+    try {
+      const conversation = await conversationService.getOrCreateDirectConversation(user.id, profileUser.id)
+      if (conversation) {
+        router.push('/chat')
+      }
+    } catch (err) {
+      console.error('Failed to start chat:', err)
+      alert('Could not initiate chat conversation.')
+    }
+  }
+
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment')
+    if (paymentStatus === 'success') {
+      alert('🌟 Credits Successfully Purchased! Your contribution to the ecosystem is valued.')
+      router.replace('/profile')
+    } else if (paymentStatus === 'cancel') {
+      console.log('Payment cancelled')
+      router.replace('/profile')
+    }
+  }, [searchParams, router])
 
   useEffect(() => {
     if (user) {
@@ -67,20 +101,54 @@ export default function ProfilePage() {
     }
   }, [token])
 
-  useEffect(() => {
-    if (!profileUid) return
-    if (user?.id === profileUid) {
-      setExternalUser(null)
-      return
+  const fetchUserSkills = async (userId: string) => {
+    setLoadingSkills(true)
+    try {
+      const response = await fetch(`${API_URL}/api/skills/user/${userId}`)
+      const data = await response.json()
+      if (response.ok) {
+        setUserSkills(data.data || [])
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingSkills(false)
     }
+  }
 
+  const fetchUserReviews = async (userId: string) => {
+    setLoadingReviews(true)
+    try {
+      const response = await fetch(`${API_URL}/api/reviews/user/${userId}`)
+      const data = await response.json()
+      if (response.ok) {
+        setReviews(data.data || [])
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingReviews(false)
+    }
+  }
+
+  useEffect(() => {
+    const targetUserId = profileUid || user?.id
+    if (targetUserId) {
+      fetchUserSkills(targetUserId)
+    }
+  }, [profileUid, user?.id])
+
+  useEffect(() => {
     const fetchExternalUser = async () => {
+      if (!profileUid || profileUid === user?.id) return
+      
       setLoadingExternalUser(true)
       try {
-        const response = await fetch(`/api/users/${profileUid}`)
+        const response = await fetch(`${API_URL}/api/users/${profileUid}`)
         const data = await response.json()
         if (response.ok && data.data) {
           setExternalUser(data.data)
+          fetchUserReviews(profileUid)
         }
       } catch (err) {
         console.error(err)
@@ -90,7 +158,12 @@ export default function ProfilePage() {
     }
 
     fetchExternalUser()
-  }, [profileUid, user?.id])
+    
+    if (isOwnProfile && user?.id) {
+       fetchUserReviews(user.id)
+    }
+  }, [profileUid, user?.id, isOwnProfile])
+
   const fetchMyIntents = async () => {
     setLoadingIntents(true)
     try {
@@ -197,8 +270,6 @@ export default function ProfilePage() {
     )
   }
 
-  const profileUser = externalUser || user
-  const isOwnProfile = !!user && (!profileUid || user.id === profileUid)
   const profileShareUrl = profileUser
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/profile?uid=${profileUser.id}`
     : ''
@@ -265,31 +336,31 @@ export default function ProfilePage() {
 
                   <div className="space-y-4">
                     <div className="text-left">
-                      <label className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] ml-4 mb-2 block">Identity Name</label>
+                      <label className="editorial-label">Identity Name</label>
                       <input 
                         type="text" 
                         value={editForm.name} 
                         onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                        className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-6 py-4 text-xs font-bold focus:border-[var(--color-accent)] outline-none" 
+                        className="editorial-input" 
                         placeholder="Your full name"
                       />
                     </div>
                     <div className="text-left">
-                      <label className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] ml-4 mb-2 block">Origin / Location</label>
+                      <label className="editorial-label">Origin / Location</label>
                       <input 
                         type="text" 
                         value={editForm.location} 
                         onChange={(e) => setEditForm({...editForm, location: e.target.value})}
-                        className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-6 py-4 text-xs font-bold focus:border-[var(--color-accent)] outline-none" 
+                        className="editorial-input" 
                         placeholder="City, Country"
                       />
                     </div>
                     <div className="text-left">
-                      <label className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] ml-4 mb-2 block">Mission / Bio</label>
+                      <label className="editorial-label">Mission / Bio</label>
                       <textarea 
                         value={editForm.bio} 
                         onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
-                        className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-6 py-4 text-xs font-medium focus:border-[var(--color-accent)] outline-none min-h-[120px] resize-none" 
+                        className="editorial-textarea" 
                         placeholder="Tell the community about your goals..."
                       />
                     </div>
@@ -326,7 +397,13 @@ export default function ProfilePage() {
                         </button>
                         <div>
                           <h1 className="text-2xl md:text-3xl font-serif font-black text-[var(--color-text-primary)] mb-1">{profileUser?.name || 'User'}</h1>
-                          <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] md:tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
+                          <div className="flex items-center gap-3">
+                            <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] md:tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm">
+                              <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                              <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       
@@ -338,23 +415,42 @@ export default function ProfilePage() {
                       )}
 
                       {profileUser?.bio && (
-                        <p className="text-[11px] md:text-xs text-[var(--color-text-secondary)] font-medium leading-relaxed italic mb-3 border-t border-b border-[var(--color-border)] py-2 line-clamp-2 break-words">
+                        <p className="text-[11px] md:text-xs text-[var(--color-text-secondary)] font-medium leading-relaxed italic mb-4 border-t border-b border-[var(--color-border)] py-2 line-clamp-2 break-words">
                           "{profileUser.bio}"
                         </p>
                       )}
                     </div>
                   <div className="grid grid-cols-2 gap-4 pt-2 lg:pt-0 lg:min-w-[260px]">
                      <div className="text-center">
-                        <p className="text-[8px] font-black uppercase tracking-[0.18em] md:tracking-[0.4em] text-[var(--color-text-secondary)] mb-1.5">Deployed</p>
-                        <p className="text-lg md:text-xl font-serif font-black">{myIntents.length}</p>
+                        <p className="text-[8px] font-black uppercase tracking-[0.18em] md:tracking-[0.4em] text-[var(--color-text-secondary)] mb-1.5">Reputation</p>
+                        <p className="text-lg md:text-xl font-serif font-black">{profileUser?.total_reviews ?? 0} <span className="text-[9px] font-sans opacity-40 italic">Reviews</span></p>
                      </div>
                      <div className="text-center">
                         <p className="text-[8px] font-black uppercase tracking-[0.18em] md:tracking-[0.4em] text-[var(--color-text-secondary)] mb-1.5">Credits</p>
                         <p className="text-lg md:text-xl font-serif font-black inline-flex items-center gap-1">
                           {profileUser?.credits ?? 0}
-                          {isOwnProfile && <Plus size={12} className="text-[var(--color-accent)]" />}
+                          {isOwnProfile && (
+                            <button 
+                              onClick={() => setShowCreditModal(true)}
+                              className="p-1.5 hover:bg-[var(--color-accent-soft)]/20 rounded-full transition-all group"
+                              title="Get More Credits"
+                            >
+                              <Plus size={14} className="text-[var(--color-accent)] group-hover:scale-125 transition-transform" />
+                            </button>
+                          )}
                         </p>
                      </div>
+
+                     {!isOwnProfile && (
+                       <div className="col-span-2 mt-2">
+                         <button
+                           onClick={handleStartChat}
+                           className="w-full py-3.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] md:text-[10px] font-black uppercase tracking-[0.16em] md:tracking-[0.3em] hover:bg-[var(--color-text-primary)] transition-all rounded-xl flex items-center justify-center gap-2 border border-transparent shadow-xl"
+                         >
+                           <MessageCircle size={14} /> Message to Collaborate
+                         </button>
+                       </div>
+                     )}
                   </div>
 
                   <div className="mt-0 lg:ml-4 space-y-3 lg:min-w-[240px]">
@@ -372,9 +468,7 @@ export default function ProfilePage() {
                         Edit Statistics & Identity
                      </button>
                      )}
-                     <button className="w-full py-3 border border-[var(--color-border)] text-[var(--color-text-secondary)] text-[9px] md:text-[10px] font-black uppercase tracking-[0.16em] md:tracking-[0.3em] hover:text-[var(--color-text-primary)] transition-all flex items-center justify-center gap-2 rounded-xl">
-                        <Share2 size={14} /> Share Packet
-                     </button>
+
                   </div>
                   </div>
                 </>
@@ -458,14 +552,76 @@ export default function ProfilePage() {
               )}
 
               {activeTab === 'skills' && (
-                <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 rounded-2xl md:rounded-[2rem] text-center">
-                  <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)]">Skill Proficiency Archive <br /><span className="italic font-light">(Restricted Access)</span></p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {loadingSkills ? (
+                    <div className="col-span-full py-20 flex justify-center"><Loader2 className="animate-spin text-[var(--color-accent)]" /></div>
+                  ) : userSkills.length > 0 ? (
+                    userSkills.map((skill) => (
+                      <div key={skill.id} className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 rounded-2xl md:rounded-[2rem] hover:shadow-xl transition-all">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)]">{skill.category}</span>
+                            <h4 className="text-lg font-serif font-black">{skill.name}</h4>
+                          </div>
+                          <div className="bg-[var(--color-bg-primary)] px-2.5 py-1 rounded-full border border-[var(--color-border)] flex items-center gap-1.5">
+                            <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                            <span className="text-[10px] font-bold">{skill.avg_rating > 0 ? skill.avg_rating.toFixed(1) : 'New'}</span>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-[var(--color-text-secondary)] italic leading-relaxed mb-4 line-clamp-3">"{skill.description}"</p>
+                        <div className="flex items-center justify-between pt-4 border-t border-[var(--color-border)]/50">
+                           <span className="px-3 py-1 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[8px] font-black uppercase rounded-lg">{skill.level}</span>
+                           <span className="text-[9px] font-bold text-[var(--color-text-secondary)]">Since {new Date(skill.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full bg-[var(--color-bg-secondary)] border-2 border-dashed border-[var(--color-border)] p-12 rounded-2xl text-center italic text-[var(--color-text-secondary)]">
+                      No proficiency records published yet.
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeTab === 'reviews' && (
-                <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 rounded-2xl md:rounded-[2rem] text-center">
-                  <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)]">Reputation Ledger <br /><span className="italic font-light">(Pending Endorsements)</span></p>
+                <div className="space-y-6">
+                  {loadingReviews ? (
+                    <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-[var(--color-accent)]" /></div>
+                  ) : reviews.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4 text-left">
+                      {reviews.map((review) => (
+                        <div key={review.id} className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 rounded-2xl md:rounded-[2rem]">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar name={review.reviewer_name} src={review.reviewer_avatar} size="sm" />
+                              <div>
+                                 <p className="text-[10px] font-black uppercase tracking-widest">{review.reviewer_name}</p>
+                                 <p className="text-[8px] text-[var(--color-text-secondary)]">{new Date(review.created_at).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={10} className={i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'} />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed bg-[var(--color-bg-primary)]/40 p-4 rounded-xl border border-[var(--color-border)]/30">
+                            {review.comment || "Endorsed with a 5-star rating."}
+                          </p>
+                          {review.skill_name && (
+                            <div className="mt-3 flex items-center gap-2">
+                               <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Skill:</span>
+                               <span className="text-[8px] font-black uppercase text-[var(--color-accent)]">{review.skill_name}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-[var(--color-bg-secondary)] border-2 border-dashed border-[var(--color-border)] p-12 rounded-2xl text-center italic text-[var(--color-text-secondary)]">
+                      Reputation Ledger is currently empty.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -487,16 +643,25 @@ export default function ProfilePage() {
               alt="Profile QR Code"
               className="w-44 h-44 mx-auto rounded-lg border border-[var(--color-border)]"
             />
-            <button
-              type="button"
-              onClick={() => navigator.clipboard.writeText(profileShareUrl)}
-              className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-2"
-            >
-              <Copy size={12} /> Copy Profile Link
-            </button>
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(profileShareUrl)
+                  alert('Profile link copied to clipboard!')
+                }}
+                className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Copy size={12} /> Copy Profile Link
+              </button>
+            </div>
           </div>
         </div>
       )}
+      <CreditPurchaseModal 
+        isOpen={showCreditModal} 
+        onClose={() => setShowCreditModal(false)} 
+      />
     </div>
   )
 }
