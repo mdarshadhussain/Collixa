@@ -321,24 +321,68 @@ export const messageService = {
     return data as any[]
   },
 
-  // Send message
+  // Send message via Backend API to trigger notifications
   async sendMessage(
     conversationId: number,
     senderId: string,
     content: string
   ): Promise<Message | null> {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert([{ conversation_id: conversationId, sender_id: senderId, content }])
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error sending message:', error)
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ conversationId, content })
+      })
+      
+      const data = await response.json()
+      if (response.ok && data.success) {
+        return data.data
+      }
       return null
+    } catch (err) {
+      console.error('Error sending message via backend:', err)
+      // Fallback to direct Supabase if backend fails (though notifications won't trigger)
+      const { data, error } = await supabase
+        .from('messages')
+        .insert([{ conversation_id: conversationId, sender_id: senderId, content }])
+        .select()
+        .single()
+      return data as Message
     }
+  },
 
-    return data as Message
+  // Get total unread count from backend
+  async getUnreadCount(): Promise<number> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/unread-count`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await response.json()
+      return data.count || 0
+    } catch (err) {
+      console.error('Error fetching unread count:', err)
+      return 0
+    }
+  },
+
+  // Mark conversation as read
+  async markAsRead(conversationId: number): Promise<boolean> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/${conversationId}/read`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      return response.ok
+    } catch (err) {
+      console.error('Error marking as read:', err)
+      return false
+    }
   },
 
   // Delete message

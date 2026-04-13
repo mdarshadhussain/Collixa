@@ -7,6 +7,8 @@ import authRoutes from './routes/authRoutes.js';
 import intentRoutes from './routes/intent.routes.js';
 import skillRoutes from './routes/skill.routes.js';
 import storageRoutes from './routes/storageRoutes.js';
+import notificationRoutes from './routes/notification.routes.js';
+import chatRoutes from './routes/chat.routes.js';
 import initializeDatabase from './utils/initDatabase.js';
 
 const app = express();
@@ -65,6 +67,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/intents', intentRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/storage', storageRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/chat', chatRoutes);
 
 /**
  * Error handling

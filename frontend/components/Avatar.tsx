@@ -1,3 +1,5 @@
+import { useState, useMemo } from 'react'
+
 interface AvatarProps {
   name: string
   src?: string
@@ -5,12 +7,19 @@ interface AvatarProps {
   className?: string
 }
 
+const AVATAR_PRESETS = [
+  'Abby', 'Angel', 'Bailey', 'Caleb', 'Daisy', 
+  'Ethan', 'Faith', 'Gabe', 'Hazel', 'Issac'
+].map(seed => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`)
+
 export default function Avatar({
   name,
   src,
   size = 'md',
   className = '',
 }: AvatarProps) {
+  const [imgError, setImgError] = useState(false)
+
   const sizes = {
     sm: 'w-8 h-8 text-[10px]',
     md: 'w-10 h-10 text-xs',
@@ -18,28 +27,24 @@ export default function Avatar({
     xl: 'w-20 h-20 text-lg',
   }
 
-  const initials = name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  // Deterministic fallback preset based on name
+  const fallbackPreset = useMemo(() => {
+    const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % AVATAR_PRESETS.length
+    return AVATAR_PRESETS[index]
+  }, [name])
 
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={name}
-        className={`rounded-full object-cover border border-[var(--color-border)] ${sizes[size]} ${className}`}
-      />
-    )
-  }
+  // Resolve the final source - use provided src unless it failed, otherwise use deterministic fallback
+  const finalSrc = src && !imgError ? src : fallbackPreset
 
   return (
-    <div
-      className={`rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)] flex items-center justify-center font-black uppercase tracking-tighter ${sizes[size]} ${className}`}
-    >
-      {initials}
+    <div className={`relative rounded-full overflow-hidden border border-[var(--color-border)] ${sizes[size]} ${className}`}>
+      <img
+        src={finalSrc}
+        alt={name}
+        onError={() => setImgError(true)}
+        loading="lazy"
+        className="w-full h-full object-cover"
+      />
     </div>
   )
 }

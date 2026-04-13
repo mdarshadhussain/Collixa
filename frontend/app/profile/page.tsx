@@ -13,6 +13,11 @@ import { Intent, storageService } from '@/lib/supabase'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
+const AVATAR_PRESETS = [
+  'Abby', 'Angel', 'Bailey', 'Caleb', 'Daisy', 
+  'Ethan', 'Faith', 'Gabe', 'Hazel', 'Issac'
+].map(seed => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`)
+
 export default function ProfilePage() {
   const router = useRouter()
   const { user, isAuthenticated, loading: authLoading, token, refreshUser, updateUser } = useAuth()
@@ -39,7 +44,8 @@ export default function ProfilePage() {
         bio: user.bio || '',
         location: user.location || ''
       })
-      setAvatarPreview(user.avatar_url ? (user.avatar_url.startsWith('http') ? user.avatar_url : storageService.getPublicUrl(user.avatar_url)) : null)
+      const userAvatar = user.avatar_url ? (user.avatar_url.startsWith('http') ? user.avatar_url : storageService.getPublicUrl(user.avatar_url)) : null
+      setAvatarPreview(userAvatar)
     }
   }, [user])
 
@@ -87,7 +93,7 @@ export default function ProfilePage() {
     if (!token) return
     setIsSaving(true)
     try {
-      let finalAvatarUrl = user?.avatar_url || ''
+      let finalAvatarUrl = avatarPreview || user?.avatar_url || ''
 
       // 1. Upload new avatar if changed
       if (avatarFile) {
@@ -185,7 +191,7 @@ export default function ProfilePage() {
               
               {isEditing ? (
                 <div className="space-y-6">
-                  <div className="relative group mx-auto w-32 h-32 mb-8">
+                  <div className="relative group mx-auto w-32 h-32 mb-4">
                     <div className="w-full h-full rounded-full overflow-hidden border-2 border-[var(--color-accent)] group-hover:opacity-50 transition-opacity">
                       {avatarPreview ? (
                         <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
@@ -199,6 +205,24 @@ export default function ProfilePage() {
                           <FileUp size={20} />
                        </div>
                     </label>
+                  </div>
+                  
+                  <p className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mb-4">Or choose a Preset</p>
+                  <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-xs mx-auto">
+                    {AVATAR_PRESETS.map((url, idx) => (
+                      <button 
+                        key={idx}
+                        onClick={() => {
+                          setAvatarPreview(url)
+                          setAvatarFile(null)
+                          // Extract seed/identity from preset if needed, 
+                          // or just reset customization to defaults for this preset
+                        }}
+                        className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 overflow-hidden ${avatarPreview === url ? 'border-[var(--color-accent)]' : 'border-transparent'}`}
+                      >
+                        <img src={url} alt={`Preset ${idx}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
                   </div>
 
                   <div className="space-y-4">

@@ -4,6 +4,8 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FileText, MessageSquare, Users, Settings, PlusCircle } from 'lucide-react'
+import { messageService, supabase } from '@/lib/supabase'
+import { useAuth } from '@/app/context/AuthContext'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Projects', href: '/dashboard' },
@@ -14,6 +16,36 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { isAuthenticated } = useAuth()
+  const [unreadCount, setUnreadCount] = React.useState(0)
+
+  React.useEffect(() => {
+    if (!isAuthenticated) return
+
+    const fetchUnread = async () => {
+      const count = await messageService.getUnreadCount()
+      setUnreadCount(count)
+    }
+
+    fetchUnread()
+
+    // Real-time subscription for unread counts
+    const channel = supabase
+      .channel('public:unread_counts')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'messages' 
+      }, () => {
+        // Re-fetch count when any message is inserted or updated
+        fetchUnread()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [isAuthenticated])
 
   return (
     <aside className="w-72 border border-[var(--color-border)] hidden lg:flex flex-col p-8 rounded-[2.5rem] sticky top-28 h-full bg-[var(--color-bg-secondary)]/50 backdrop-blur-md shadow-xl shadow-black/5">
@@ -34,7 +66,12 @@ export default function Sidebar() {
                   }`}
                 >
                   <item.icon size={18} className={isActive ? 'opacity-100' : 'opacity-50 group-hover:opacity-100'} />
-                  <span className="text-[11px] font-bold uppercase tracking-widest">{item.label}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest flex-1">{item.label}</span>
+                  {item.label === 'Messages' && unreadCount > 0 && (
+                    <span className="px-2 py-0.5 min-w-[1.5rem] text-center text-[9px] font-black bg-white text-[var(--color-accent)] rounded-full shadow-sm ring-2 ring-[var(--color-accent)]/20 animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               )
             })}

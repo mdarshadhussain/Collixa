@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Menu, X, ChevronDown, Sun, Moon, Search, LayoutGrid, Zap } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Avatar from './Avatar'
+import NotificationDropdown from './NotificationDropdown'
 import { useAuth } from '@/app/context/AuthContext'
 import { useTheme } from '@/app/context/ThemeContext'
 import { useRouter } from 'next/navigation'
@@ -89,6 +90,8 @@ export default function Header() {
             </div>
           </button>
 
+          {isAuthenticated && <NotificationDropdown />}
+
           {isAuthenticated && user ? (
             <div className="relative">
               <button 
@@ -137,12 +140,13 @@ export default function Header() {
         </div>
 
         {/* ─── MOBILE CONTROLS ─── */}
-        <div className="flex lg:hidden items-center gap-6">
-          <button onClick={toggleTheme} className="p-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-full">
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        <div className="flex lg:hidden items-center gap-4">
+          {isAuthenticated && <NotificationDropdown />}
+          <button onClick={toggleTheme} className="w-10 h-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-full flex items-center justify-center">
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <button className="p-3 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full" onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          <button className="w-10 h-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full flex items-center justify-center" onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>

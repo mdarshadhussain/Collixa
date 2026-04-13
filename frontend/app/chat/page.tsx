@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Plus, Phone, Video, MoreVertical, Search, ArrowLeft, MessageCircle } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Send, Plus, MoreVertical, Search, ArrowLeft, MessageCircle } from 'lucide-react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import Badge from '@/components/Badge'
@@ -31,6 +32,8 @@ interface UIConversation {
 export default function ChatPage() {
   const { theme } = useTheme()
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const chatIdFromUrl = searchParams.get('id')
   
   const [conversations, setConversations] = useState<UIConversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<UIConversation | null>(null)
@@ -88,9 +91,13 @@ export default function ChatPage() {
         
         setConversations(mapped)
         
-        // Auto-select first conversation linearly
-        if (mapped.length > 0 && !selectedConversation) {
-          setSelectedConversation(mapped[0])
+        // Auto-select based on URL ID or first conversation
+        if (mapped.length > 0) {
+          const target = chatIdFromUrl 
+            ? mapped.find(c => c.id.toString() === chatIdFromUrl) || mapped[0]
+            : mapped[0]
+            
+          setSelectedConversation(target)
           setMobileShowConversations(false)
         }
       } catch (err) {
@@ -142,6 +149,12 @@ export default function ChatPage() {
     }
 
     loadMessages()
+    
+    // Mark as read when entering conversation
+    const markRead = async () => {
+      await messageService.markAsRead(selectedConversation.id)
+    }
+    markRead()
 
     // Subscribe to new messages for this conversation (instant delivery)
     const channel = supabase.channel(`public:messages:conv_${selectedConversation.id}`)
@@ -222,7 +235,6 @@ export default function ChatPage() {
         {/* Messaging Container */}
         <div className="flex-1 flex gap-4 overflow-hidden">
             
-            {/* Conversations List */}
             <div
               className={`w-full md:w-80 lg:w-96 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] flex flex-col overflow-hidden shadow-sm transition-all ${
                 mobileShowConversations ? 'flex' : 'hidden md:flex'
@@ -288,21 +300,23 @@ export default function ChatPage() {
             </div>
 
             {/* Chat Area */}
-            <div className={`flex-1 flex flex-col bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations || !mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
+            <div className={`flex-1 flex flex-col bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
               {selectedConversation ? (
                 <>
                   <div className="px-8 py-6 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg-secondary)]/50 backdrop-blur-md z-10">
                     <div className="flex items-center gap-4 flex-1">
-                      <button onClick={() => setMobileShowConversations(true)} className="md:hidden p-3 text-[var(--color-accent)]"><ArrowLeft size={20} /></button>
+                      <button 
+                        onClick={() => setMobileShowConversations(true)} 
+                        className="md:hidden p-3 -ml-2 text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/20 rounded-full transition-all"
+                      >
+                        <ArrowLeft size={20} />
+                      </button>
                       <Avatar name={selectedConversation.name} src={selectedConversation.avatar} size="lg" />
                       <div>
                         <h3 className="text-lg font-serif font-black tracking-tight">{selectedConversation.name}</h3>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)]">{selectedConversation.status === 'online' ? 'Online' : 'Offline'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 lg:gap-4">
-                      <button className="p-3 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all"><Phone size={20} /></button>
-                      <button className="p-3 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all"><Video size={20} /></button>
                       <button className="p-3 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all"><MoreVertical size={20} /></button>
                     </div>
                   </div>

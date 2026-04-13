@@ -28,12 +28,20 @@ export class AuthService {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Create user
+    // Create user with random avatar preset
+    const AVATAR_PRESETS = [
+      'Abby', 'Angel', 'Bailey', 'Caleb', 'Daisy', 
+      'Ethan', 'Faith', 'Gabe', 'Hazel', 'Issac'
+    ].map(seed => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`);
+    
+    const randomPreset = AVATAR_PRESETS[Math.floor(Math.random() * AVATAR_PRESETS.length)];
+
     const userData = {
       id: crypto.randomUUID(),
       email,
       password_hash: hashedPassword,
       name,
+      avatar_url: randomPreset,
       role: 'USER',
       reset_otp: otp,
       reset_otp_expiry: otpExpiry.toISOString(),
