@@ -91,7 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('auth_token', data.token)
         return { error: null }
       } else {
-        return { error: data.error || 'Login failed' }
+        const errorMsg = data.error || data.message || `Login failed (Status: ${response.status})`
+        return { error: errorMsg }
       }
     } catch (error) {
       console.error('Login error:', error)

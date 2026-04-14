@@ -9,6 +9,7 @@ import Badge from '@/components/Badge'
 import { useAuth } from '@/app/context/AuthContext'
 import { conversationService, messageService, supabase } from '@/lib/supabase'
 import Typewriter from '@/components/Typewriter'
+import Avatar from '@/components/Avatar'
 
 interface UIMessage {
   id: number

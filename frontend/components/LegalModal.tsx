@@ -7,6 +7,7 @@ import { useState } from 'react'
 interface LegalModalProps {
   isOpen: boolean
   onClose: () => void
+  onAccept?: () => void
 }
 
 const sections = [
@@ -17,7 +18,7 @@ const sections = [
   { id: 'terms', title: 'Modifications', icon: Scale, content: 'Collixa is an evolving ecosystem. We may update these terms as our platform introduces new collaboration tools and trust mechanisms. Continued use of the platform after updates constitutes acceptance of the refined momentum protocols.' },
 ]
 
-export default function LegalModal({ isOpen, onClose }: LegalModalProps) {
+export default function LegalModal({ isOpen, onClose, onAccept }: LegalModalProps) {
   const [activeTab, setActiveTab] = useState('data')
 
   const scrollToSection = (id: string) => {
@@ -132,14 +133,15 @@ export default function LegalModal({ isOpen, onClose }: LegalModalProps) {
                   </div>
                 </div>
 
-                {/* Footer Action */}
                 <div className="absolute bottom-0 right-0 left-0 md:left-[280px] p-8 md:px-12 bg-gradient-to-t from-[#F5F5F0] via-[#F5F5F0]/95 to-transparent pointer-events-none flex justify-end">
                   <button
-                    onClick={onClose}
+                    onClick={() => {
+                      if (onAccept) onAccept();
+                      onClose();
+                    }}
                     className="px-12 py-5 bg-[#021A54] text-white rounded-full font-bold text-[13px] uppercase tracking-[0.2em] shadow-2xl shadow-[#021A54]/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-3 group"
                   >
                     Confirm & Accept
-                    <X className="w-4 h-4 group-hover:opacity-100 opacity-50 transition-opacity" />
                   </button>
                 </div>
               </div>

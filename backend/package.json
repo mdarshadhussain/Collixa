@@ -19,6 +19,7 @@
     "jsonwebtoken": "^8.5.1",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.5",
+    "nodemailer-sendgrid-transport": "^0.2.0",
     "stripe": "^22.0.1"
   },
   "devDependencies": {
