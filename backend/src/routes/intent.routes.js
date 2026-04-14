@@ -1,9 +1,17 @@
 import express from 'express';
 import { body, param, query } from 'express-validator';
 import IntentController from '../controllers/intent.controller.js';
+import StatsController from '../controllers/StatsController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
+
+/**
+ * Platform Stats & Hub Routes
+ */
+router.get('/stats', StatsController.getPlatformStats);
+router.get('/hub/sections', StatsController.getHubSections);
+
 
 /**
  * Validation Rules

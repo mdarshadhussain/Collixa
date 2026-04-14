@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get('/', authMiddleware, CreditController.getMyTransactions);
 router.post('/checkout', authMiddleware, CreditController.createCheckoutSession);
+router.post('/simulate-success', authMiddleware, CreditController.simulateSuccess);
 
 // Webhook must be public because Stripe calls it, but controller handles signature verification
 // Note: This needs express.raw() in server.js to work correctly

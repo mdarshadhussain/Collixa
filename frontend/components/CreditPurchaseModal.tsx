@@ -4,10 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Sparkles, Zap, Crown, Gem, Check, ArrowRight, Loader2 } from 'lucide-react'
-import { loadStripe } from '@stripe/stripe-js'
 import { useAuth } from '@/app/context/AuthContext'
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 interface CreditPurchaseModalProps {
   isOpen: boolean

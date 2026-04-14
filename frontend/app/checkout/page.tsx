@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const pkg = (PACKAGES as any)[packageId] || PACKAGES.starter
 
   const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     cardNumber: '',
@@ -28,14 +29,78 @@ export default function CheckoutPage() {
     cvc: ''
   })
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+  const handleInputChange = (field: string, value: string) => {
+    let formattedValue = value
+
+    if (field === 'cardNumber') {
+      // Remove all non-digits
+      const digitsOnly = value.replace(/\D/g, '')
+      // Group by 4
+      formattedValue = digitsOnly.match(/.{1,4}/g)?.join(' ') || digitsOnly
+      if (digitsOnly.length > 16) return // Max 16 digits
+    }
+
+    if (field === 'expiry') {
+      const digitsOnly = value.replace(/\D/g, '')
+      if (digitsOnly.length > 4) return
+      if (digitsOnly.length > 2) {
+        formattedValue = `${digitsOnly.slice(0, 2)} / ${digitsOnly.slice(2)}`
+      } else {
+        formattedValue = digitsOnly
+      }
+    }
+
+    if (field === 'cvc') {
+      const digitsOnly = value.replace(/\D/g, '')
+      if (digitsOnly.length > 3) return
+      formattedValue = digitsOnly
+    }
+
+    setFormData(prev => ({ ...prev, [field]: formattedValue }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Final Validations
+    if (formData.cardNumber.replace(/\s/g, '').length !== 16) {
+      setError('Card number must be 16 digits')
+      return
+    }
+    if (formData.cvc.length !== 3) {
+      setError('CVC must be exactly 3 digits')
+      return
+    }
+
     setProcessing(true)
+    setError(null)
     
-    // Simulate high-end payment verification
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    
-    router.push(`/payment/success?package=${packageId}`)
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/credits/simulate-success`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ packageId })
+      })
+
+      if (response.ok) {
+        // High-end simulated delay for the "Verification" feel
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        router.push(`/payment/success?package=${packageId}`)
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Identity verification failed')
+      }
+    } catch (err) {
+      setError('Connectivity lost. Re-establishing link...')
+    } finally {
+      setProcessing(false)
+    }
   }
 
   return (
@@ -43,6 +108,11 @@ export default function CheckoutPage() {
       <Header />
       
       <main className="max-w-5xl mx-auto px-4 py-6 md:py-12">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-black uppercase tracking-widest animate-pulse">
+            Error: {error}
+          </div>
+        )}
         <div className="flex flex-col lg:flex-row gap-6 md:gap-10 items-start">
           
           {/* ─── LEFT: ORDER SUMMARY ─── */}
@@ -129,8 +199,7 @@ export default function CheckoutPage() {
                       placeholder="0000 0000 0000 0000"
                       className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl px-4 md:px-5 py-3 text-[11px] md:text-xs font-mono focus:border-[var(--color-accent)] outline-none transition-all"
                       value={formData.cardNumber}
-                      onChange={(e) => setFormData({...formData, cardNumber: e.target.value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim()})}
-                      maxLength={19}
+                      onChange={(e) => handleInputChange('cardNumber', e.target.value)}
                     />
                   </div>
 
@@ -143,20 +212,18 @@ export default function CheckoutPage() {
                         placeholder="MM / YY"
                         className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl px-4 md:px-5 py-3 text-[11px] md:text-xs font-mono focus:border-[var(--color-accent)] outline-none transition-all"
                         value={formData.expiry}
-                        onChange={(e) => setFormData({...formData, expiry: e.target.value})}
-                        maxLength={5}
+                        onChange={(e) => handleInputChange('expiry', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-2 mb-1 block">CVC</label>
                       <input 
                         required
-                        type="password" 
-                        placeholder="CVC"
+                        type="text" 
+                        placeholder="000"
                         className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl px-4 md:px-5 py-3 text-[11px] md:text-xs font-mono focus:border-[var(--color-accent)] outline-none transition-all"
                         value={formData.cvc}
-                        onChange={(e) => setFormData({...formData, cvc: e.target.value})}
-                        maxLength={4}
+                        onChange={(e) => handleInputChange('cvc', e.target.value)}
                       />
                     </div>
                   </div>
@@ -165,6 +232,7 @@ export default function CheckoutPage() {
                 <div className="pt-3 md:pt-4">
                   <button 
                     disabled={processing}
+                    type="submit"
                     className="w-full py-3.5 md:py-4 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-[0.4em] rounded-xl hover:bg-[var(--color-accent)] transition-all shadow-lg shadow-black/5 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 group"
                   >
                     {processing ? (
@@ -176,6 +244,7 @@ export default function CheckoutPage() {
                       </>
                     )}
                   </button>
+
                   <p className="text-center mt-4 text-[7px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] opacity-40">
                     Collixa Secure Gateway
                   </p>

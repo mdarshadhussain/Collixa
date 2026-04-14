@@ -45,9 +45,10 @@ export default function Header() {
   }
 
   const mainNavItems = [
-    { label: 'Marketplace', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'My Projects', href: '/my-intents', icon: FileText },
+    { label: 'Hub', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Collaboration', href: '/collaborations', icon: FileText },
     { label: 'Tribes', href: '/skills', icon: Users },
+    { label: 'Messages', href: '/chat', icon: MessageSquare },
   ]
 
   const landingNavItems = [
@@ -120,8 +121,8 @@ export default function Header() {
                       transition={{ duration: 0.2, ease: "easeOut" }}
                       className={`absolute right-0 mt-3 w-64 rounded-2xl shadow-2xl border p-2 z-20 backdrop-blur-xl ${
                         isLandingPage 
-                          ? 'bg-[#F5F5F0]/90 border-[var(--lp-text)]/10 text-[var(--lp-text)]' 
-                          : 'bg-[var(--color-bg-primary)]/90 border-[var(--color-border)]'
+                          ? 'bg-[#F5F5F0] border-[var(--lp-text)]/10 text-[var(--lp-text)]' 
+                          : 'bg-[var(--color-bg-primary)] border-[var(--color-border)]'
                       }`}
                     >
                       <div className="px-4 py-3 border-b border-black/5 mb-2">
@@ -147,7 +148,17 @@ export default function Header() {
                         <span className="text-[13px] font-semibold">Platform Dashboard</span>
                       </Link>
 
+                      <Link 
+                        href="/my-collaborations" 
+                        onClick={() => setShowProfileMenu(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                      >
+                        <Zap size={16} />
+                        <span className="text-[13px] font-semibold">My Projects</span>
+                      </Link>
+
                       <div className="h-[1px] bg-black/5 my-2" />
+
 
                       <button 
                         onClick={handleLogout}

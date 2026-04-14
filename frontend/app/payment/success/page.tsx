@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Check, Sparkles, Zap, ArrowRight, Home, LayoutDashboard } from 'lucide-react'
-import Header from '@/components/Header'
+import { useAuth } from '@/app/context/AuthContext'
 
 const PACKAGES = {
   'starter': { name: 'Curious Case', credits: 100, color: 'from-blue-400 to-indigo-500' },
@@ -16,6 +16,7 @@ const PACKAGES = {
 
 export default function PaymentSuccessPage() {
   const router = useRouter()
+  const { refreshUser } = useAuth()
   const searchParams = useSearchParams()
   const packageId = searchParams.get('package') || 'starter'
   const pkg = (PACKAGES as any)[packageId] || PACKAGES.starter
@@ -23,6 +24,9 @@ export default function PaymentSuccessPage() {
   const [counter, setCounter] = useState(0)
 
   useEffect(() => {
+    // Trigger real balance sync in background
+    refreshUser()
+    
     // Satisfying counter animation for the credits added
     const target = pkg.credits
     const duration = 2000

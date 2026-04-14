@@ -3,13 +3,14 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, MessageSquare, Users, User } from 'lucide-react'
+import { LayoutDashboard, FileText, MessageSquare, Users, User, Zap } from 'lucide-react'
 import { messageService, supabase } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Projects', href: '/dashboard' },
-  { icon: FileText, label: 'My Projects', href: '/my-intents' },
+  { icon: LayoutDashboard, label: 'Hub', href: '/dashboard' },
+  { icon: FileText, label: 'Collaboration', href: '/collaborations' },
+  { icon: Zap, label: 'My Projects', href: '/my-collaborations' },
   { icon: MessageSquare, label: 'Messages', href: '/chat' },
   { icon: Users, label: 'Tribes', href: '/skills' },
   { icon: User, label: 'Profile', href: '/profile' },

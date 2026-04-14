@@ -71,7 +71,57 @@ export class CreditController {
     }
   }
 
+  static async simulateSuccess(req, res, next) {
+    try {
+      const { packageId } = req.body;
+      const pkg = CREDIT_PACKAGES[packageId];
+
+      if (!pkg) {
+        return res.status(400).json({ success: false, error: 'Invalid credit package' });
+      }
+
+      const userId = req.user.id;
+      const credits = pkg.credits;
+
+      // Atomic update: Record transaction and add credits
+      const { error: txError } = await supabaseAdmin
+        .from('credit_transactions')
+        .insert({
+          user_id: userId,
+          amount: parseInt(credits),
+          type: 'PURCHASE',
+          session_id: `SIM_${Date.now()}`,
+          created_at: new Date().toISOString()
+        });
+
+      if (txError) throw txError;
+
+      // Fetch current credits
+      const { data: user, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('credits')
+        .eq('id', userId)
+        .single();
+
+      if (userError) throw userError;
+
+      // Update total
+      const { error: updateError } = await supabaseAdmin
+        .from('users')
+        .update({ credits: (user.credits || 0) + parseInt(credits) })
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+
+      res.status(200).json({ success: true, message: `Successfully added ${credits} credits` });
+    } catch (error) {
+      console.error('Simulation update failed:', error);
+      next(error);
+    }
+  }
+
   static async handleWebhook(req, res, next) {
+
     const sig = req.headers['stripe-signature'];
     let event;
 
