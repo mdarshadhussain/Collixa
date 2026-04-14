@@ -3,7 +3,7 @@
 import { useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, useInView, useScroll, useTransform, useSpring, type Variants } from 'framer-motion'
-import { ArrowRight, CheckCircle2, Compass, MessagesSquare, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, CheckCircle2, ChevronDown, Compass, MessagesSquare, Sparkles, Users } from 'lucide-react'
 import Header from '@/components/Header'
 import { useAuth } from '@/app/context/AuthContext'
 
@@ -151,8 +151,8 @@ function HeroSection() {
   )
 }
 
-function LogoTicker() {
-  const items = [
+function LogoTicker({ items }: { items?: string[] }) {
+  const defaultItems = [
     "300+ Active Intents",
     "Aligned Collaborators",
     "Skill Exchange",
@@ -161,6 +161,8 @@ function LogoTicker() {
     "Intent-first",
   ]
 
+  const displayItems = items || defaultItems
+
   return (
     <section className="bg-[#FF85BB] py-8 overflow-hidden select-none relative group border-y border-white/10">
       {/* Side Masks for the Ticker */}
@@ -168,7 +170,7 @@ function LogoTicker() {
       <div className="absolute inset-y-0 right-0 w-32 md:w-64 bg-gradient-to-l from-[#FF85BB] to-transparent z-10" />
 
       <div className="flex whitespace-nowrap animate-ticker relative z-0">
-        {[...items, ...items, ...items, ...items].map((text, idx) => (
+        {[...displayItems, ...displayItems, ...displayItems, ...displayItems].map((text, idx) => (
           <div key={`${text}-${idx}`} className="flex items-center gap-12 mx-12">
             <span className="text-[var(--lp-text)] text-[20px] md:text-[28px] font-normal tracking-wide [font-family:'Quintessential',cursive] whitespace-nowrap">
               {text}
@@ -198,23 +200,19 @@ function FeatureItem({ feature, idx }: { feature: any, idx: number }) {
     offset: ["start end", "end start"]
   })
 
-  // Spring stabilization to fix flickering
+  // More active spring settings for snappier return
   const smoothProgress = useSpring(scrollYProgress, { 
-    stiffness: 100, 
-    damping: 30, 
+    stiffness: 160, 
+    damping: 40,
+    mass: 0.6,
     restDelta: 0.001 
   })
 
-  // Entrance/Exit mapping
-  const opacity = useTransform(smoothProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0])
-  const scale = useTransform(smoothProgress, [0, 0.2, 0.8, 1], [0.95, 1, 1, 0.95])
-  
-  // Slide from left/right (Reduced Offset for stability)
-  const xOffset = idx % 2 === 0 ? -80 : 80
-  const x = useTransform(smoothProgress, [0, 0.3, 0.7, 1], [xOffset, 0, 0, xOffset / 2])
-  
-  // Subtle rotation
-  const rotate = useTransform(smoothProgress, [0, 0.2, 0.8, 1], [idx % 2 === 0 ? -2 : 2, 0, 0, idx % 2 === 0 ? 2 : -2])
+  // Tighter entrance mapping: Locks in and stays until reverse scroll
+  const opacity = useTransform(smoothProgress, [0.1, 0.4], [0, 1])
+  const scale = useTransform(smoothProgress, [0.1, 0.4], [0.85, 1])
+  const x = useTransform(smoothProgress, [0.1, 0.4], [idx % 2 === 0 ? -180 : 180, 0])
+  const rotate = useTransform(smoothProgress, [0.1, 0.4], [idx % 2 === 0 ? -15 : 15, 0])
 
   return (
     <motion.div
@@ -340,186 +338,106 @@ function FeatureGrid() {
   )
 }
 
-function BenefitsTicker() {
-  const benefits = [
-    {
-      title: "Seamless Collaboration",
-      image: "/benefits/collab.png",
-      tag: "Workflow"
-    },
-    {
-      title: "Dynamic Skill Matching",
-      image: "/benefits/match.png",
-      tag: "AI Engine"
-    },
-    {
-      title: "Vibrant Community",
-      image: "/benefits/community.png",
-      tag: "Ecosystem"
-    },
-    {
-      title: "Real-time Momentum",
-      image: "/benefits/momentum.png",
-      tag: "Execution"
-    },
-    {
-      title: "Intent Architect",
-      image: "/benefits/architect.png",
-      tag: "Strategy"
-    },
-    {
-      title: "Expert Network",
-      image: "/benefits/expert.png",
-      tag: "Resources"
-    }
-  ]
+const BENEFITS_DATA = [
+  {
+    number: "(01)",
+    title: "Momentum Forge",
+    description: "Designed for high-velocity teams who need immediate clarity. You'll finally have a collaboration workspace that feels intuitive, supports your project's specific DNA, and drives execution without the noise.",
+    idealFor: "Ideal for project leads, founders, and technical architects.",
+    bg: "bg-[#FFCEE3]", // Soft Pink
+    text: "text-[#021A54]",
+    btnBg: "bg-[#021A54]",
+    btnText: "text-white",
+    btnLabel: "Reserve Access"
+  },
+  {
+    number: "(02)",
+    title: "Intent Alignment",
+    description: "Fully custom and strategically designed to see your big vision through. Our matching engine identifies collaborators you can count on — it's time your project's expert network caught up.",
+    idealFor: "Perfect for established networks or growing service-based tribes.",
+    bg: "bg-[#021A54]", // Midnight Blue
+    text: "text-[#F5F5F5]",
+    btnBg: "bg-[#F5F5F5]",
+    btnText: "text-[#021A54]",
+    btnLabel: "Match Now"
+  },
+  {
+    number: "(03)",
+    title: "Execution Vault",
+    description: "A strategic ecosystem that protects your project's momentum. Move from intro to delivery with structured conversations, validated skills, and alignment that stays consistent.",
+    idealFor: "Best for serious collaborators and long-term project partners.",
+    bg: "bg-[#FFCEE3]", // Soft Pink
+    text: "text-[#021A54]",
+    btnBg: "bg-[#021A54]",
+    btnText: "text-white",
+    btnLabel: "Start Building"
+  }
+];
 
-  // Repeat for infinite effect
-  const displayBenefits = [...benefits, ...benefits]
-
+function BenefitCardsSection() {
   return (
-    <section id="benefits" className="py-24 bg-[var(--lp-bg)] overflow-hidden border-y border-[var(--lp-text)]/5">
-      <div className="max-w-[1400px] mx-auto px-6 mb-16">
-        <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase text-[var(--lp-primary)] mb-4 font-sans">
+    <section id="benefits" className="py-24 md:py-32 bg-[var(--lp-bg)]">
+      <div className="max-w-[1550px] mx-auto px-[5%] md:px-[10%] mb-16">
+        <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase text-[#FF85BB] mb-4 font-sans">
           Proven Impact
         </h2>
-        <p className="text-[32px] md:text-[40px] font-bold font-[var(--font-lp-serif)] text-[var(--lp-text)] max-w-xl leading-[1.1]">
+        <p className="text-[40px] md:text-[56px] font-bold font-sans text-[#021A54] max-w-2xl leading-[1.05] tracking-tight">
           Designed for the detail-oriented team.
         </p>
       </div>
 
-      <div className="relative group">
-        <div className="flex animate-scroll hover:[animation-play-state:paused] cursor-pointer">
-          {displayBenefits.map((benefit, idx) => (
-            <div 
-              key={`${benefit.title}-${idx}`} 
-              className="px-6 shrink-0"
-            >
-              <div className="w-[80vw] md:w-[450px] space-y-8">
-                <div className="aspect-[4/3] rounded-[2.5rem] overflow-hidden border border-[var(--lp-text)]/10 shadow-lg bg-white/50">
-                  <img 
-                    src={benefit.image} 
-                    alt={benefit.title} 
-                    className="w-full h-full object-cover transform transition-transform duration-700 hover:scale-105" 
-                  />
+      <div className="ml-[5%] md:ml-[10%] overflow-hidden">
+        <div className="overflow-x-auto pb-12 snap-x snap-mandatory no-scrollbar">
+          <div className="flex gap-6 md:gap-10 min-w-max pr-16 md:pr-32">
+            {BENEFITS_DATA.map((benefit, idx) => (
+              <div 
+                key={`${benefit.title}-${idx}`}
+                className={`${benefit.bg} ${benefit.text} p-8 md:p-10 rounded-[2rem] flex flex-col min-h-[340px] w-[85vw] md:w-[600px] shrink-0 snap-center border border-black/5 shadow-xl shadow-transparent hover:shadow-black/5 transition-all duration-700`}
+              >
+                <div className="flex justify-between items-start mb-16">
+                  <span className="text-[18px] opacity-80 font-medium font-sans">{benefit.number}</span>
                 </div>
-                <div className="px-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--lp-primary)] mb-2 block font-sans">
-                    {benefit.tag}
-                  </span>
-                  <h3 className="text-2xl font-bold font-[var(--font-lp-serif)] text-[var(--lp-text)]">
+
+                <div className="flex-grow">
+                  <h3 className="text-[36px] md:text-[42px] leading-tight font-bold mb-8 tracking-tight font-sans">
                     {benefit.title}
                   </h3>
+                  
+                  <p className="text-[17px] md:text-[18px] opacity-90 leading-relaxed mb-6 font-sans">
+                    {benefit.description}
+                  </p>
+
+                  <p className="text-[15px] italic opacity-80 mb-10 font-sans">
+                    {benefit.idealFor}
+                  </p>
+
+                  <div className="pt-6 border-t border-current/20 mb-10 text-[var(--lp-text)]">
+                    <div className="flex justify-between items-center opacity-80 cursor-pointer group/inside">
+                      <span className="text-[14px] font-bold uppercase tracking-widest font-sans">What's inside</span>
+                      <ChevronDown className="w-5 h-5 group-hover/inside:translate-y-1 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-auto">
+                  <button className={`flex items-center gap-3 px-8 py-4 rounded-full ${benefit.btnBg} ${benefit.btnText} font-bold text-[14px] transition-transform hover:scale-105 active:scale-95 font-sans`}>
+                    {benefit.btnLabel}
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <style jsx>{`
-        @keyframes scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-scroll {
-          animation: scroll 60s linear infinite;
-          width: fit-content;
-          display: flex;
-        }
-      `}</style>
-    </section>
-  )
-}
-
-function ValueStatementSection() {
-  const ref = useRef<HTMLDivElement | null>(null)
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start 0.95", "start 0.7"]
-  })
-
-  // Smooth entrance earlier in the scroll
-  const opacity = useTransform(scrollYProgress, [0, 0.4], [0, 1])
-  const scale = useTransform(scrollYProgress, [0, 0.4], [0.95, 1])
-
-  return (
-    <section ref={ref} className="pt-24 pb-12 md:pt-32 md:pb-16 border-t border-[var(--lp-text)]/10">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
-        <motion.div
-          style={{ opacity, scale }}
-          className="max-w-[700px] mx-auto text-center"
-        >
-          <h2 className="text-[40px] md:text-[56px] leading-[1.1] tracking-[-0.02em] font-bold font-[var(--font-lp-serif)] text-[var(--lp-text)]">
-            A focused marketplace for serious collaboration.
-          </h2>
-          <p className="mt-6 text-[18px] text-[var(--lp-text)] opacity-70 font-[var(--font-lp-sans)]">
-            Skip scattered tools and generic networking. Collixa keeps intent, matching, and execution in one clear workflow.
-          </p>
-        </motion.div>
-      </div>
-    </section>
-  )
-}
-
-function FeatureCardItem({ card, idx }: { card: any, idx: number }) {
-  const ref = useRef(null)
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "center center"]
-  })
-
-  // Entrance mapping
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [0, 1])
-  const y = useTransform(scrollYProgress, [0, 0.5], [50, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.5], [0.95, 1])
-
-  return (
-    <motion.article
-      ref={ref}
-      style={{ opacity, y, scale }}
-      whileHover={{ y: -6 }}
-      transition={{ duration: 0.2 }}
-      className="p-8 rounded-[2rem] border border-[var(--lp-text)]/20 bg-[var(--lp-primary)]/10 backdrop-blur-sm shadow-lg shadow-transparent hover:shadow-[var(--lp-text)]/5 transition-shadow duration-500"
-    >
-      <card.icon className="w-6 h-6 mb-6 text-[var(--lp-primary)]" />
-      <h3 className="font-[var(--font-lp-serif)] text-2xl leading-tight font-bold text-[var(--lp-text)]">{card.title}</h3>
-      <p className="mt-4 text-[var(--lp-text)] opacity-80 text-[15px] leading-relaxed font-[var(--font-lp-sans)]">{card.text}</p>
-    </motion.article>
-  )
-}
-
-function FeatureCardsSection() {
-  const cards = [
-    {
-      icon: Compass,
-      title: 'Intent-first discovery',
-      text: 'Surface collaborators based on project goals, not noisy feeds.',
-    },
-    {
-      icon: Users,
-      title: 'Aligned collaborator matching',
-      text: 'Find people whose skills and availability match your current stage.',
-    },
-    {
-      icon: MessagesSquare,
-      title: 'Execution-ready messaging',
-      text: 'Move from intro to delivery with structured conversations and requests.',
-    },
-  ]
-
-  return (
-    <section className="pt-4 pb-12 bg-[var(--lp-bg)]">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
-        <div className="grid md:grid-cols-3 gap-8">
-          {cards.map((card, idx) => (
-            <FeatureCardItem key={card.title} card={card} idx={idx} />
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>
-  )
+  );
 }
+
+
+
+
+
 
 function HowItWorksStepItem({ step, idx }: { step: any, idx: number }) {
   const ref = useRef(null)
@@ -541,7 +459,7 @@ function HowItWorksStepItem({ step, idx }: { step: any, idx: number }) {
       className="group relative p-10 md:p-12 rounded-[2.5rem] border border-[var(--lp-text)]/10 bg-[var(--lp-primary)]/[0.03] backdrop-blur-sm transition-all duration-500 hover:bg-[var(--lp-primary)]/[0.06] hover:border-[var(--lp-primary)]/20 shadow-xl shadow-transparent hover:shadow-[var(--lp-primary)]/5"
     >
       {/* Step Number */}
-      <span className="absolute top-10 right-10 text-[64px] font-[var(--font-lp-serif)] text-[var(--lp-text)] opacity-[0.05] group-hover:opacity-[0.1] transition-opacity duration-700 select-none">
+      <span className="absolute top-10 right-10 text-[64px] font-black font-sans text-[#FF85BB] opacity-[0.2] group-hover:opacity-[0.4] transition-opacity duration-700 select-none">
         {step.number}
       </span>
 
@@ -664,11 +582,15 @@ export default function LandingPage() {
       <LogoTicker />
       <FeatureGrid />
       <div className="space-y-0">
-        <BenefitsTicker />
-        <ValueStatementSection />
-        <FeatureCardsSection />
+        <BenefitCardsSection />
         <HowItWorksSection />
-        <LogoTicker />
+        <LogoTicker items={[
+          "\"Alignment is the new velocity.\"",
+          "\"Build with intent, not just instinct.\"",
+          "\"The best teams are architected, not stumbled upon.\"",
+          "\"Momentum is a design choice.\"",
+          "\"Execution is the highest form of alignment.\""
+        ]} />
         <FinalCTASection />
       </div>
     </div>
