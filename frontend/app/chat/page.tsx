@@ -6,10 +6,9 @@ import { Send, Plus, MoreVertical, Search, ArrowLeft, MessageCircle } from 'luci
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import Badge from '@/components/Badge'
-import Avatar from '@/components/Avatar'
-import { useTheme } from '@/app/context/ThemeContext'
 import { useAuth } from '@/app/context/AuthContext'
 import { conversationService, messageService, supabase } from '@/lib/supabase'
+import Typewriter from '@/components/Typewriter'
 
 interface UIMessage {
   id: number
@@ -30,7 +29,6 @@ interface UIConversation {
 }
 
 export default function ChatPage() {
-  const { theme } = useTheme()
   const { user } = useAuth()
   const searchParams = useSearchParams()
   const chatIdFromUrl = searchParams.get('id')
@@ -242,7 +240,9 @@ export default function ChatPage() {
             >
               <div className="p-8 border-b border-[var(--color-border)]">
                 <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-serif font-black tracking-tight">Messages.</h2>
+                  <h2 className="text-3xl font-serif font-black tracking-tighter">
+                    <Typewriter text="Messages." speed={0.06} delay={0.2} />
+                  </h2>
                   <button className="p-3 bg-[var(--color-accent-soft)] text-[var(--color-accent)] rounded-2xl hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)] transition-all">
                     <Plus size={20} />
                   </button>
@@ -271,7 +271,7 @@ export default function ChatPage() {
                         setMobileShowConversations(false)
                       }}
                       className={`w-full text-left p-6 border-b border-[var(--color-border)] hover:bg-[var(--color-accent-soft)]/20 transition-all group relative ${
-                        selectedConversation?.id === conv.id ? 'bg-[var(--color-accent-soft)]/30 border-l-4 border-l-[var(--color-accent)]' : ''
+                        selectedConversation?.id === conv.id ? 'bg-[var(--color-accent-soft)]/20 border-l-4 border-l-[var(--color-accent)]' : ''
                       }`}
                     >
                       <div className="flex items-center gap-4">
@@ -300,7 +300,7 @@ export default function ChatPage() {
             </div>
 
             {/* Chat Area */}
-            <div className={`flex-1 flex flex-col bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
+            <div className={`flex-1 flex flex-col bg-white border border-[var(--color-border)] rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
               {selectedConversation ? (
                 <>
                   <div className="px-8 py-6 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg-secondary)]/50 backdrop-blur-md z-10">

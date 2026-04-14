@@ -8,9 +8,9 @@ import Sidebar from '@/components/Sidebar'
 import Button from '@/components/Button'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
+import Typewriter from '@/components/Typewriter'
 import CreditPurchaseModal from '@/components/CreditPurchaseModal'
 import { useAuth } from '@/app/context/AuthContext'
-import { useTheme } from '@/app/context/ThemeContext'
 import { Intent, storageService, conversationService } from '@/lib/supabase'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -25,7 +25,6 @@ export default function ProfilePage() {
   const searchParams = useSearchParams()
   const profileUid = searchParams.get('uid')
   const { user, isAuthenticated, loading: authLoading, token, refreshUser, updateUser } = useAuth()
-  const { theme } = useTheme()
   const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews'>('intents')
   const [myIntents, setMyIntents] = useState<Intent[]>([])
   const [loadingIntents, setLoadingIntents] = useState(true)
@@ -296,7 +295,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 gap-8">
           {/* Profile Sidebar/Header Area */}
           <div className="space-y-6">
-            <div className="bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] p-4 sm:p-6 md:p-8 rounded-2xl md:rounded-[2rem] shadow-xl shadow-[var(--color-accent)]/5 relative overflow-hidden">
+            <div className="bg-white border border-[var(--color-border)] p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-xl shadow-[var(--color-accent)]/5 relative overflow-hidden">
               
               {isEditing && isOwnProfile ? (
                 <div className="space-y-6">
@@ -396,7 +395,9 @@ export default function ProfilePage() {
                            <Edit2 size={14} />
                         </button>
                         <div>
-                          <h1 className="text-2xl md:text-3xl font-serif font-black text-[var(--color-text-primary)] mb-1">{profileUser?.name || 'User'}</h1>
+                          <h1 className="text-3xl md:text-5xl font-serif font-black text-[var(--color-text-primary)] mb-1 tracking-tighter">
+                            <Typewriter text={profileUser?.name || 'User'} speed={0.05} delay={0.2} />
+                          </h1>
                           <div className="flex items-center gap-3">
                             <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] md:tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm">

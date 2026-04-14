@@ -1,15 +1,15 @@
 'use client'
 
-import { Search, Plus, MapPin, Clock, Users, LogOut, Settings, LayoutDashboard, FileText, MessageSquare, ChevronDown, RefreshCw, ArrowUpRight, Sun, Moon } from 'lucide-react'
+import { Search, Plus, MapPin, Clock, Users, LogOut, Settings, LayoutDashboard, FileText, MessageSquare, ChevronDown, RefreshCw, ArrowUpRight } from 'lucide-react'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
-import { useTheme } from '@/app/context/ThemeContext'
 import { useRouter } from 'next/navigation'
 import { Intent, intentService, storageService } from '@/lib/supabase'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
+import Typewriter from '@/components/Typewriter'
 
 const CATEGORIES = ['All', 'Design', 'Development', 'Marketing', 'Data', 'Other']
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -17,7 +17,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 export default function DashboardPage() {
   const router = useRouter()
   const { user, isAuthenticated, loading: authLoading } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   
   const [intents, setIntents] = useState<Intent[]>([])
   const [loading, setLoading] = useState(true)
@@ -111,10 +110,15 @@ export default function DashboardPage() {
             </div>
 
             {/* Header Area */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 md:gap-10 bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 md:gap-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5 group">
               <div className="space-y-6 w-full md:w-auto">
-                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.35em] sm:tracking-[0.5em] text-[var(--color-accent)] block mb-2">Explore Feed</span>
-                <h2 className="text-h2 !leading-[1]">Find your next <br /><span className="italic font-light text-[var(--color-accent)]">collaboration.</span></h2>
+                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] block mb-2 opacity-60">Explore Feed</span>
+                <h2 className="text-4xl md:text-6xl font-serif font-black tracking-tighter leading-[1.1] text-[var(--color-text-primary)]">
+                  <Typewriter text="Find your next" speed={0.05} delay={0.1} /> <br />
+                  <span className="italic font-light text-[var(--color-accent)]">
+                    <Typewriter text="collaboration." speed={0.05} delay={0.8} />
+                  </span>
+                </h2>
               </div>
               
               <div className="flex w-full md:w-auto items-center gap-2 sm:gap-3 flex-wrap md:flex-nowrap">
@@ -144,15 +148,15 @@ export default function DashboardPage() {
             </div>
 
             {/* Filter Pill List */}
-            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-3 md:pb-4 scrollbar-hide">
+            <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide no-scrollbar">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                    onClick={() => setFilterCategory(cat)}
-                  className={`px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 rounded-full text-[9px] font-black uppercase tracking-[0.14em] sm:tracking-widest transition-all whitespace-nowrap ${
+                  className={`px-8 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap border ${
                     filterCategory === cat 
-                    ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]' 
-                    : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent)] shadow-sm'
+                    ? 'bg-[var(--color-text-primary)] text-white border-[var(--color-text-primary)] shadow-lg shadow-[var(--color-text-primary)]/10' 
+                    : 'bg-white text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
                   }`}
                 >
                   {cat}
@@ -176,10 +180,10 @@ export default function DashboardPage() {
                   <div
                     key={intent.id}
                     onClick={() => router.push(`/intent/${intent.id}`)}
-                    className="group min-h-[300px] sm:min-h-[360px] md:min-h-[420px] lg:min-h-[460px] bg-[var(--color-bg-secondary)] rounded-[1rem] sm:rounded-[1.5rem] md:rounded-[2rem] lg:rounded-[2.5rem] p-3 sm:p-5 md:p-7 lg:p-10 flex flex-col border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] hover:shadow-2xl transition-all duration-700 cursor-pointer relative overflow-hidden"
+                    className="group min-h-[340px] sm:min-h-[400px] md:min-h-[460px] lg:min-h-[500px] bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 transition-all duration-1000 cursor-pointer relative overflow-hidden"
                   >
-                    <div className="absolute top-0 right-0 p-3 sm:p-5 md:p-8 lg:p-10 transform translate-x-4 -translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-700 z-10">
-                       <ArrowUpRight size={16} className="text-[var(--color-accent)] sm:w-[18px] sm:h-[18px] md:w-[22px] md:h-[22px]" />
+                    <div className="absolute top-0 right-0 p-8 md:p-10 translate-x-4 -translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-1000 z-10">
+                       <ArrowUpRight size={24} className="text-[var(--color-accent)]" />
                     </div>
 
                     {/* Image Header if exists */}
@@ -222,11 +226,11 @@ export default function DashboardPage() {
                                className="border border-[var(--color-accent-soft)]"
                              />
                              <div className="min-w-0">
-                                <p className="text-[7px] sm:text-[8px] font-black uppercase tracking-tighter text-[var(--color-text-secondary)] leading-none mb-1">Project Lead</p>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-primary)] opacity-40 leading-none mb-1.5">Project Lead</p>
                                 <p className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-[var(--color-text-primary)] leading-none truncate">{intent.created_by && typeof intent.created_by === 'object' ? ((intent.created_by as any).name || 'Member') : 'Member'}</p>
                              </div>
                           </div>
-                          <Badge variant="green" className="text-[7px] sm:text-[8px] md:text-[9px] uppercase font-bold tracking-[0.06em] sm:tracking-[0.08em] md:tracking-widest bg-[var(--color-accent-soft)] text-[var(--color-accent)] border-none px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded-full shrink-0">
+                          <Badge variant="sage" className="text-[9px] font-black bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] border-none px-4 py-1.5 shrink-0">
                             {intent.status === 'looking' ? 'Open' : 'Active'}
                           </Badge>
                        </div>

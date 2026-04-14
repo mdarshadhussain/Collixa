@@ -9,15 +9,13 @@ import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'
-import { useTheme } from '@/app/context/ThemeContext'
 import { skillService, sessionService, reviewService, conversationService } from '@/lib/supabase'
 import AddSkillModal from '@/components/AddSkillModal'
 import SkillExchangeModal from '@/components/SkillExchangeModal'
+import Typewriter from '@/components/Typewriter'
 import { useAuth } from '@/app/context/AuthContext'
 
 export default function SkillsPage() {
-  const router = useRouter()
-  const { theme } = useTheme()
   const { user, refreshUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
@@ -266,11 +264,13 @@ export default function SkillsPage() {
           )}
 
           {/* Editorial Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-8 bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-8">
-            <div className="space-y-3">
-               <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)]">Tribes Directory</span>
-               <h1 className="text-3xl sm:text-4xl md:text-6xl font-serif font-black tracking-tighter italic leading-none">Tribes.</h1>
-               <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-[var(--color-text-secondary)]">Discover talented collaborators</p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-8 bg-white border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5">
+            <div className="space-y-4">
+               <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] opacity-60">Tribes Directory</span>
+               <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-black tracking-tighter leading-none text-[var(--color-text-primary)]">
+                 <Typewriter text="Tribes." speed={0.06} delay={0.2} />
+               </h1>
+               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-primary)] opacity-40">Discover talented collaborators</p>
             </div>
             <div className="flex items-center gap-4">
                <button 
@@ -318,10 +318,10 @@ export default function SkillsPage() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-4 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-widest transition-all ${
+                  className={`px-8 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${
                     activeCategory === cat 
-                      ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] shadow-lg shadow-[var(--color-accent)]/20' 
-                      : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent)]'
+                      ? 'bg-[var(--color-text-primary)] text-white border-[var(--color-text-primary)] shadow-lg shadow-[var(--color-text-primary)]/10' 
+                      : 'bg-white text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
                   }`}
                 >
                   {cat}

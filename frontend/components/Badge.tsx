@@ -10,11 +10,11 @@ export default function Badge({
   className = '',
 }: BadgeProps) {
   const variants = {
-    sage: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]',
-    gray: 'bg-[var(--color-border)] text-[var(--color-text-secondary)]',
-    blue: 'bg-blue-100 text-blue-700',
-    green: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]',
-    red: 'bg-red-100 text-red-700',
+    sage: 'bg-[var(--color-accent-soft)]/30 text-[var(--color-accent)]',
+    gray: 'bg-[var(--color-border)] text-[var(--color-text-primary)] opacity-60',
+    blue: 'bg-blue-50 text-[#021A54] border border-[#021A54]/10',
+    green: 'bg-green-50 text-green-700 border border-green-200',
+    red: 'bg-red-50 text-red-700 border border-red-200',
   }
 
   return (

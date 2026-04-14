@@ -7,10 +7,8 @@ import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'
-import { useTheme } from '@/app/context/ThemeContext'
 
 export default function SettingsPage() {
-  const { theme } = useTheme()
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile')
   const [formData, setFormData] = useState({
     name: 'John Doe',

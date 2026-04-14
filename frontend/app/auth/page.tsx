@@ -5,13 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, User, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react'
 import Input from '@/components/Input'
 import { useAuth } from '@/app/context/AuthContext'
-import { useTheme } from '@/app/context/ThemeContext'
 
 function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { login, register } = useAuth()
-  const { theme } = useTheme()
   
   const mode = searchParams.get('mode')
   const [isLogin, setIsLogin] = useState(mode !== 'register')

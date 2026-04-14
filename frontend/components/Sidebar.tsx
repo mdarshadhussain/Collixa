@@ -64,12 +64,12 @@ export default function Sidebar() {
                   href={item.href}
                   className={`flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 group ${
                     isActive
-                      ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] shadow-lg shadow-[var(--color-accent)]/20'
-                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-accent-soft)]'
+                      ? 'bg-[var(--color-accent)] text-white shadow-lg shadow-[var(--color-accent)]/20 shadow-xl'
+                      : 'text-[var(--color-text-primary)] opacity-60 hover:opacity-100 hover:bg-[var(--color-accent-soft)]/20'
                   }`}
                 >
-                  <item.icon size={18} className={isActive ? 'opacity-100' : 'opacity-50 group-hover:opacity-100'} />
-                  <span className="text-[11px] font-bold uppercase tracking-widest flex-1">{item.label}</span>
+                  <item.icon size={18} className={isActive ? 'opacity-100' : 'opacity-40 group-hover:opacity-100 transition-opacity'} />
+                  <span className={`text-[11px] font-black uppercase tracking-[0.2em] flex-1 ${isActive ? '' : 'text-[var(--color-text-primary)] opacity-70'}`}>{item.label}</span>
                   {item.label === 'Messages' && unreadCount > 0 && (
                     <span className="px-2 py-0.5 min-w-[1.5rem] text-center text-[9px] font-black bg-white text-[var(--color-accent)] rounded-full shadow-sm ring-2 ring-[var(--color-accent)]/20 animate-pulse">
                       {unreadCount}

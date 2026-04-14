@@ -5,10 +5,10 @@ import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
-import { useTheme } from '@/app/context/ThemeContext'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
+import Typewriter from '@/components/Typewriter'
 import Link from 'next/link'
 import type { Intent } from '@/lib/supabase'
 
@@ -17,7 +17,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 export default function MyIntentsPage() {
   const router = useRouter()
   const { user, logout, isAuthenticated, loading: authLoading, token } = useAuth()
-  const { theme } = useTheme()
   
   const [intents, setIntents] = useState<Intent[]>([])
   const [loading, setLoading] = useState(true)
@@ -114,11 +113,13 @@ export default function MyIntentsPage() {
         <main className="flex-1 space-y-6 md:space-y-12">
           
           {/* Header Area */}
-          <div className="flex flex-col md:flex-row justify-between md:items-end gap-5 md:gap-8 bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-8">
-            <div className="space-y-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)]">Personal</span>
-              <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-black leading-tight text-[var(--color-text-primary)] italic tracking-tighter">My Projects.</h2>
-              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-[var(--color-text-secondary)]">Manage your active collaborations</p>
+          <div className="flex flex-col md:flex-row justify-between md:items-end gap-5 md:gap-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5">
+            <div className="space-y-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] opacity-60">Personal Platform</span>
+              <h2 className="text-4xl md:text-6xl font-serif font-black leading-tight text-[var(--color-text-primary)] tracking-tighter">
+                <Typewriter text="My Projects." speed={0.05} delay={0.2} />
+              </h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-primary)] opacity-40">Manage your active collaborations</p>
             </div>
             
             <div className="flex items-center gap-2 sm:gap-4 w-full md:w-auto">
@@ -161,7 +162,7 @@ export default function MyIntentsPage() {
                 <div
                   key={intent.id}
                   onClick={() => router.push(`/intent/${intent.id}`)}
-                  className="group relative bg-[var(--color-bg-secondary)] rounded-xl sm:rounded-2xl md:rounded-[2rem] p-3 sm:p-5 md:p-7 flex flex-col border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] hover:shadow-2xl transition-all duration-700 cursor-pointer overflow-hidden"
+                  className="group relative bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 transition-all duration-1000 cursor-pointer overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 p-3 sm:p-5 md:p-7 translate-x-4 -translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-700">
                      <ArrowUpRight size={16} className="text-[var(--color-accent)] sm:w-[18px] sm:h-[18px]" />

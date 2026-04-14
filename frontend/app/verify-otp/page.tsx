@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, CheckCircle, AlertCircle, Clock, ShieldCheck, RefreshCcw, Loader2 } from 'lucide-react'
 import Button from '@/components/Button'
-import { useTheme } from '@/app/context/ThemeContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -13,7 +12,6 @@ function VerifyOtpContent() {
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
   const urlOtp = searchParams.get('otp')
-  const { theme } = useTheme()
 
   const [otp, setOtp] = useState('')
   const [error, setError] = useState('')

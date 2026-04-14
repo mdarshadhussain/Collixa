@@ -1,13 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { Menu, X, ChevronDown, Sun, Moon, Zap, MessageSquare, Plus, LayoutDashboard, FileText, Users, User } from 'lucide-react'
+import { Menu, X, ChevronDown, Zap, MessageSquare, Plus, LayoutDashboard, FileText, Users, User } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import Avatar from './Avatar'
 import NotificationDropdown from './NotificationDropdown'
 import { useAuth } from '@/app/context/AuthContext'
-import { useTheme } from '@/app/context/ThemeContext'
 import { useRouter, usePathname } from 'next/navigation'
 import { storageService } from '@/lib/supabase'
 import CreditPurchaseModal from './CreditPurchaseModal'
@@ -23,7 +22,6 @@ export default function Header() {
   const [lastScrollY, setLastScrollY] = useState(0)
   const [showCreditModal, setShowCreditModal] = useState(false)
   const { user, logout, isAuthenticated } = useAuth()
-  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,9 +65,9 @@ export default function Header() {
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       className={`sticky top-0 z-[100] w-full transition-all duration-500 ${
       scrolled 
-        ? isLandingPage ? 'bg-[var(--lp-bg)] border-b border-[var(--lp-text)]/10 shadow-sm' : 'bg-[var(--color-bg-primary)] backdrop-blur-2xl bg-opacity-80 border-b border-[var(--color-border)] shadow-sm shadow-black/5' 
+        ? isLandingPage ? 'bg-[var(--lp-bg)] border-b border-[var(--lp-text)]/10 shadow-sm' : 'bg-[var(--color-bg-primary)] backdrop-blur-2xl bg-opacity-80 border-b border-[var(--color-border)] shadow-sm' 
         : isLandingPage ? 'bg-[var(--lp-bg)] border-b border-transparent' : 'bg-[var(--color-bg-primary)] border-b border-transparent'
-    } ${isLandingPage ? 'text-[var(--lp-text)]' : ''}`}>
+    } ${isLandingPage ? 'text-[var(--lp-text)]' : 'text-[var(--color-text-primary)]'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 w-full flex justify-between items-center py-3 md:py-6">
         
         {/* ─── LOGO ─── */}
@@ -84,7 +82,7 @@ export default function Header() {
               <Link 
                 key={item.label} 
                 href={item.href} 
-                className={`text-[14px] font-semibold tracking-tight transition-all font-sans hover:opacity-100 ${isLandingPage ? 'text-[var(--lp-text)] opacity-70' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]'}`}
+                className={`text-[12px] font-black uppercase tracking-[0.2em] transition-all font-sans hover:opacity-100 ${isLandingPage ? 'text-[var(--lp-text)] opacity-70' : 'text-[var(--color-text-primary)] opacity-60 hover:opacity-100'}`}
               >
                 {item.label}
               </Link>
@@ -104,6 +102,64 @@ export default function Header() {
                 />
                 <span className="text-[10px] font-bold uppercase tracking-wider">{user.name.split(' ')[0]}</span>
               </button>
+
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <>
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setShowProfileMenu(false)}
+                      className="fixed inset-0 z-10"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className={`absolute right-0 mt-3 w-64 rounded-2xl shadow-2xl border p-2 z-20 backdrop-blur-xl ${
+                        isLandingPage 
+                          ? 'bg-[#F5F5F0]/90 border-[var(--lp-text)]/10 text-[var(--lp-text)]' 
+                          : 'bg-[var(--color-bg-primary)]/90 border-[var(--color-border)]'
+                      }`}
+                    >
+                      <div className="px-4 py-3 border-b border-black/5 mb-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 mb-1">Authenticated as</p>
+                        <p className="text-[14px] font-bold truncate">{user.name}</p>
+                      </div>
+
+                      <Link 
+                        href="/profile" 
+                        onClick={() => setShowProfileMenu(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                      >
+                        <User size={16} />
+                        <span className="text-[13px] font-semibold">View Profile</span>
+                      </Link>
+
+                      <Link 
+                        href="/dashboard" 
+                        onClick={() => setShowProfileMenu(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                      >
+                        <LayoutDashboard size={16} />
+                        <span className="text-[13px] font-semibold">Platform Dashboard</span>
+                      </Link>
+
+                      <div className="h-[1px] bg-black/5 my-2" />
+
+                      <button 
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-red-50 text-red-500"
+                      >
+                        <Zap size={16} className="rotate-12" />
+                        <span className="text-[13px] font-bold">Log Out</span>
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <Link href="/auth">
@@ -139,9 +195,6 @@ export default function Header() {
             </button>
           )}
           {isAuthenticated && <NotificationDropdown />}
-          <button onClick={toggleTheme} className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-full flex items-center justify-center">
-            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-          </button>
           <button className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full flex items-center justify-center" onClick={() => setIsOpen(!isOpen)}>
             {isOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
