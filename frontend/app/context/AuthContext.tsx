@@ -27,6 +27,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>
   register: (email: string, password: string, name: string) => Promise<{ error: string | null; pendingVerification?: boolean }>
   logout: () => Promise<void>
+  loginWithGoogle: () => Promise<{ error: string | null }>
+  loginWithFacebook: () => Promise<{ error: string | null }>
   refreshUser: () => Promise<void>
   updateUser: (updatedUser: User) => void
 }
@@ -125,6 +127,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const loginWithGoogle = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/dashboard'
+        }
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return { error: null };
+    } catch (err) {
+      console.error('Google login error:', err);
+      return { error: 'Google login failed' };
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const loginWithFacebook = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: window.location.origin + '/dashboard'
+        }
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return { error: null };
+    } catch (err) {
+      console.error('Facebook login error:', err);
+      return { error: 'Facebook login failed' };
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const refreshUser = async () => {
     const sessionToken = token || localStorage.getItem('auth_token');
     if (!sessionToken) return;
@@ -160,6 +208,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        loginWithGoogle,
+        loginWithFacebook,
         refreshUser,
         updateUser,
       }}
