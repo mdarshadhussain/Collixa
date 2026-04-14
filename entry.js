@@ -8,6 +8,8 @@ require('dotenv').config();
 
 const proxy = httpProxy.createProxyServer({});
 
+const fs = require('fs');
+
 // Configuration
 const BACKEND_PORT = 5001;
 const FRONTEND_PORT = 5002;
@@ -16,21 +18,38 @@ const PUBLIC_PORT = process.env.PORT || 8080;
 console.log('🚀 Starting Collixa Orchestrator...');
 
 // 1. Launch Backend
-const backendPath = path.join(__dirname, 'backend', 'src', 'server.js');
+const backendPath = path.resolve(__dirname, 'backend', 'src', 'server.js');
+console.log(`🔍 Checking Backend: ${backendPath}`);
+
+if (!fs.existsSync(backendPath)) {
+  console.error('❌ FATAL: Backend server.js not found at expected path.');
+  process.exit(1);
+}
+
 const backend = fork(backendPath, [], {
-  env: { 
-    ...process.env, 
-    PORT: BACKEND_PORT, 
-    NODE_ENV: 'production'
-  }
+  env: { ...process.env, PORT: BACKEND_PORT, NODE_ENV: 'production' }
 });
 
 backend.on('message', (msg) => console.log('[Backend]', msg));
 backend.on('error', (err) => console.error('[Backend Error]', err));
 
 // 2. Launch Frontend (Next.js Standalone)
-// Note: This requires 'npm run build' to have been run first
-const frontendPath = path.join(__dirname, 'frontend', '.next', 'standalone', 'server.js');
+// We check two common standalone locations for monorepos
+let frontendPath = path.resolve(__dirname, 'frontend', '.next', 'standalone', 'server.js');
+const alternativePath = path.resolve(__dirname, 'frontend', '.next', 'standalone', 'frontend', 'server.js');
+
+if (!fs.existsSync(frontendPath)) {
+  if (fs.existsSync(alternativePath)) {
+    frontendPath = alternativePath;
+  } else {
+    console.error('❌ FATAL: Next.js standalone server.js not found.');
+    console.log('💡 Tip: Ensure "npm run build" has completed successfully in /frontend');
+    process.exit(1);
+  }
+}
+
+console.log(`🔍 Checking Frontend: ${frontendPath}`);
+
 const frontend = fork(frontendPath, [], {
   env: { 
     ...process.env, 
