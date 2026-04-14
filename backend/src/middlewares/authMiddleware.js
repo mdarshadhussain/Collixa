@@ -1,4 +1,4 @@
-import { verifyToken } from '../utils/jwt.js';
+import { supabase } from '../config/database.js';
 import UserModel from '../models/User.js';
 
 /**
@@ -15,17 +15,21 @@ export const authMiddleware = async (req, res, next) => {
     const token = authHeader.substring(7); // Remove "Bearer " prefix
 
     try {
-      const decoded = verifyToken(token);
+      // Use Supabase to verify the token and get user auth data
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
       
-      // Fetch fresh user from database
-      const user = await UserModel.findById(decoded.id);
-      if (!user) {
-        return res.status(401).json({ error: 'User does not exist or was deleted' });
+      if (authError || !authUser) {
+        return res.status(401).json({ error: authError?.message || 'Invalid session' });
+      }
+      
+      // Fetch fresh user profile from public.users
+      const profile = await UserModel.findById(authUser.id);
+      if (!profile) {
+        return res.status(401).json({ error: 'User profile does not exist' });
       }
 
-      // Exclude password_hash and attach to req.user
-      const { password_hash, ...userWithoutPassword } = user;
-      req.user = userWithoutPassword;
+      // Attach to req.user
+      req.user = profile;
       
       next();
     } catch (error) {

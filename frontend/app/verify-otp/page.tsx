@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, CheckCircle, AlertCircle, Clock, ShieldCheck, RefreshCcw, Loader2 } from 'lucide-react'
 import Button from '@/components/Button'
+import { supabase } from '@/lib/supabase'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -66,56 +67,51 @@ function VerifyOtpContent() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/verify-account`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
-      })
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email as string,
+        token: otp,
+        type: 'signup'
+      });
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setSuccess(true)
-        setTimeout(() => {
-          router.push('/auth?mode=login')
-        }, 2000)
+      if (error) {
+        setError(error.message);
       } else {
-        setError(data.error || 'Identity verification failed.')
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
       }
     } catch (err) {
-      setError('Authentication node unreachable. Try again.')
-      console.error(err)
+      setError('Authentication node unreachable. Try again.');
+      console.error(err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   const handleResendOtp = async () => {
-    setError('')
-    setLoading(true)
+    setError('');
+    setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/resend-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email as string
+      });
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setOtp('')
-        setTimeLeft(300)
-        setCanResend(false)
-        setError('')
+      if (!error) {
+        setOtp('');
+        setTimeLeft(300);
+        setCanResend(false);
+        setError('');
       } else {
-        setError(data.error || 'Relayer failed to resend code.')
+        setError(error.message);
       }
     } catch (err) {
-      setError('Protocol error during resend.')
-      console.error(err)
+      setError('Protocol error during resend.');
+      console.error(err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

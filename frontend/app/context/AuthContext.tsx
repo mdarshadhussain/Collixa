@@ -2,6 +2,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 export interface User {
   id: string
@@ -39,141 +40,113 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [pendingEmail, setPendingEmail] = useState<string | null>(null)
 
-  // Check if user is logged in on mount (restore from localStorage)
+  // Check if user is logged in on mount and listen to changes
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const savedToken = localStorage.getItem('auth_token')
-
-        if (savedToken) {
-          // Verify token with backend
-          const response = await fetch(`${API_URL}/api/auth/verify`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${savedToken}`,
-              'Content-Type': 'application/json',
-            },
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            setUser(data.user)
-            setToken(savedToken)
-          } else {
-            // Token is invalid, clear it
-            localStorage.removeItem('auth_token')
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[AuthContext] Auth event: ${event}`);
+      
+      if (session) {
+        setToken(session.access_token);
+        localStorage.setItem('auth_token', session.access_token);
+        
+        // Fetch profile from public.users
+        const response = await fetch(`${API_URL}/api/auth/profile`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
           }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
         }
-      } catch (error) {
-        console.error('Auth check error:', error)
-        localStorage.removeItem('auth_token')
-      } finally {
-        setLoading(false)
+      } else {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('auth_token');
       }
-    }
+      setLoading(false);
+    });
 
-    checkAuth()
-  }, [])
+    return () => subscription.unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setUser(data.user)
-        setToken(data.token)
-        localStorage.setItem('auth_token', data.token)
-        return { error: null }
-      } else {
-        const errorMsg = data.error || data.message || `Login failed (Status: ${response.status})`
-        return { error: errorMsg }
+      if (error) {
+        return { error: error.message };
       }
-    } catch (error) {
-      console.error('Login error:', error)
-      return { error: 'Login failed' }
+
+      return { error: null };
+    } catch (err) {
+      console.error('Login error:', err);
+      return { error: 'Login failed' };
+    } finally {
+      setLoading(false);
     }
   }
 
   const register = async (email: string, password: string, name: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      })
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name }
+        }
+      });
 
-      const data = await response.json()
-
-      if (response.ok) {
-        // Store email for OTP verification
-        setPendingEmail(email)
-        // Don't set user/token yet, user needs to verify OTP first
-        return { error: null, pendingVerification: true, otp: data.otp || null }
-      } else {
-        return { error: data.error || data.message || 'Registration failed' }
+      if (error) {
+        return { error: error.message };
       }
-    } catch (error) {
-      console.error('Registration error:', error)
-      return { error: 'Connection failed. Is the server running?' }
+
+      setPendingEmail(email);
+      return { error: null, pendingVerification: true };
+    } catch (err) {
+      console.error('Registration error:', err);
+      return { error: 'Registration failed' };
+    } finally {
+      setLoading(false);
     }
   }
 
   const logout = async () => {
     try {
-      const currentToken = token || localStorage.getItem('auth_token')
-      
-      if (currentToken) {
-        await fetch(`${API_URL}/api/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${currentToken}`,
-            'Content-Type': 'application/json',
-          },
-        })
-      }
-
-      setUser(null)
-      setToken(null)
-      localStorage.removeItem('auth_token')
+      await supabase.auth.signOut();
     } catch (error) {
-      console.error('Logout error:', error)
-      // Still clear local state even if logout fails
-      setUser(null)
-      setToken(null)
-      localStorage.removeItem('auth_token')
+      console.error('Logout error:', error);
     }
   }
 
   const refreshUser = async () => {
-    try {
-      const currentToken = token || localStorage.getItem('auth_token')
-      if (!currentToken) return
+    const sessionToken = token || localStorage.getItem('auth_token');
+    if (!sessionToken) return;
 
-      const response = await fetch(`${API_URL}/api/auth/verify`, {
-        method: 'GET',
+    try {
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
         headers: {
-          'Authorization': `Bearer ${currentToken}`,
-          'Content-Type': 'application/json',
-        },
-      })
+          'Authorization': `Bearer ${sessionToken}`
+        }
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
+        const data = await response.json();
+        setUser(data.user);
       }
     } catch (error) {
-      console.error('Refresh user error:', error)
+      console.error('Refresh user error:', error);
     }
   }
 
   const updateUser = (updatedUser: User) => {
-    setUser(updatedUser)
+    setUser(updatedUser);
   }
 
   return (
