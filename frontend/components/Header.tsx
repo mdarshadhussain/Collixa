@@ -3,28 +3,43 @@
 import Link from 'next/link'
 import { Menu, X, ChevronDown, Sun, Moon, Zap, MessageSquare, Plus, LayoutDashboard, FileText, Users, User } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Avatar from './Avatar'
 import NotificationDropdown from './NotificationDropdown'
 import { useAuth } from '@/app/context/AuthContext'
 import { useTheme } from '@/app/context/ThemeContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { storageService } from '@/lib/supabase'
 import CreditPurchaseModal from './CreditPurchaseModal'
 
 export default function Header() {
   const router = useRouter()
+  const pathname = usePathname()
+  const isLandingPage = pathname === '/'
   const [isOpen, setIsOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isVisible, setIsVisible] = useState(true)
+  const [lastScrollY, setLastScrollY] = useState(0)
   const [showCreditModal, setShowCreditModal] = useState(false)
   const { user, logout, isAuthenticated } = useAuth()
   const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', handleScroll)
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      setScrolled(currentScrollY > 20)
+      
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false)
+      } else {
+        setIsVisible(true)
+      }
+      setLastScrollY(currentScrollY)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [lastScrollY])
 
   const handleLogout = async () => {
     await logout()
@@ -37,110 +52,67 @@ export default function Header() {
     { label: 'Tribes', href: '/skills', icon: Users },
   ]
 
+  const landingNavItems = [
+    { label: 'Features', href: '#features' },
+    { label: 'Benefits', href: '#benefits' },
+    { label: 'Process', href: '#process' },
+  ]
+
+  const navItems = isLandingPage ? landingNavItems : mainNavItems
+
   return (
-    <header className={`sticky top-0 z-[100] w-full transition-all duration-500 ${
+    <motion.header 
+      initial={{ y: 0 }}
+      animate={{ y: isVisible ? 0 : -100 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className={`sticky top-0 z-[100] w-full transition-all duration-500 ${
       scrolled 
-        ? 'bg-[var(--color-bg-primary)] backdrop-blur-2xl bg-opacity-80 border-b border-[var(--color-border)] shadow-sm shadow-black/5' 
-        : 'bg-[var(--color-bg-primary)] border-b border-transparent'
-    }`}>
+        ? isLandingPage ? 'bg-[var(--lp-bg)] border-b border-[var(--lp-text)]/10 shadow-sm' : 'bg-[var(--color-bg-primary)] backdrop-blur-2xl bg-opacity-80 border-b border-[var(--color-border)] shadow-sm shadow-black/5' 
+        : isLandingPage ? 'bg-[var(--lp-bg)] border-b border-transparent' : 'bg-[var(--color-bg-primary)] border-b border-transparent'
+    } ${isLandingPage ? 'text-[var(--lp-text)]' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 w-full flex justify-between items-center py-3 md:py-6">
         
-        {/* ─── LOGO (EDITORIAL ARCHETYPE) ─── */}
-        <Link href="/" className="flex items-center gap-3 sm:gap-6 group">
-          <div className="relative w-10 h-10 sm:w-12 sm:h-12">
-            <div className="absolute inset-0 bg-[var(--color-accent)] rounded-[1.5rem] rotate-45 transform transition-transform group-hover:rotate-0 duration-700 opacity-20" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-[var(--color-accent)] font-serif text-2xl sm:text-3xl font-black italic">C.</span>
-            </div>
-          </div>
-          <span className="hidden md:block font-serif font-black tracking-[-0.05em] text-3xl text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">Collixa.</span>
+        {/* ─── LOGO ─── */}
+        <Link href="/" className="flex items-center gap-3 sm:gap-4 group">
+          <span className={`tracking-[-0.05em] text-2xl sm:text-3xl transition-colors font-['Nunito'] font-[800] ${isLandingPage ? 'text-[var(--lp-text)]' : 'text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]'}`}>Collixa.</span>
         </Link>
 
-        {/* ─── DESKTOP NAVIGATION ─── */}
-        <nav className="hidden lg:flex items-center gap-10">
-          {mainNavItems.map((item) => (
-            <Link 
-              key={item.label} 
-              href={item.href} 
-              className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* ─── ACTION CLUSTER ─── */}
-        <div className="hidden lg:flex items-center gap-4">
-          {isAuthenticated && (
-            <div className="px-4 py-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[9px] font-black uppercase tracking-[0.12em] text-[var(--color-accent)]">
-              Credits: {user?.credits ?? 0}
-            </div>
-          )}
-          
-          {isAuthenticated && (
-            <button
-              onClick={() => setShowCreditModal(true)}
-              className="px-4 py-2 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-[0.12em] rounded-full transition-all flex items-center gap-2 hover:opacity-90 active:scale-95 transform"
-            >
-              <Plus size={12} />
-              Get More Credits
-            </button>
-          )}
-
-          <button 
-            onClick={toggleTheme}
-            className="w-12 h-12 rounded-full border border-[var(--color-border)] hover:border-[var(--color-accent)] flex items-center justify-center transition-all bg-[var(--color-bg-secondary)] shadow-sm overflow-hidden group"
-          >
-            <div className="relative w-6 h-6">
-               <Sun className={`absolute inset-0 transition-all duration-1000 ${theme === 'dark' ? 'scale-100 rotate-0 opacity-100' : 'scale-0 rotate-90 opacity-0'} text-[var(--color-accent)]`} size={24} />
-               <Moon className={`absolute inset-0 transition-all duration-1000 ${theme === 'light' ? 'scale-100 rotate-0 opacity-100' : 'scale-0 -rotate-90 opacity-0'} text-[var(--color-text-primary)]`} size={24} />
-            </div>
-          </button>
-
-          {isAuthenticated && <NotificationDropdown />}
+        {/* ─── RIGHT ACTION CLUSTER (Nav + Button) ─── */}
+        <div className="hidden lg:flex items-center gap-10">
+          <nav className="flex items-center gap-8">
+            {navItems.map((item) => (
+              <Link 
+                key={item.label} 
+                href={item.href} 
+                className={`text-[14px] font-semibold tracking-tight transition-all font-sans hover:opacity-100 ${isLandingPage ? 'text-[var(--lp-text)] opacity-70' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]'}`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
           {isAuthenticated && user ? (
             <div className="relative">
               <button 
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-5 p-2 pr-6 rounded-[2rem] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] transition-all shadow-sm group"
+                className={`flex items-center gap-4 p-1.5 pr-5 rounded-full border transition-all ${isLandingPage ? 'bg-transparent border-[var(--lp-text)]/20 text-[var(--lp-text)]' : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)]'}`}
               >
                 <Avatar 
                   name={user.name} 
                   src={user.avatar_url ? storageService.getPublicUrl(user.avatar_url) : undefined} 
                   size="sm" 
-                  className="ring-2 ring-offset-2 ring-offset-[var(--color-bg-primary)] ring-[var(--color-accent-soft)]" 
                 />
-                <div className="text-left">
-                  <p className="text-[10px] font-black tracking-tight text-[var(--color-text-primary)]">{user.name.split(' ')[0]}</p>
-                </div>
-                <ChevronDown size={14} className={`text-[var(--color-text-secondary)] transition-transform duration-500 ${showProfileMenu ? 'rotate-180' : ''}`} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">{user.name.split(' ')[0]}</span>
               </button>
-
-              {showProfileMenu && (
-                <div className="absolute right-0 mt-6 w-64 bg-[var(--color-bg-secondary)] rounded-[2.5rem] shadow-2xl border border-[var(--color-border)] p-4 z-[200] animate-fade-in overflow-hidden">
-                   <div className="p-6 mb-4 bg-[var(--color-bg-primary)] rounded-[1.5rem]">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)] mb-1">Signed in as</p>
-                      <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{user.email}</p>
-                   </div>
-                   <div className="space-y-1">
-                      <Link href="/profile" className="flex items-center gap-4 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent)] transition-all rounded-[1rem]">
-                        Settings & Profile
-                      </Link>
-                      <button 
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-4 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all rounded-[1rem]"
-                      >
-                        Log Out
-                      </button>
-                   </div>
-                </div>
-              )}
             </div>
           ) : (
             <Link href="/auth">
-              <button className="px-12 py-5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-accent)] rounded-full transition-all shadow-xl shadow-[var(--color-text-primary)]/5 active:scale-95 hover:-translate-y-1">
-                Sign In
+              <button className={`px-10 py-3.5 text-[12px] font-bold tracking-tight rounded-full transition-all active:scale-95 ${
+                isLandingPage 
+                  ? 'bg-[var(--lp-primary)] text-white hover:opacity-90 shadow-lg shadow-[var(--lp-primary)]/20' 
+                  : 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] hover:bg-[var(--color-accent)] shadow-xl shadow-[var(--color-text-primary)]/5'
+              }`}>
+                {isLandingPage ? 'Sign in' : 'Sign In'}
               </button>
             </Link>
           )}
@@ -198,7 +170,7 @@ export default function Header() {
 
            <nav className="flex flex-col gap-1.5">
               {[
-                ...mainNavItems,
+                ...(isLandingPage ? landingNavItems : mainNavItems),
                 { label: 'Messages', href: '/chat', icon: MessageSquare },
                 { label: 'Profile Settings', href: '/profile', icon: User },
               ].map((item) => (
@@ -254,6 +226,6 @@ export default function Header() {
         }
         .animate-fade-in { animation: fade-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
       `}</style>
-    </header>
+    </motion.header>
   )
 }

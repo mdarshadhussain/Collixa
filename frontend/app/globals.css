@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Quintessential&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -16,6 +16,23 @@
   
   --font-serif: 'Instrument Serif', serif;
   --font-sans: 'Outfit', sans-serif;
+
+  /* Landing Page Specific - Midnight & Pink Theme (Exact Palette) */
+  --lp-bg: #F5F5F5;
+  --lp-text: #021A54;
+  --lp-primary: #FF85BB;
+  --lp-secondary: #FFCEE3;
+  --lp-accent: #FFCEE3;
+  --lp-beige: #EBEBEB;
+  --font-lp-serif: 'Nunito', sans-serif;
+  --font-lp-sans: 'Nunito', sans-serif;
+}
+
+/* Force Nunito for every text on the landing page */
+.landing-page-scope {
+  font-family: 'Nunito', sans-serif !important;
+  --font-serif: 'Nunito', sans-serif !important;
+  --font-sans: 'Nunito', sans-serif !important;
 }
 
 .dark {
