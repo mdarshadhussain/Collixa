@@ -174,10 +174,13 @@ export const storage = {
   },
 }
 
+import { eventBus } from './events'
+
 // Notification utilities (for toast messages)
 export const notify = {
-  success: (message: string) => console.log('✓', message),
-  error: (message: string) => console.error('✗', message),
-  info: (message: string) => console.info('ℹ', message),
-  warning: (message: string) => console.warn('⚠', message),
+  success: (message: string) => eventBus.emitToast({ message, type: 'success' }),
+  error: (message: string) => eventBus.emitToast({ message, type: 'error' }),
+  info: (message: string) => eventBus.emitToast({ message, type: 'info' }),
+  warning: (message: string) => eventBus.emitToast({ message, type: 'warning' }),
+  credits: (amount: number) => eventBus.emitCredit({ amount }),
 }

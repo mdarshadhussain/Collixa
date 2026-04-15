@@ -10,12 +10,14 @@ import Link from 'next/link'
 import Layout from '@/components/Layout'
 import { storageService } from '@/lib/supabase'
 import type { Intent } from '@/lib/supabase'
+import { notify } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function MyIntentsPage() {
   const router = useRouter()
   const { user, isAuthenticated, loading: authLoading, token } = useAuth()
+  const CATEGORIES = ['Intents', 'Study', 'Fitness', 'Travel', 'Events', 'Startup', 'Networking', 'Creative', 'Social', 'Other']
   
   const [intents, setIntents] = useState<Intent[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,7 +59,7 @@ export default function MyIntentsPage() {
 
   const handleDelete = async (e: React.MouseEvent, intentId: number | string) => {
     e.stopPropagation()
-    if (!confirm('Are you sure you want to delete this project?')) return
+    if (!confirm('Are you sure you want to delete this intent?')) return
 
     setDeletingId(intentId)
     try {
@@ -70,12 +72,13 @@ export default function MyIntentsPage() {
 
       if (response.ok) {
         setIntents((prev) => prev.filter((i) => i.id !== intentId))
+        notify.success('Intent deleted successfully')
       } else {
         const data = await response.json()
-        alert(data.error || 'Failed to delete project')
+        notify.error(data.error || 'Failed to delete intent')
       }
     } catch (err) {
-      alert('Connection error. Please try again.')
+      notify.error('Connection error. Please try again.')
       console.error(err)
     } finally {
       setDeletingId(null)

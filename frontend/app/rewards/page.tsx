@@ -121,8 +121,8 @@ export default function RewardsPage() {
               <img src="/rewards_collaboration_rings_1776256617166.png" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-12 flex flex-col justify-end">
                  <Users className="text-[var(--color-accent)] mb-4" size={32} />
-                 <h2 className="text-3xl font-serif font-black text-white mb-2">Global Collaboration</h2>
-                 <p className="text-white/60 text-sm max-w-xs">Connecting minds and sharing skills. Complete joint sessions to unlock crystalline rewards.</p>
+                 <h2 className="text-3xl font-serif font-black text-white mb-2">Global Intent</h2>
+                 <p className="text-white/60 text-sm max-w-xs">Connecting minds and sharing visions. Complete joint intents to unlock crystalline rewards.</p>
               </div>
            </div>
         </section>

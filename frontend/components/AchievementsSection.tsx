@@ -82,7 +82,7 @@ export default function AchievementsSection({ userId, variant = 'full' }: Achiev
 
   const categoryLabels: { [key: string]: string } = {
     intents: 'Intent Mastery',
-    sessions: 'Collaboration',
+    sessions: 'Intent Sessions',
     skills: 'Skill Sharing',
     social: 'Community',
     credits: 'Credit Economy'
@@ -131,66 +131,89 @@ export default function AchievementsSection({ userId, variant = 'full' }: Achiev
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {displayAchievements.map((achievement) => {
-          const Icon = iconMap[achievement.icon] || Award
+          const isImage = achievement.icon.endsWith('.png') || achievement.icon.endsWith('.webp')
           const progressPercent = Math.min(100, (achievement.progress / achievement.requirement) * 100)
           
           return (
             <div
               key={achievement.id}
-              className={`group relative p-6 rounded-[2rem] border transition-all duration-500 overflow-hidden ${
-                achievement.isUnlocked
-                  ? 'bg-[var(--color-accent)]/10 border-[var(--color-accent)]/30 hover:bg-[var(--color-accent)]/15'
-                  : 'bg-white/5 border-[var(--color-border)] hover:bg-white/10'
+              className={`group relative flex flex-col bg-white rounded-[2rem] overflow-hidden border-0 transition-all duration-700 cursor-pointer ${
+                achievement.isUnlocked 
+                  ? 'hover:shadow-2xl shadow-xl shadow-black/5' 
+                  : 'opacity-80'
               }`}
             >
-              <div className="relative z-10 space-y-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform duration-500 group-hover:scale-110 ${
-                  achievement.isUnlocked
-                    ? 'bg-[var(--color-accent)] text-white shadow-lg shadow-[var(--color-accent)]/20'
-                    : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]'
-                }`}>
-                  {achievement.isUnlocked ? <Icon size={24} /> : <Lock size={20} className="opacity-40" />}
-                </div>
+              {/* Card Image Header */}
+              <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">
+                {isImage ? (
+                  <img 
+                    src={`/images/achievements/${achievement.icon}`} 
+                    alt={achievement.name} 
+                    className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-black/10 font-serif text-2xl font-black italic bg-[var(--color-bg-secondary)]">
+                    {achievement.name.split(' ')[0]}
+                  </div>
+                )}
                 
-                <div>
-                  <h5 className="font-serif font-black text-[var(--color-text-primary)] text-lg leading-tight mb-1 truncate">
-                    {achievement.name}
-                  </h5>
-                  <p className="text-[10px] text-[var(--color-text-secondary)] font-medium leading-relaxed line-clamp-2 min-h-[30px]">
-                    {achievement.description}
-                  </p>
+                {/* Category Badge Overlay */}
+                <div className="absolute top-4 left-4">
+                  <span className="text-[8px] font-black uppercase tracking-[0.2em] px-3 py-1.5 bg-black/60 backdrop-blur-md text-white rounded-full border border-white/10">
+                    {categoryLabels[achievement.category] || achievement.category}
+                  </span>
                 </div>
 
                 {!achievement.isUnlocked && (
-                  <div className="pt-2">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Progress</span>
-                      <span className="text-[9px] font-bold text-[var(--color-accent)]">{Math.round(progressPercent)}%</span>
-                    </div>
-                    <div className="h-1 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-1000"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition-opacity group-hover:opacity-0">
+                    <Lock size={24} className="text-white/60" />
                   </div>
                 )}
+              </div>
 
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-1.5">
-                    <Star size={12} className="text-[var(--color-accent)]" />
-                    <span className="text-[10px] font-black tracking-wide text-[var(--color-accent)]">+{achievement.reward} CR</span>
-                  </div>
-                  {achievement.isUnlocked && (
-                    <span className="text-[8px] font-black uppercase tracking-widest opacity-40 italic">Unlocked</span>
-                  )}
+              {/* Card Content */}
+              <div className="p-6 flex-1 flex flex-col justify-between">
+                <div>
+                   <div className="flex justify-between items-start gap-2 mb-2">
+                      <h5 className="font-serif font-black text-[var(--color-text-primary)] text-lg leading-tight group-hover:text-[var(--color-accent)] transition-colors">
+                        {achievement.name}
+                      </h5>
+                      {achievement.isUnlocked && <ArrowUpRight size={16} className="text-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity" />}
+                   </div>
+                   <p className="text-[10px] text-[var(--color-text-secondary)] font-medium leading-relaxed line-clamp-2">
+                     {achievement.description}
+                   </p>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                   {/* Reward & Unlocked State */}
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-accent-soft)]/20 rounded-full">
+                         <Star size={10} className="text-[var(--color-accent)] fill-[var(--color-accent)]" />
+                         <span className="text-[9px] font-black tracking-wide text-[var(--color-accent)]">+{achievement.reward} CR</span>
+                      </div>
+                      {achievement.isUnlocked && (
+                        <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">Unlocked</span>
+                      )}
+                   </div>
+
+                   {/* Progress bar for locked achievements */}
+                   {!achievement.isUnlocked && (
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[8px] font-black uppercase tracking-widest opacity-40">
+                          <span>Progress</span>
+                          <span>{Math.round(progressPercent)}%</span>
+                        </div>
+                        <div className="h-1 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-1000"
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                   )}
                 </div>
               </div>
-              
-              {/* Background Glow for unlocked */}
-              {achievement.isUnlocked && (
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-accent)]/10 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity group-hover:opacity-100 opacity-50" />
-              )}
             </div>
           )
         })}
@@ -199,88 +222,113 @@ export default function AchievementsSection({ userId, variant = 'full' }: Achiev
   }
 
   return (
-    <div className="space-y-6">
-      {/* Summary */}
-      <div className="bg-[var(--color-accent)]/10 rounded-2xl p-4 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)]">Achievements Unlocked</p>
-          <p className="text-2xl font-black text-[var(--color-text-primary)]">
-            {unlockedCount} <span className="text-sm font-normal text-[var(--color-text-secondary)]">/ {achievements.length}</span>
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)]">Credits Earned</p>
-          <p className="text-2xl font-black text-[var(--color-text-primary)]">+{totalRewards}</p>
-        </div>
+    <div className="space-y-12">
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 gap-4">
+         <div className="bg-white rounded-3xl p-6 border border-[var(--color-border)] flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-accent)]">
+               <Award size={24} />
+            </div>
+            <div>
+               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Unlocked</p>
+               <p className="text-2xl font-black text-[var(--color-text-primary)]">
+                  {unlockedCount} <span className="text-sm font-normal text-[var(--color-text-secondary)]">/ {achievements.length}</span>
+               </p>
+            </div>
+         </div>
+         <div className="bg-white rounded-3xl p-6 border border-[var(--color-border)] flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+               <Star size={24} fill="currentColor" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Total Earned</p>
+               <p className="text-2xl font-black text-[var(--color-text-primary)]">+{totalRewards} <span className="text-xs font-normal">Credits</span></p>
+            </div>
+         </div>
       </div>
 
       {/* Achievement Categories */}
       {Object.entries(groupedAchievements).map(([category, items]) => (
-        <div key={category}>
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mb-3">
-            {categoryLabels[category] || category}
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div key={category} className="space-y-6">
+          <div className="flex items-center gap-4">
+             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent" />
+             <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)]">
+               {categoryLabels[category] || category}
+             </h4>
+             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent" />
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {items.map((achievement) => {
-              const Icon = iconMap[achievement.icon] || Award
+              const isImage = achievement.icon.endsWith('.png') || achievement.icon.endsWith('.webp')
               const progressPercent = Math.min(100, (achievement.progress / achievement.requirement) * 100)
 
               return (
                 <div
                   key={achievement.id}
-                  className={`group relative p-8 rounded-[3rem] border transition-all duration-700 overflow-hidden ${
-                    achievement.isUnlocked
-                      ? 'bg-[var(--color-accent)]/15 border-[var(--color-accent)]/50 shadow-xl shadow-[var(--color-accent)]/5'
-                      : 'bg-black/10 border-[var(--color-border)] opacity-80'
+                  className={`group relative flex bg-white rounded-[3rem] overflow-hidden border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-all duration-700 hover:shadow-2xl cursor-pointer ${
+                    !achievement.isUnlocked && 'opacity-80'
                   }`}
                 >
-                  <div className="flex items-start gap-6">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-700 group-hover:rotate-12 ${
-                      achievement.isUnlocked
-                        ? 'bg-[var(--color-accent)] text-white shadow-xl shadow-[var(--color-accent)]/20'
-                        : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]'
-                    }`}>
-                      {achievement.isUnlocked ? (
-                        <Icon size={28} />
+                  <div className="flex items-stretch w-full">
+                    {/* Square Image Side */}
+                    <div className="w-40 bg-[var(--color-bg-secondary)] overflow-hidden relative shrink-0">
+                      {isImage ? (
+                        <img 
+                          src={`/images/achievements/${achievement.icon}`} 
+                          alt={achievement.name} 
+                          className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
+                        />
                       ) : (
-                        <Lock size={24} className="opacity-40" />
+                        <div className="w-full h-full flex items-center justify-center text-black/10 font-serif text-3xl font-black italic">ACH</div>
                       )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-serif font-black text-[var(--color-text-primary)] text-base leading-tight mb-2 truncate">
-                        {achievement.name}
-                      </h5>
-                      <p className="text-xs text-[var(--color-text-primary)] opacity-60 mt-0.5 leading-relaxed font-medium">
-                        {achievement.description}
-                      </p>
-
-                      {/* Progress bar for locked achievements */}
                       {!achievement.isUnlocked && (
-                        <div className="mt-2">
-                          <div className="h-1.5 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[var(--color-accent)] rounded-full transition-all"
-                              style={{ width: `${progressPercent}%` }}
-                            />
-                          </div>
-                          <p className="text-[10px] text-[var(--color-text-secondary)] mt-1">
-                            {achievement.progress} / {achievement.requirement}
-                          </p>
+                        <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
+                           <Lock size={20} className="text-white/50" />
                         </div>
                       )}
+                    </div>
 
-                      {/* Reward badge */}
-                      <div className="flex items-center gap-1 mt-2">
-                        <Star size={12} className="text-yellow-500 fill-yellow-500" />
-                        <span className="text-xs font-bold text-[var(--color-accent)]">
-                          +{achievement.reward} credits
-                        </span>
-                        {achievement.isUnlocked && achievement.unlockedAt && (
-                          <span className="text-[10px] text-[var(--color-text-secondary)] ml-auto">
-                            Unlocked {new Date(achievement.unlockedAt).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
+                    {/* Content Side */}
+                    <div className="flex-1 p-6 flex flex-col justify-between">
+                       <div>
+                         <div className="flex justify-between items-start mb-2">
+                           <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)] opacity-60">
+                             {categoryLabels[achievement.category] || achievement.category}
+                           </span>
+                           {achievement.isUnlocked && (
+                             <Badge variant="sage" className="text-[8px] font-black bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]">Unlocked</Badge>
+                           )}
+                         </div>
+                         <h5 className="font-serif font-black text-[var(--color-text-primary)] text-lg leading-tight mb-2 group-hover:text-[var(--color-accent)] transition-colors">
+                           {achievement.name}
+                         </h5>
+                         <p className="text-[10px] text-[var(--color-text-secondary)] leading-relaxed line-clamp-2">
+                           {achievement.description}
+                         </p>
+                       </div>
+
+                       <div className="mt-4">
+                          {!achievement.isUnlocked ? (
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between text-[8px] font-black uppercase tracking-widest opacity-40">
+                                <span>Progress</span>
+                                <span>{Math.round(progressPercent)}%</span>
+                              </div>
+                              <div className="h-1 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-1000"
+                                  style={{ width: `${progressPercent}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                               <Star size={10} className="text-[var(--color-accent)] fill-[var(--color-accent)]" />
+                               <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)]">+{achievement.reward} Credits Rewarded</span>
+                            </div>
+                          )}
+                       </div>
                     </div>
                   </div>
                 </div>

@@ -63,9 +63,9 @@ export default function ChatPage() {
           if (conv.type === 'GROUP') {
             return {
               id: conv.id,
-              name: conv.title || 'Project Group',
-              avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${conv.title || 'Project'}`,
-              lastMessage: conv.last_message || 'Project group created.',
+              name: conv.title || 'Intent Group',
+              avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${conv.title || 'Intent'}`,
+              lastMessage: conv.last_message || 'Intent group created.',
               unread: 0,
               status: 'online'
             }

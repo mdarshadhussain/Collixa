@@ -20,7 +20,7 @@ interface Intent {
   }
 }
 
-const CATEGORIES = ['Projects', 'Study', 'Fitness', 'Travel', 'Events', 'Startup', 'Networking', 'Creative', 'Social', 'Other']
+const CATEGORIES = ['Intents', 'Study', 'Fitness', 'Travel', 'Events', 'Startup', 'Networking', 'Creative', 'Social', 'Other']
 const STATUSES = ['looking', 'active', 'completed', 'cancelled']
 
 export default function AdminIntents() {

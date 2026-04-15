@@ -11,7 +11,7 @@ export const ACHIEVEMENTS = {
     id: 'first_intent',
     name: 'First Steps',
     description: 'Created your first intent',
-    icon: 'Footprints',
+    icon: 'first_intent.png',
     requirement: 1,
     reward: 5,
     category: 'intents'
@@ -20,7 +20,7 @@ export const ACHIEVEMENTS = {
     id: 'intent_enthusiast_5',
     name: 'Intent Enthusiast',
     description: 'Created 5 intents',
-    icon: 'Lightbulb',
+    icon: 'intent_enthusiast_5.png',
     requirement: 5,
     reward: 10,
     category: 'intents'
@@ -29,7 +29,7 @@ export const ACHIEVEMENTS = {
     id: 'intent_master_10',
     name: 'Intent Master',
     description: 'Created 10 intents',
-    icon: 'Crown',
+    icon: 'intent_master_10.png',
     requirement: 10,
     reward: 25,
     category: 'intents'
@@ -38,7 +38,7 @@ export const ACHIEVEMENTS = {
     id: 'intent_legend_25',
     name: 'Intent Legend',
     description: 'Created 25 intents',
-    icon: 'Star',
+    icon: 'intent_legend_25.png',
     requirement: 25,
     reward: 50,
     category: 'intents'
@@ -49,7 +49,7 @@ export const ACHIEVEMENTS = {
     id: 'first_session',
     name: 'Collaboration Starter',
     description: 'Completed your first session',
-    icon: 'Handshake',
+    icon: 'first_session.png',
     requirement: 1,
     reward: 10,
     category: 'sessions'
@@ -58,7 +58,7 @@ export const ACHIEVEMENTS = {
     id: 'session_seeker_5',
     name: 'Session Seeker',
     description: 'Completed 5 sessions',
-    icon: 'Target',
+    icon: 'session_seeker_5.png',
     requirement: 5,
     reward: 25,
     category: 'sessions'
@@ -67,7 +67,7 @@ export const ACHIEVEMENTS = {
     id: 'session_master_15',
     name: 'Session Master',
     description: 'Completed 15 sessions',
-    icon: 'Trophy',
+    icon: 'session_master_15.png',
     requirement: 15,
     reward: 50,
     category: 'sessions'
@@ -78,7 +78,7 @@ export const ACHIEVEMENTS = {
     id: 'first_skill',
     name: 'Skill Sharer',
     description: 'Added your first skill to a tribe',
-    icon: 'Wrench',
+    icon: 'first_skill.png',
     requirement: 1,
     reward: 5,
     category: 'skills'
@@ -87,7 +87,7 @@ export const ACHIEVEMENTS = {
     id: 'skill_collector_3',
     name: 'Skill Collector',
     description: 'Added 3 skills to tribes',
-    icon: 'Toolbox',
+    icon: 'skill_collector_3.png',
     requirement: 3,
     reward: 15,
     category: 'skills'
@@ -98,7 +98,7 @@ export const ACHIEVEMENTS = {
     id: 'first_review',
     name: 'Feedback Giver',
     description: 'Left your first review',
-    icon: 'MessageSquare',
+    icon: 'first_review.png',
     requirement: 1,
     reward: 5,
     category: 'social'
@@ -107,7 +107,7 @@ export const ACHIEVEMENTS = {
     id: 'reviewer_5',
     name: 'Community Voice',
     description: 'Left 5 reviews',
-    icon: 'Megaphone',
+    icon: 'reviewer_5.png',
     requirement: 5,
     reward: 15,
     category: 'social'
@@ -118,7 +118,7 @@ export const ACHIEVEMENTS = {
     id: 'first_share',
     name: 'Credit Sharer',
     description: 'Shared credits for the first time',
-    icon: 'Share2',
+    icon: 'first_share.png',
     requirement: 1,
     reward: 10,
     category: 'credits'
@@ -127,7 +127,7 @@ export const ACHIEVEMENTS = {
     id: 'credit_holder_100',
     name: 'Credit Saver',
     description: 'Accumulated 100 credits',
-    icon: 'PiggyBank',
+    icon: 'credit_holder_100.png',
     requirement: 100,
     reward: 20,
     category: 'credits'

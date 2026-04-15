@@ -42,7 +42,7 @@ import Button from '@/components/Button'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 const CATEGORIES = [
-  { name: 'Projects', icon: FolderKanban },
+  { name: 'Intents', icon: FolderKanban },
   { name: 'Study', icon: BookOpen },
   { name: 'Fitness', icon: Dumbbell },
   { name: 'Travel', icon: Plane },
@@ -244,7 +244,7 @@ function CreateIntentContent() {
         <main className="flex-1 max-w-4xl">
           
           <div className="mb-6 md:mb-8 space-y-3 md:space-y-4 bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-8">
-            <Badge variant="accent" className="uppercase tracking-[0.3em]">Project Creation</Badge>
+            <Badge variant="accent" className="uppercase tracking-[0.3em]">Intent Creation</Badge>
             <h1 className="text-xl sm:text-2xl md:text-4xl font-serif font-black tracking-tight">
               {editId ? 'Refine your project.' : 'Post your vision.'}
             </h1>
@@ -277,10 +277,10 @@ function CreateIntentContent() {
                   
                   {/* --- UNIFIED FORM SECTION --- */}
                   <div className="space-y-8">
-                    {/* Project Title */}
+                    {/* Intent Title */}
                     <div className="space-y-3">
                       <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
-                        <FileText size={18} className="text-[var(--color-accent)]" /> Project Title
+                        <FileText size={18} className="text-[var(--color-accent)]" /> Intent Title
                       </label>
                       <input
                         name="title"
@@ -453,7 +453,7 @@ function CreateIntentContent() {
                          </>
                        ) : (
                          <>
-                           {editId ? 'Save Changes' : 'Post Project'} <Send size={18} />
+                           {editId ? 'Save Changes' : 'Post Intent'} <Send size={18} />
                          </>
                        )}
                      </Button>

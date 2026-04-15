@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin } from '../config/database.js';
 import CreditTransactionModel from '../models/CreditTransaction.js';
+import NotificationService from './NotificationService.js';
 
 const getClient = () => supabaseAdmin || supabase;
 
@@ -49,6 +50,18 @@ export class CreditService {
 
       if (updateError) throw updateError;
 
+      // 4. Send notification for certain types (if not silent)
+      const notifyTypes = {
+        'PURCHASE': { title: 'Credits Purchased', content: `Success! ${amount} credits have been added to your account.` },
+        'BONUS': { title: 'Bonus Credits', content: `You've received ${amount} bonus credits!` },
+        'ACHIEVEMENT': { title: 'Achievement Reward', content: `Congratulations! You earned ${amount} credits for unlocking an achievement.` },
+        'EARN': { title: 'Credits Earned', content: `You earned ${amount} credits from a session.` },
+      };
+
+      if (notifyTypes[type]) {
+        await NotificationService.send(userId, 'CREDIT_ADDED', notifyTypes[type].title, notifyTypes[type].content, '/profile');
+      }
+
       return transaction;
     } catch (error) {
       console.error('Error in CreditService.addCredits:', error.message);
@@ -92,6 +105,11 @@ export class CreditService {
         .eq('id', userId);
 
       if (updateError) throw updateError;
+
+      // 4. Send notification for SPEND type
+      if (type === 'SPEND') {
+        await NotificationService.send(userId, 'CREDIT_DEDUCTED', 'Credits Spent', `You spent ${amount} credits on a session.`, '/profile');
+      }
 
       return transaction;
     } catch (error) {

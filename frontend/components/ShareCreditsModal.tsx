@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Search, Send, User as UserIcon, Loader2 } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
+import { notify } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -119,12 +120,13 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess(`Successfully sent ${creditAmount} credits to ${foundUser.name}!`)
+        notify.success(`Successfully sent ${creditAmount} credits to ${foundUser.name}!`)
+        notify.credits(-creditAmount)
         refreshUser() // Refresh current user's credits
         setTimeout(() => {
           onSuccess?.()
           onClose()
-        }, 2000)
+        }, 1500)
       } else {
         setError(data.error || 'Failed to send credits')
       }

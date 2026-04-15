@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Plus, Sparkles, BookOpen, Layers, Edit2 } from 'lucide-react'
 import { skillService } from '@/lib/supabase'
+import { notify } from '@/lib/utils'
 
 interface AddSkillModalProps {
   isOpen: boolean
@@ -53,14 +54,15 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
         : await skillService.addSkill(formData)
         
       if (res.success) {
+        notify.success(`Skill ${skill ? 'updated' : 'added'} successfully!`)
         onSuccess()
         onClose()
       } else {
-        alert(res.error || `Failed to ${skill ? 'update' : 'add'} skill`)
+        notify.error(res.error || `Failed to ${skill ? 'update' : 'add'} skill`)
       }
     } catch (err) {
       console.error(err)
-      alert('An error occurred')
+      notify.error('An error occurred while saving your skill.')
     } finally {
       setLoading(false)
     }

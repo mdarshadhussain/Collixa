@@ -9,8 +9,7 @@ import { useAuth } from '@/app/context/AuthContext'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Hub', href: '/dashboard' },
-  { icon: FileText, label: 'Collaboration', href: '/collaborations' },
-  { icon: Zap, label: 'My Projects', href: '/my-collaborations' },
+  { icon: FileText, label: 'Intent', href: '/collaborations' },
   { icon: MessageSquare, label: 'Messages', href: '/chat' },
   { icon: Users, label: 'Tribes', href: '/skills' },
   { icon: User, label: 'Profile', href: '/profile' },
@@ -88,7 +87,7 @@ export default function Sidebar() {
                <div className="w-10 h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)] font-serif font-black">C.</div>
                <div>
                  <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-primary)]">Collixa Pro</p>
-                 <p className="text-[8px] font-bold text-[var(--color-text-secondary)] uppercase tracking-tighter">Unlimited Projects</p>
+                 <p className="text-[8px] font-bold text-[var(--color-text-secondary)] uppercase tracking-tighter">Unlimited Intents</p>
                </div>
             </div>
           </div>

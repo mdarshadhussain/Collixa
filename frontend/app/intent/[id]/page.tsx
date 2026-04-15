@@ -23,6 +23,7 @@ import Avatar from '@/components/Avatar'
 import { motion } from 'framer-motion'
 import Badge from '@/components/Badge'
 import Button from '@/components/Button'
+import { notify } from '@/lib/utils'
 
 export default function IntentDetailPage() {
   const { id } = useParams()
@@ -73,10 +74,10 @@ export default function IntentDetailPage() {
       setRequestSending(true)
       await intentService.joinProject(intent.id as any, user.id)
       setHasRequested(true)
-      alert("Joined successfully! You can now access the project chat.")
+      notify.success("Joined successfully! You can now access the intent chat.")
       router.push('/chat')
     } catch (err: any) {
-      alert(err.message || "Failed to join project")
+      notify.error(err.message || "Failed to join intent")
     } finally {
       setRequestSending(false)
     }
@@ -87,7 +88,7 @@ export default function IntentDetailPage() {
     const ownerId = typeof intent.created_by === 'object' ? intent.created_by.id : intent.created_by
     
     if (ownerId === user.id) {
-       alert("This is your own project!")
+       notify.info("This is your own intent!")
        return
     }
 
@@ -96,11 +97,11 @@ export default function IntentDetailPage() {
       if (conversation) {
         router.push('/chat')
       } else {
-        alert("Failed to create conversation. Check browser console for details.")
+        notify.error("Failed to create conversation. Check browser console for details.")
       }
     } catch (err: any) {
       console.error('Chat with owner error:', err)
-      alert(`Failed to open chat: ${err.message || 'Unknown error'}`)
+      notify.error(`Failed to open chat: ${err.message || 'Unknown error'}`)
     }
   }
 
@@ -120,7 +121,8 @@ export default function IntentDetailPage() {
       <div className="flex h-screen bg-[var(--color-bg-primary)]">
         <Sidebar activePage="dashboard" />
         <div className="flex-1 flex items-center justify-center flex-col gap-4">
-          <h2 className="text-2xl font-serif">Project not found</h2>
+          <FileX2 size={64} className="mx-auto text-[var(--color-text-secondary)] opacity-20" />
+          <h2 className="text-2xl font-serif">Intent not found</h2>
           <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
         </div>
       </div>
@@ -228,7 +230,7 @@ export default function IntentDetailPage() {
                   <div className="space-y-3 md:space-y-4 p-4 sm:p-6 md:p-8 bg-[var(--color-bg-primary)] rounded-2xl md:rounded-3xl border border-[var(--color-border)]">
                      <div className="flex items-center gap-3 mb-4">
                         <Target className="text-[var(--color-accent)]" size={20} />
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em]">Project Goal</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em]">Intent Goal</h4>
                      </div>
                      <p className="text-xs sm:text-sm text-[var(--color-text-primary)] font-medium">{intent.goal}</p>
                   </div>
@@ -270,14 +272,16 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="accent" 
                               fullWidth 
-                              className="py-4 md:py-6 rounded-xl md:rounded-2xl shadow-lg"
+                              className="py-4 md:py-6 rounded-xl md:rounded-2xl shadow-lg w-full flex items-center justify-center gap-2"
                               onClick={handleJoinProject}
-                              disabled={requestSending || hasRequested}
+                              disabled={isJoining || hasRequested}
                             >
-                              {hasRequested ? (
+                              {isJoining ? (
+                                <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Joining...</span>
+                              ) : hasRequested ? (
                                 <span className="flex items-center gap-2"><CheckCircle2 size={16} /> Request Sent</span>
                               ) : (
-                                <span className="flex items-center gap-2"><Plus size={16}/> Join Project</span>
+                                <span className="flex items-center gap-2"><Plus size={16}/> Join Intent</span>
                               )}
                             </Button>
                             <Button 
@@ -294,14 +298,15 @@ export default function IntentDetailPage() {
                         {/* OWNER VIEW (Logged in, Is Owner) */}
                         {user && isOwner && (
                           <div className="space-y-4">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-center opacity-70 mb-2">This is your project</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-center opacity-70 mb-2">This is your intent</p>
                             <Button 
                               variant="accent" 
                               fullWidth 
                               className="py-4 md:py-6 rounded-xl md:rounded-2xl bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
                               onClick={() => router.push('/chat')}
                             >
-                               Open Project Chat
+                               <MessageCircle size={16} />
+                               Open Intent Chat
                             </Button>
                             <Button 
                               variant="outline" 
@@ -309,7 +314,8 @@ export default function IntentDetailPage() {
                               className="py-3 md:py-4 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/10 text-[9px] md:text-[10px] font-bold uppercase tracking-widest"
                               onClick={() => router.push(`/create?id=${intent.id}`)}
                             >
-                               Edit Project
+                               <Settings size={16} />
+                               Edit Intent
                             </Button>
                           </div>
                         )}

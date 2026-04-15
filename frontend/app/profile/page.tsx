@@ -68,14 +68,15 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error('Failed to start chat:', err)
-      alert('Could not initiate chat conversation.')
+      notify.error('Could not initiate chat conversation.')
     }
   }
 
   useEffect(() => {
     const paymentStatus = searchParams.get('payment')
     if (paymentStatus === 'success') {
-      alert('🌟 Credits Successfully Purchased! Your contribution to the ecosystem is valued.')
+      notify.success('🌟 Credits Successfully Purchased! Your contribution to the ecosystem is valued.')
+      refreshUser()
       router.replace('/profile')
     } else if (paymentStatus === 'cancel') {
       console.log('Payment cancelled')
@@ -241,7 +242,7 @@ export default function ProfilePage() {
           console.log('Avatar uploaded successfully:', finalAvatarUrl)
         } else {
           console.error('Avatar upload failed')
-          alert('Failed to upload the image. Please ensure you have a "attachments" bucket in your Supabase storage.')
+          notify.error('Failed to upload the image. Please ensure you have a "attachments" bucket in your Supabase storage.')
           // We shouldn't proceed if they intended to change the image but it failed
           setIsSaving(false)
           return
@@ -281,11 +282,11 @@ export default function ProfilePage() {
           errorMessage = errorText || errorMessage
         }
         console.error('Profile update failed:', errorMessage)
-        alert(errorMessage)
+        notify.error(errorMessage)
       }
     } catch (err: any) {
       console.error('Error updating profile:', err)
-      alert(`Connection Error: ${err.message || 'The server on port 5000 is not responding'}`)
+      notify.error(`Connection Error: ${err.message || 'The server is not responding'}`)
     } finally {
       setIsSaving(false)
     }
@@ -792,7 +793,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(profileShareUrl)
-                  alert('Profile link copied to clipboard!')
+                  notify.success('Profile link copied to clipboard!')
                 }}
                 className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-2 shadow-sm"
               >

@@ -127,7 +127,7 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-2 gap-4">
                  {[
-                   { label: 'Collaborations', value: stats?.collaborations, icon: Zap, trend: `+${stats?.insights?.collaborationGrowth}%` },
+                   { label: 'Intents', value: stats?.collaborations, icon: Zap, trend: `+${stats?.insights?.collaborationGrowth}%` },
                    { label: 'Skill Tribes', value: stats?.skills, icon: Globe, trend: 'Global' },
                    { label: 'Active Members', value: stats?.users, icon: Users, trend: stats?.insights?.activeUsersTrend },
                    { label: 'Platform Trust', value: stats?.insights?.matchSuccessRate, icon: Sparkles, trend: 'Verified' },
@@ -183,11 +183,11 @@ export default function DashboardPage() {
               </section>
             )}
 
-            {/* Trending Collaborations (Matches Arrivals Style) */}
+            {/* Trending Intents (Matches Arrivals Style) */}
             <section className="space-y-10">
-               <div className="flex justify-between items-end px-2">
-                  <div className="space-y-3">
-                    <h2 className="text-2xl md:text-3xl font-serif font-black tracking-tighter text-[var(--color-text-primary)]">Trending Intents</h2>
+               <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-3xl font-serif font-black text-[var(--color-text-primary)]">Trending Intents</h2>
                     <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">High-velocity engagement zones</p>
                   </div>
                   <button onClick={() => router.push('/collaborations')} className="group flex items-center gap-3 text-[9px] font-black uppercase tracking-widest hover:text-[var(--color-accent)] transition-colors">

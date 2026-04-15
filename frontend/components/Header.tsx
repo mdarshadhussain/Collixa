@@ -48,7 +48,7 @@ export default function Header() {
 
   const mainNavItems = [
     { label: 'Hub', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Collaboration', href: '/collaborations', icon: FileText },
+    { label: 'Intent', href: '/collaborations', icon: FileText },
     { label: 'Tribes', href: '/skills', icon: Users },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
   ]
@@ -189,7 +189,7 @@ export default function Header() {
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
                       >
                         <Zap size={16} />
-                        <span className="text-[13px] font-semibold">My Projects</span>
+                        <span className="text-[13px] font-semibold">My Intents</span>
                       </Link>
 
                       <div className="h-[1px] bg-black/5 my-2" />
@@ -271,7 +271,6 @@ export default function Header() {
               {[
                 ...(isLandingPage ? landingNavItems : mainNavItems),
                 { label: 'Rewards', href: '/rewards', icon: Award },
-                { label: 'Messages', href: '/chat', icon: MessageSquare },
                 { label: 'Profile Settings', href: '/profile', icon: User },
               ].map((item) => {
                 const Icon = item.icon

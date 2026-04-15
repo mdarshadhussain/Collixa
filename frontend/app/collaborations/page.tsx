@@ -8,7 +8,7 @@ import { Intent, intentService, storageService } from '@/lib/supabase'
 import Typewriter from '@/components/Typewriter'
 import Layout from '@/components/Layout'
 
-const CATEGORIES = ['All', 'Projects', 'Study', 'Fitness', 'Travel', 'Events', 'Startup', 'Networking', 'Creative', 'Social', 'Other']
+const CATEGORIES = ['All', 'Intents', 'Study', 'Fitness', 'Travel', 'Events', 'Startup', 'Networking', 'Creative', 'Social', 'Other']
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function IntentsPage() {
@@ -34,7 +34,7 @@ export default function IntentsPage() {
       if (response.ok) {
         setIntents(data.data || [])
       } else {
-        setError('Failed to load projects')
+        setError('Failed to load intents')
       }
     } catch (err) {
       setError('Connection error. Please try again.')
@@ -95,7 +95,7 @@ export default function IntentsPage() {
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" />
               <input
                 type="text"
-                placeholder="Search projects..."
+                placeholder="Search intents..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 pr-6 py-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-[var(--color-accent)] w-72 transition-all shadow-sm"

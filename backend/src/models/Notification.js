@@ -52,11 +52,10 @@ export class NotificationModel {
   static async markAllAsRead(userId) {
     const { data, error } = await getClient()
       .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', userId)
-      .eq('is_read', false);
-
-    if (error) throw new Error(`Failed to mark all as read: ${error.message}`);
+      .delete()
+      .eq('user_id', userId);
+    
+    if (error) throw new Error(`Failed to clear all notifications: ${error.message}`);
     return data;
   }
 

@@ -3,6 +3,7 @@ import SkillExchangeModel from '../models/SkillExchange.js';
 import UserModel from '../models/User.js';
 import CreditTransactionModel from '../models/CreditTransaction.js';
 import NotificationService from './NotificationService.js';
+import CreditService from './CreditService.js';
 
 export class SessionService {
   static async scheduleSession(userId, payload) {
@@ -118,14 +119,12 @@ export class SessionService {
       if ((learner.credits || 0) < 10) {
         throw new Error('Learner has insufficient credits');
       }
-
-      await UserModel.update(learner.id, { credits: (learner.credits || 0) - 10 });
-      await UserModel.update(teacher.id, { credits: (teacher.credits || 0) + 10 });
-
-      await CreditTransactionModel.createMany([
-        { user_id: teacher.id, amount: 10, type: 'EARN', session_id: session.id },
-        { user_id: learner.id, amount: -10, type: 'SPEND', session_id: session.id },
-      ]);
+      
+      console.log(`[SessionService] Transferring 10 credits from ${learner.id} to ${teacher.id} for session ${session.id}`);
+      
+      // Use CreditService for consistent transaction recording and notifications
+      await CreditService.deductCredits(learner.id, 10, 'SPEND');
+      await CreditService.addCredits(teacher.id, 10, 'EARN', session.id);
 
       updates.status = 'COMPLETED';
     }
