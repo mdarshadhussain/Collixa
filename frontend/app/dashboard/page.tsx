@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, Zap, ArrowUpRight, TrendingUp, Sparkles, Clock, MapPin, Globe, Activity, Rocket, Bell, Award, Star } from 'lucide-react'
+import { LayoutDashboard, Users, Zap, ArrowUpRight, TrendingUp, Sparkles, Clock, MapPin, Globe, Activity, Rocket, Bell, Award, Star, Trophy } from 'lucide-react'
 import Layout from '@/components/Layout'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
 import { storageService } from '@/lib/supabase'
 import { motion } from 'framer-motion'
+import AchievementsSection from '@/components/AchievementsSection'
+import { useAuth } from '@/app/context/AuthContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -41,18 +43,17 @@ interface Achievement {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { user: authUser } = useAuth()
   const [stats, setStats] = useState<PlatformStats | null>(null)
   const [sections, setSections] = useState<HubSections | null>(null)
-  const [achievements, setAchievements] = useState<Achievement[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('auth_token')
-      const [statsRes, hubRes, achievementsRes] = await Promise.all([
+      const [statsRes, hubRes] = await Promise.all([
         fetch(`${API_URL}/api/intents/stats`),
-        fetch(`${API_URL}/api/intents/hub/sections`),
-        token ? fetch(`${API_URL}/api/achievements`, { headers: { 'Authorization': `Bearer ${token}` } }) : Promise.resolve(new Response(JSON.stringify({}), { status: 401 }))
+        fetch(`${API_URL}/api/intents/hub/sections`)
       ])
 
       const statsData = await statsRes.json()
@@ -60,11 +61,6 @@ export default function DashboardPage() {
 
       if (statsRes.ok) setStats(statsData.data)
       if (hubRes.ok) setSections(hubData.data)
-
-      if (achievementsRes.ok) {
-        const achievementsData = await achievementsRes.json()
-        setAchievements(achievementsData.data?.filter((a: Achievement) => a.isUnlocked) || [])
-      }
     } catch (err) {
       console.error('Error fetching hub data:', err)
     } finally {
@@ -99,13 +95,6 @@ export default function DashboardPage() {
         {/* ─── INSIGHT HERO: BIRDS EYE VIEW ─── */}
         <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-[var(--color-text-primary)] text-white p-10 md:p-16 border border-white/5 shadow-2xl shadow-black/30">
            <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-accent)]/20 to-transparent opacity-40" />
-           
-           {/* Notification Icon */}
-           <div className="absolute top-6 right-6 z-20">
-              <button className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-[var(--color-accent)] hover:border-[var(--color-accent)] transition-all">
-                 <Bell size={18} />
-              </button>
-           </div>
            
            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="space-y-8">
@@ -164,40 +153,32 @@ export default function DashboardPage() {
         {hasData ? (
           <div className="space-y-24">
 
-            {/* Achievements Preview */}
-            {achievements.length > 0 && (
-              <section className="space-y-6">
+            {/* Platform Achievements & Rewards */}
+            {authUser && (
+              <section className="space-y-10">
                 <div className="flex justify-between items-end px-2">
-                  <div className="space-y-2">
-                    <h2 className="text-xl md:text-2xl font-serif font-black tracking-tighter text-[var(--color-text-primary)] flex items-center gap-2">
-                      <Award size={24} className="text-[var(--color-accent)]" />
-                      Recent Achievements
+                  <div className="space-y-3">
+                    <h2 className="text-2xl md:text-3xl font-serif font-black tracking-tighter text-[var(--color-text-primary)] flex items-center gap-3">
+                      <Award size={32} className="text-[var(--color-accent)]" />
+                      Achievements & Rewards
                     </h2>
                     <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">
-                      {achievements.length} unlocked • {achievements.reduce((sum, a) => sum + a.reward, 0)} credits earned
+                      Unlock credits by engaging with the platform • Know what to do to get rewarded
                     </p>
                   </div>
                   <button
-                    onClick={() => router.push('/profile?tab=achievements')}
-                    className="group flex items-center gap-2 text-[9px] font-black uppercase tracking-widest hover:text-[var(--color-accent)] transition-colors"
+                    onClick={() => router.push('/rewards')}
+                    className="group flex items-center gap-3 text-[9px] font-black uppercase tracking-widest hover:text-[var(--color-accent)] transition-colors"
                   >
-                    View All <ArrowUpRight size={14} />
+                    View All Rewards <ArrowUpRight size={14} />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {achievements.slice(0, 6).map((achievement, i) => (
-                    <motion.div
-                      key={achievement.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 p-4 rounded-2xl text-center hover:bg-[var(--color-accent)]/20 transition-all"
-                    >
-                      <Star size={20} className="mx-auto mb-2 text-[var(--color-accent)]" />
-                      <p className="text-[10px] font-bold text-[var(--color-text-primary)] truncate">{achievement.name}</p>
-                      <p className="text-[9px] text-[var(--color-accent)] font-bold">+{achievement.reward} credits</p>
-                    </motion.div>
-                  ))}
+                
+                <div className="bg-[var(--color-bg-secondary)]/30 border border-[var(--color-border)] rounded-[3rem] p-8 md:p-12 overflow-hidden relative">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <Trophy size={120} />
+                  </div>
+                  <AchievementsSection userId={authUser.id} variant="summary" />
                 </div>
               </section>
             )}

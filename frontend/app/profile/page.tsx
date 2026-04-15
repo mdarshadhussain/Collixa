@@ -41,8 +41,12 @@ export default function ProfilePage() {
   const [editForm, setEditForm] = useState({
     name: '',
     bio: '',
-    location: ''
+    location: '',
+    age: '',
+    gender: ''
   })
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [loadingTransactions, setLoadingTransactions] = useState(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [externalUser, setExternalUser] = useState<any | null>(null)
@@ -84,7 +88,9 @@ export default function ProfilePage() {
       setEditForm({
         name: user.name || '',
         bio: user.bio || '',
-        location: user.location || ''
+        location: user.location || '',
+        age: user.age || '',
+        gender: user.gender || ''
       })
       const userAvatar = user.avatar_url ? (user.avatar_url.startsWith('http') ? user.avatar_url : storageService.getPublicUrl(user.avatar_url)) : null
       setAvatarPreview(userAvatar)
@@ -137,8 +143,29 @@ export default function ProfilePage() {
     const targetUserId = profileUid || user?.id
     if (targetUserId) {
       fetchUserSkills(targetUserId)
+      if (targetUserId === user?.id) {
+        fetchTransactionHistory()
+      }
     }
   }, [profileUid, user?.id])
+
+  const fetchTransactionHistory = async () => {
+    if (!token) return
+    setLoadingTransactions(true)
+    try {
+      const response = await fetch(`${API_URL}/api/credits`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setTransactions(data.data || [])
+      }
+    } catch (err) {
+      console.error('Error fetching transactions:', err)
+    } finally {
+      setLoadingTransactions(false)
+    }
+  }
 
   useEffect(() => {
     const fetchExternalUser = async () => {
@@ -357,6 +384,33 @@ export default function ProfilePage() {
                         placeholder="City, Country"
                       />
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-left">
+                        <label className="editorial-label">Age</label>
+                        <input 
+                          type="number" 
+                          value={editForm.age} 
+                          onChange={(e) => setEditForm({...editForm, age: e.target.value})}
+                          className="editorial-input" 
+                          placeholder="Years"
+                        />
+                      </div>
+                      <div className="text-left">
+                        <label className="editorial-label">Gender Identity</label>
+                        <select 
+                          value={editForm.gender} 
+                          onChange={(e) => setEditForm({...editForm, gender: e.target.value})}
+                          className="editorial-input appearance-none bg-[var(--color-bg-primary)]"
+                        >
+                          <option value="">Select Identity</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Non-binary">Non-binary</option>
+                          <option value="Fluid">Gender Fluid</option>
+                          <option value="Hidden">Prefer not to say</option>
+                        </select>
+                      </div>
+                    </div>
                     <div className="text-left">
                       <label className="editorial-label">Mission / Bio</label>
                       <textarea 
@@ -403,6 +457,12 @@ export default function ProfilePage() {
                           </h1>
                           <div className="flex items-center gap-3">
                             <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] md:tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
+                            {profileUser?.age && (
+                              <span className="text-[10px] font-bold text-[var(--color-text-secondary)] opacity-60">• {profileUser.age}y</span>
+                            )}
+                            {profileUser?.gender && (
+                              <span className="text-[10px] font-bold text-[var(--color-text-secondary)] opacity-60">• {profileUser.gender}</span>
+                            )}
                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm">
                               <Star size={10} className="text-yellow-500 fill-yellow-500" />
                               <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
@@ -498,7 +558,7 @@ export default function ProfilePage() {
           <div className="flex flex-col space-y-10">
             {/* Tabs */}
             <div className="flex gap-3 sm:gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-3 sm:px-4 flex-wrap">
-              {['intents', 'skills', 'reviews', 'achievements'].map((tab) => (
+              {['intents', 'skills', 'reviews', 'achievements', ...(isOwnProfile ? ['audit'] : [])].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
@@ -645,6 +705,67 @@ export default function ProfilePage() {
                     <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Achievement Gallery</h3>
                   </div>
                   <AchievementsSection userId={profileUser?.id} />
+                </div>
+              )}
+
+              {activeTab === 'audit' && isOwnProfile && (
+                <div className="space-y-6 animate-in fade-in duration-700">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Credit Audit Ledger</h3>
+                    <div className="px-3 py-1 bg-[var(--color-accent-soft)]/20 rounded-full border border-[var(--color-accent-soft)]">
+                      <span className="text-[10px] font-black text-[var(--color-accent)]">{transactions.length} Records</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-black/5 border-b border-[var(--color-border)]">
+                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Date</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Activity</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] text-right">Adjustment</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--color-border)]">
+                          {loadingTransactions ? (
+                            [1, 2, 3].map((i) => (
+                              <tr key={i} className="animate-pulse">
+                                <td colSpan={3} className="px-6 py-8">
+                                  <div className="h-4 bg-white/5 rounded w-full" />
+                                </td>
+                              </tr>
+                            ))
+                          ) : transactions.length > 0 ? (
+                            transactions.map((tx) => (
+                              <tr key={tx.id} className="hover:bg-white/5 transition-colors">
+                                <td className="px-6 py-5 text-[10px] font-bold text-[var(--color-text-secondary)] uppercase">
+                                  {new Date(tx.created_at).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-5">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${tx.amount > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                    <span className="text-[11px] font-black uppercase tracking-tighter text-[var(--color-text-primary)]">
+                                      {tx.type.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className={`px-6 py-5 text-right font-black tabular-nums ${tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                  {tx.amount > 0 ? `+${tx.amount.toLocaleString()}` : tx.amount.toLocaleString()}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={3} className="px-6 py-12 text-center text-[var(--color-text-secondary)] italic text-sm">
+                                No transitions recorded in the credit ledger.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

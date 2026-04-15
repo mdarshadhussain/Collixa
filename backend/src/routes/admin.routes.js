@@ -10,6 +10,7 @@ router.use(authMiddleware, adminMiddleware);
 
 // Dashboard stats
 router.get('/stats', AdminController.getStats);
+router.get('/stats/achievements', AdminController.getAchievementStats);
 
 // User management
 router.get('/users', AdminController.getAllUsers);

@@ -15,7 +15,8 @@ import {
   Flag,
   LogOut,
   Shield,
-  ArrowLeft
+  ArrowLeft,
+  Award
 } from 'lucide-react'
 
 interface AdminLayoutProps {
@@ -29,6 +30,7 @@ const sidebarItems = [
   { name: 'Tribes', href: '/admin/tribes', icon: Star },
   { name: 'Sessions', href: '/admin/sessions', icon: Calendar },
   { name: 'Credits', href: '/admin/credits', icon: Coins },
+  { name: 'Achievements', href: '/admin/achievements', icon: Award },
   { name: 'Reports', href: '/admin/reports', icon: Flag },
 ]
 

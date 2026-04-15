@@ -1,5 +1,5 @@
 import { supabase, supabaseAdmin } from '../config/database.js';
-import { NotificationService } from './NotificationService.js';
+import NotificationService from './NotificationService.js';
 import CreditService from './CreditService.js';
 
 const getClient = () => supabaseAdmin || supabase;
@@ -139,15 +139,28 @@ export class AchievementService {
    * Get all achievements for a user
    */
   static async getUserAchievements(userId) {
-    const client = getClient();
-    const { data, error } = await client
-      .from('user_achievements')
-      .select('*')
-      .eq('user_id', userId)
-      .order('unlocked_at', { ascending: false });
+    try {
+      const client = getClient();
+      const { data, error } = await client
+        .from('user_achievements')
+        .select('*')
+        .eq('user_id', userId)
+        .order('unlocked_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+      if (error) {
+        // Handle missing table gracefully
+        if (error.code === 'PGRST205' || error.message?.includes('cache')) {
+          console.warn(`[AchievementService] user_achievements table missing for user ${userId}`);
+          return [];
+        }
+        console.error(`[AchievementService] getUserAchievements error:`, error);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.error(`[AchievementService] getUserAchievements exception:`, err);
+      return [];
+    }
   }
 
   /**
@@ -156,30 +169,53 @@ export class AchievementService {
   static async getUserStats(userId) {
     const client = getClient();
 
+    // Helper to safely execute a Supabase query and return count or 0
+    const safeCount = async (query) => {
+      try {
+        const { count, error } = await query;
+        if (error) {
+          console.error(`[AchievementService] Query error:`, error);
+          return 0;
+        }
+        return count || 0;
+      } catch (err) {
+        console.error(`[AchievementService] Exception:`, err);
+        return 0;
+      }
+    };
+
     // Get counts from various tables
     const [
-      { count: intentCount },
-      { count: sessionCount },
-      { count: skillCount },
-      { count: reviewCount },
-      { count: shareCount },
-      { data: userData }
+      intentCount,
+      sessionCount,
+      skillCount,
+      reviewCount,
+      shareCount,
+      userRes
     ] = await Promise.all([
-      client.from('intents').select('*', { count: 'exact', head: true }).eq('created_by', userId),
-      client.from('sessions').select('*', { count: 'exact', head: true }).or(`requester_id.eq.${userId},provider_id.eq.${userId}`).eq('status', 'completed'),
-      client.from('skills').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      client.from('reviews').select('*', { count: 'exact', head: true }).eq('reviewer_id', userId),
-      client.from('credit_transfers').select('*', { count: 'exact', head: true }).eq('sender_id', userId),
-      client.from('users').select('credits').eq('id', userId).single()
+      safeCount(client.from('intents').select('*', { count: 'exact', head: true }).eq('created_by', userId)),
+      safeCount(client.from('sessions').select('*', { count: 'exact', head: true }).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq('status', 'COMPLETED')),
+      safeCount(client.from('skills').select('*', { count: 'exact', head: true }).eq('user_id', userId)),
+      safeCount(client.from('session_reviews').select('*', { count: 'exact', head: true }).eq('reviewer_id', userId)),
+      safeCount(client.from('credit_transfers').select('*', { count: 'exact', head: true }).eq('sender_id', userId)),
+      (async () => {
+        try {
+          const { data, error } = await client.from('users').select('credits').eq('id', userId).single();
+          if (error) return { data: { credits: 0 } };
+          return { data };
+        } catch (e) {
+          return { data: { credits: 0 } };
+        }
+      })()
     ]);
 
     return {
-      intents: intentCount || 0,
-      sessions: sessionCount || 0,
-      skills: skillCount || 0,
-      reviews: reviewCount || 0,
-      shares: shareCount || 0,
-      credits: userData?.credits || 0
+      intents: intentCount,
+      sessions: sessionCount,
+      skills: skillCount,
+      reviews: reviewCount,
+      shares: shareCount,
+      credits: userRes.data?.credits || 0
     };
   }
 
@@ -314,6 +350,41 @@ export class AchievementService {
         unlockedAt: unlocked.find(a => a.achievement_id === achievement.id)?.unlocked_at || null
       };
     });
+  }
+  /**
+   * Get global achievement statistics for admin
+   */
+  static async getGlobalAchievementStats() {
+    try {
+      const client = getClient();
+      
+      // Fetch all achievement IDs from unlocks table
+      const { data: allUnlocks, error: unlockError } = await client
+        .from('user_achievements')
+        .select('achievement_id');
+
+      if (unlockError) {
+        if (unlockError.code === 'PGRST205' || unlockError.message?.includes('cache')) {
+          console.warn('[AchievementService] user_achievements table missing or cache stale');
+          return Object.values(ACHIEVEMENTS).map(a => ({ ...a, totalUnlocks: 0 }));
+        }
+        throw unlockError;
+      }
+
+      const stats = {};
+      allUnlocks.forEach(u => {
+        stats[u.achievement_id] = (stats[u.achievement_id] || 0) + 1;
+      });
+
+      // Combine with achievement definitions for full details
+      return Object.values(ACHIEVEMENTS).map(a => ({
+        ...a,
+        totalUnlocks: stats[a.id] || 0
+      }));
+    } catch (err) {
+      console.error(`[AchievementService] getGlobalAchievementStats error:`, err);
+      return Object.values(ACHIEVEMENTS).map(a => ({ ...a, totalUnlocks: 0 }));
+    }
   }
 }
 

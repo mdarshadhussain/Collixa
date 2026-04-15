@@ -135,7 +135,7 @@ export class AuthService {
   static async updateProfile(userId, updates) {
     console.log(`[AuthService] Updating profile for user ${userId}:`, updates);
     // Don't allow updating sensitive fields
-    const allowedFields = ['name', 'avatar_url', 'bio', 'location'];
+    const allowedFields = ['name', 'avatar_url', 'bio', 'location', 'age', 'gender'];
     const safeUpdates = {};
 
     allowedFields.forEach((field) => {

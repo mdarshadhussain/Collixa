@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin } from '../config/database.js';
 import { NotificationService } from '../services/NotificationService.js';
+import AchievementService from '../services/AchievementService.js';
 
 const getClient = () => supabaseAdmin || supabase;
 
@@ -599,6 +600,21 @@ export class AdminController {
         success: true,
         message: `${amount} credits deducted successfully`,
         data: { newBalance: newCredits }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get achievement statistics
+   */
+  static async getAchievementStats(req, res, next) {
+    try {
+      const stats = await AchievementService.getGlobalAchievementStats();
+      return res.status(200).json({
+        success: true,
+        data: stats
       });
     } catch (error) {
       next(error);

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Menu, X, ChevronDown, Zap, MessageSquare, Plus, LayoutDashboard, FileText, Users, User } from 'lucide-react'
+import { Menu, X, ChevronDown, Zap, MessageSquare, Plus, LayoutDashboard, FileText, Users, User, Award } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import Avatar from './Avatar'
@@ -114,6 +114,8 @@ export default function Header() {
             </button>
           )}
 
+          {isAuthenticated && <NotificationDropdown />}
+
           {isAuthenticated && user ? (
             <div className="relative">
               <button 
@@ -170,6 +172,15 @@ export default function Header() {
                       >
                         <LayoutDashboard size={16} />
                         <span className="text-[13px] font-semibold">Platform Dashboard</span>
+                      </Link>
+
+                      <Link 
+                        href="/rewards" 
+                        onClick={() => setShowProfileMenu(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                      >
+                        <Award size={16} />
+                        <span className="text-[13px] font-semibold">Rewards & Achievements</span>
                       </Link>
 
                       <Link 
@@ -259,6 +270,7 @@ export default function Header() {
            <nav className="flex flex-col gap-1.5">
               {[
                 ...(isLandingPage ? landingNavItems : mainNavItems),
+                { label: 'Rewards', href: '/rewards', icon: Award },
                 { label: 'Messages', href: '/chat', icon: MessageSquare },
                 { label: 'Profile Settings', href: '/profile', icon: User },
               ].map((item) => {
