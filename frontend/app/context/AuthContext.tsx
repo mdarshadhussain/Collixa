@@ -4,6 +4,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
+// Admin emails configuration
+const ADMIN_EMAILS = ['admin@collixa.space']
+
 export interface User {
   id: string
   email: string
@@ -23,6 +26,8 @@ interface AuthContextType {
   token: string | null
   loading: boolean
   isAuthenticated: boolean
+  isAdmin: boolean
+  viewMode: 'admin' | 'user'
   pendingEmail: string | null
   login: (email: string, password: string) => Promise<{ error: string | null }>
   register: (email: string, password: string, name: string) => Promise<{ error: string | null; pendingVerification?: boolean }>
@@ -31,6 +36,8 @@ interface AuthContextType {
   loginWithFacebook: () => Promise<{ error: string | null }>
   refreshUser: () => Promise<void>
   updateUser: (updatedUser: User) => void
+  toggleViewMode: () => void
+  setViewMode: (mode: 'admin' | 'user') => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -41,6 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [pendingEmail, setPendingEmail] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [viewMode, setViewModeState] = useState<'admin' | 'user'>('user')
 
   // Check if user is logged in on mount and listen to changes
   useEffect(() => {
@@ -61,6 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           const data = await response.json();
           setUser(data.user);
+          // Check if user is admin
+          const adminStatus = ADMIN_EMAILS.includes(data.user.email);
+          setIsAdmin(adminStatus);
+          // Restore view mode from localStorage for admins
+          if (adminStatus) {
+            const savedViewMode = localStorage.getItem('collixa_view_mode') as 'admin' | 'user';
+            if (savedViewMode) {
+              setViewModeState(savedViewMode);
+            }
+          }
         }
       } else {
         setUser(null);
@@ -122,9 +141,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await supabase.auth.signOut();
+      setIsAdmin(false);
+      setViewModeState('user');
+      localStorage.removeItem('collixa_view_mode');
     } catch (error) {
       console.error('Logout error:', error);
     }
+  }
+
+  const toggleViewMode = () => {
+    const newMode = viewMode === 'admin' ? 'user' : 'admin';
+    setViewModeState(newMode);
+    localStorage.setItem('collixa_view_mode', newMode);
+  }
+
+  const setViewMode = (mode: 'admin' | 'user') => {
+    setViewModeState(mode);
+    localStorage.setItem('collixa_view_mode', mode);
   }
 
   const loginWithGoogle = async () => {
@@ -204,6 +237,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         loading,
         isAuthenticated: !!user,
+        isAdmin,
+        viewMode,
         pendingEmail,
         login,
         register,
@@ -212,6 +247,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithFacebook,
         refreshUser,
         updateUser,
+        toggleViewMode,
+        setViewMode,
       }}
     >
       {children}

@@ -1,0 +1,202 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import AdminLayout from '@/components/AdminLayout'
+import { Briefcase, Trash2, Search, MapPin, Calendar } from 'lucide-react'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+interface Intent {
+  id: string
+  title: string
+  description: string
+  category: string
+  location: string
+  status: string
+  created_at: string
+  created_by: {
+    name: string
+    email: string
+  }
+}
+
+export default function AdminIntents() {
+  const [intents, setIntents] = useState<Intent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+  const fetchIntents = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/intents`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setIntents(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching intents:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const deleteIntent = async (intentId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/intents/${intentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      })
+
+      if (response.ok) {
+        setIntents(intents.filter(i => i.id !== intentId))
+        setDeleteConfirm(null)
+      }
+    } catch (error) {
+      console.error('Error deleting intent:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchIntents()
+  }, [])
+
+  const filteredIntents = intents.filter(intent =>
+    intent.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    intent.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    intent.created_by?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="animate-pulse space-y-4">
+          <div className="h-12 bg-white/10 rounded w-1/4" />
+          <div className="h-64 bg-white/10 rounded" />
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  return (
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-serif font-black text-[var(--color-text-primary)]">Intent Management</h2>
+            <p className="text-[var(--color-text-secondary)] text-sm">Manage all platform intents</p>
+          </div>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" />
+            <input
+              type="text"
+              placeholder="Search intents..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl text-sm focus:ring-1 focus:ring-[var(--color-accent)]"
+            />
+          </div>
+        </div>
+
+        {/* Intents Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {filteredIntents.map((intent) => (
+            <div
+              key={intent.id}
+              className="bg-[var(--color-bg-secondary)] rounded-2xl p-6 border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-all"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span className="px-3 py-1 bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full text-xs font-bold uppercase">
+                    {intent.category || 'General'}
+                  </span>
+                  <h3 className="text-lg font-bold text-[var(--color-text-primary)] mt-2">{intent.title}</h3>
+                </div>
+                <button
+                  onClick={() => setDeleteConfirm(intent.id)}
+                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                  title="Delete intent"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              <p className="text-[var(--color-text-secondary)] text-sm mb-4 line-clamp-2">
+                {intent.description || 'No description'}
+              </p>
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="flex items-center gap-1 px-3 py-1 bg-white/5 rounded-full text-xs">
+                  <MapPin size={12} />
+                  {intent.location || 'Remote'}
+                </span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  intent.status === 'looking' ? 'bg-green-500/20 text-green-500' :
+                  intent.status === 'active' ? 'bg-blue-500/20 text-blue-500' :
+                  'bg-gray-500/20 text-gray-500'
+                }`}>
+                  {intent.status}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-[var(--color-border)]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white text-sm font-bold">
+                    {intent.created_by?.name?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">{intent.created_by?.name || 'Unknown'}</p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">{intent.created_by?.email}</p>
+                  </div>
+                </div>
+                <span className="text-xs text-[var(--color-text-secondary)]">
+                  {new Date(intent.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredIntents.length === 0 && (
+          <div className="text-center py-12 bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)]">
+            <Briefcase size={48} className="mx-auto text-[var(--color-text-secondary)] mb-4" />
+            <p className="text-[var(--color-text-secondary)]">No intents found</p>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-[var(--color-bg-secondary)] rounded-2xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-2">Confirm Delete</h3>
+              <p className="text-[var(--color-text-secondary)] mb-6">
+                Are you sure you want to delete this intent? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteIntent(deleteConfirm)}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  )
+}

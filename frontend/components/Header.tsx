@@ -10,18 +10,20 @@ import { useAuth } from '@/app/context/AuthContext'
 import { useRouter, usePathname } from 'next/navigation'
 import { storageService } from '@/lib/supabase'
 import CreditPurchaseModal from './CreditPurchaseModal'
+import { Shield } from 'lucide-react'
 
 export default function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const isLandingPage = pathname === '/'
+  const isAdminPage = pathname.startsWith('/admin')
   const [isOpen, setIsOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
   const [showCreditModal, setShowCreditModal] = useState(false)
-  const { user, logout, isAuthenticated } = useAuth()
+  const { user, logout, isAuthenticated, isAdmin, viewMode, toggleViewMode } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,9 +54,9 @@ export default function Header() {
   ]
 
   const landingNavItems = [
-    { label: 'Features', href: '#features' },
-    { label: 'Benefits', href: '#benefits' },
-    { label: 'Process', href: '#process' },
+    { label: 'Features', href: '#features', icon: LayoutDashboard },
+    { label: 'Benefits', href: '#benefits', icon: LayoutDashboard },
+    { label: 'Process', href: '#process', icon: LayoutDashboard },
   ]
 
   const navItems = isLandingPage ? landingNavItems : mainNavItems
@@ -89,6 +91,28 @@ export default function Header() {
               </Link>
             ))}
           </nav>
+
+          {/* Admin View Toggle */}
+          {isAuthenticated && isAdmin && (
+            <button
+              onClick={() => {
+                toggleViewMode()
+                if (!isAdminPage) {
+                  router.push('/admin')
+                } else {
+                  router.push('/dashboard')
+                }
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${
+                isAdminPage
+                  ? 'bg-[var(--color-accent)] text-white'
+                  : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]'
+              }`}
+            >
+              <Shield size={14} />
+              {isAdminPage ? 'View as User' : 'View as Admin'}
+            </button>
+          )}
 
           {isAuthenticated && user ? (
             <div className="relative">
@@ -237,17 +261,20 @@ export default function Header() {
                 ...(isLandingPage ? landingNavItems : mainNavItems),
                 { label: 'Messages', href: '/chat', icon: MessageSquare },
                 { label: 'Profile Settings', href: '/profile', icon: User },
-              ].map((item) => (
-                <Link 
-                  key={item.label} 
-                  href={item.href} 
-                  className="flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <item.icon size={15} className="text-[var(--color-accent)]" />
-                  {item.label}
-                </Link>
-              ))}
+              ].map((item) => {
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Icon size={15} className="text-[var(--color-accent)]" />
+                    {item.label}
+                  </Link>
+                )
+              })}
            </nav>
 
            <div className="pt-3 mt-3 border-t border-[var(--color-border)] space-y-2">
