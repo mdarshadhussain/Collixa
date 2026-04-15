@@ -13,13 +13,15 @@ interface LayoutProps {
   showHeader?: boolean
   showSidebar?: boolean
   requireAuth?: boolean
+  showBottomNav?: boolean
 }
 
 export default function Layout({ 
   children, 
   showHeader = true, 
   showSidebar = true,
-  requireAuth = true
+  requireAuth = true,
+  showBottomNav = true
 }: LayoutProps) {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
@@ -57,7 +59,7 @@ export default function Layout({
         </main>
       </div>
 
-      <BottomNav />
+      {showBottomNav && <BottomNav />}
     </div>
   )
 }

@@ -83,35 +83,8 @@ export class CreditController {
       const userId = req.user.id;
       const credits = pkg.credits;
 
-      // Atomic update: Record transaction and add credits
-      const { error: txError } = await supabaseAdmin
-        .from('credit_transactions')
-        .insert({
-          user_id: userId,
-          amount: parseInt(credits),
-          type: 'PURCHASE',
-          session_id: `SIM_${Date.now()}`,
-          created_at: new Date().toISOString()
-        });
-
-      if (txError) throw txError;
-
-      // Fetch current credits
-      const { data: user, error: userError } = await supabaseAdmin
-        .from('users')
-        .select('credits')
-        .eq('id', userId)
-        .single();
-
-      if (userError) throw userError;
-
-      // Update total
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({ credits: (user.credits || 0) + parseInt(credits) })
-        .eq('id', userId);
-
-      if (updateError) throw updateError;
+      // Use CreditService for consistent and cleaner logic
+      await CreditService.addCredits(userId, credits, 'PURCHASE');
 
       res.status(200).json({ success: true, message: `Successfully added ${credits} credits` });
     } catch (error) {
@@ -140,39 +113,12 @@ export class CreditController {
       const { userId, credits } = session.metadata;
 
       try {
-        // Atomic update: Record transaction and add credits
-        const { error: txError } = await supabaseAdmin
-          .from('credit_transactions')
-          .insert({
-            user_id: userId,
-            amount: parseInt(credits),
-            type: 'PURCHASE',
-            created_at: new Date().toISOString()
-          });
-
-        if (txError) throw txError;
-
-        // Fetch current credits
-        const { data: user, error: userError } = await supabaseAdmin
-          .from('users')
-          .select('credits')
-          .eq('id', userId)
-          .single();
-
-        if (userError) throw userError;
-
-        // Update total
-        const { error: updateError } = await supabaseAdmin
-          .from('users')
-          .update({ credits: (user.credits || 0) + parseInt(credits) })
-          .eq('id', userId);
-
-        if (updateError) throw updateError;
-
+        // Use CreditService for consistent and cleaner logic
+        await CreditService.addCredits(userId, credits, 'PURCHASE');
         console.log(`✅ Successfully credited ${credits} credits to user ${userId}`);
       } catch (dbErr) {
         console.error('Database update failed after payment:', dbErr);
-        // Stripe will retry if we return 500, but the payment is already done locally.
+        // Stripe will retry if we return 500
         return res.status(500).json({ error: 'Database update failed' });
       }
     }

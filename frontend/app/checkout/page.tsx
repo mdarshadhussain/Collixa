@@ -79,6 +79,13 @@ export default function CheckoutPage() {
     
     try {
       const token = localStorage.getItem('auth_token')
+      
+      if (!token) {
+        setError('Your session has expired. Please log in again.')
+        setProcessing(false)
+        return
+      }
+
       const response = await fetch(`${API_URL}/api/credits/simulate-success`, {
         method: 'POST',
         headers: {
@@ -96,8 +103,9 @@ export default function CheckoutPage() {
         const data = await response.json()
         setError(data.error || 'Identity verification failed')
       }
-    } catch (err) {
-      setError('Connectivity lost. Re-establishing link...')
+    } catch (err: any) {
+      console.error('Checkout error:', err)
+      setError(err.message || 'Connectivity lost. Re-establishing link...')
     } finally {
       setProcessing(false)
     }

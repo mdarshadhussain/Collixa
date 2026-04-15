@@ -3,23 +3,35 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { 
-  ArrowLeft, 
-  CheckCircle, 
-  AlertCircle, 
-  Loader2, 
-  Plus, 
-  LayoutDashboard, 
-  FileText, 
-  MessageSquare, 
-  Users, 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  Target, 
-  FileUp, 
-  Send
+import {
+  ArrowLeft,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Plus,
+  LayoutDashboard,
+  FileText,
+  MessageSquare,
+  Users,
+  MapPin,
+  Clock,
+  DollarSign,
+  Target,
+  FileUp,
+  Send,
+  FolderKanban,
+  BookOpen,
+  Dumbbell,
+  Plane,
+  CalendarDays,
+  Rocket,
+  Network,
+  Lightbulb,
+  UsersRound,
+  Layers,
+  Calendar
 } from 'lucide-react'
+import CustomDatePicker from '@/components/CustomDatePicker'
 import { useAuth } from '@/app/context/AuthContext'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
@@ -29,7 +41,18 @@ import Badge from '@/components/Badge'
 import Button from '@/components/Button'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-const CATEGORIES = ['Design', 'Development', 'Marketing', 'Data', 'Other']
+const CATEGORIES = [
+  { name: 'Projects', icon: FolderKanban },
+  { name: 'Study', icon: BookOpen },
+  { name: 'Fitness', icon: Dumbbell },
+  { name: 'Travel', icon: Plane },
+  { name: 'Events', icon: CalendarDays },
+  { name: 'Startup', icon: Rocket },
+  { name: 'Networking', icon: Network },
+  { name: 'Creative', icon: Lightbulb },
+  { name: 'Social', icon: UsersRound },
+  { name: 'Other', icon: Layers }
+]
 
 function CreateIntentContent() {
   const router = useRouter()
@@ -41,11 +64,17 @@ function CreateIntentContent() {
     title: '',
     description: '',
     category: 'Design',
+    customCategory: '',
     location: '',
     timeline: '',
     budget: '',
     goal: '',
   })
+
+  const getCategoryIcon = (name: string) => {
+    const cat = CATEGORIES.find(c => c.name === name)
+    return cat?.icon || Layers
+  }
 
   // State Management
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -69,6 +98,7 @@ function CreateIntentContent() {
               title: intent.title || '',
               description: intent.description || '',
               category: intent.category || 'Design',
+              customCategory: '',
               location: intent.location || '',
               timeline: intent.timeline ? new Date(intent.timeline).toISOString().slice(0, 16) : '',
               budget: intent.budget || '',
@@ -156,8 +186,12 @@ function CreateIntentContent() {
         if (uploadedPath) attachmentPath = uploadedPath
       }
 
+      const { customCategory, ...restFormData } = formData
       const payload = {
-        ...formData,
+        ...restFormData,
+        category: formData.category === 'Other' && formData.customCategory
+          ? formData.customCategory
+          : formData.category,
         timeline: formData.timeline ? new Date(formData.timeline).toISOString() : new Date().toISOString(),
         status: 'looking',
         created_by: user?.id || '',
@@ -241,150 +275,161 @@ function CreateIntentContent() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-7 md:space-y-10">
                   
-                  {/* --- SECTION 1: CORE DETAILS --- */}
-                  <div className="space-y-6 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-4 md:p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                       <FileText size={18} className="text-[var(--color-accent)]" />
-                       <h2 className="text-base md:text-lg font-serif font-bold italic">Core Vision</h2>
+                  {/* --- UNIFIED FORM SECTION --- */}
+                  <div className="space-y-8">
+                    {/* Project Title */}
+                    <div className="space-y-3">
+                      <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                        <FileText size={18} className="text-[var(--color-accent)]" /> Project Title
+                      </label>
+                      <input
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        placeholder="e.g. Building an AI Skill Marketplace"
+                        className="editorial-input !font-serif !font-medium"
+                      />
+                      {errors.title && <p className="text-[10px] font-bold text-red-500">{errors.title}</p>}
                     </div>
 
-                    <div className="space-y-5">
-                      <div className="space-y-3">
-                         <label className="editorial-label">Project Title</label>
-                         <input 
-                            name="title"
-                            value={formData.title}
-                            onChange={handleChange}
-                            placeholder="e.g. Building an AI Skill Marketplace"
-                            className="editorial-input !text-base sm:!text-lg md:!text-xl !font-serif !font-bold"
-                         />
-                         {errors.title && <p className="text-[10px] font-bold text-red-500">{errors.title}</p>}
-                      </div>
-
-                      <div className="space-y-3">
-                         <label className="editorial-label">Description & Context</label>
-                         <textarea 
-                            name="description"
-                            rows={5}
-                            value={formData.description}
-                            onChange={handleChange}
-                            placeholder="Describe your vision and who you're looking for..."
-                            className="editorial-textarea"
-                         />
-                         {errors.description && <p className="text-[10px] font-bold text-red-500">{errors.description}</p>}
-                      </div>
+                    {/* Description */}
+                    <div className="space-y-3">
+                      <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                        <FileText size={16} className="text-[var(--color-accent)]" /> Description & Context
+                      </label>
+                      <textarea
+                        name="description"
+                        rows={4}
+                        value={formData.description}
+                        onChange={handleChange}
+                        placeholder="Describe your vision and who you're looking for..."
+                        className="editorial-textarea"
+                      />
+                      {errors.description && <p className="text-[10px] font-bold text-red-500">{errors.description}</p>}
                     </div>
-                  </div>
 
-                  {/* --- SECTION 2: ARCHETYPE --- */}
-                  <div className="space-y-6">
-                     <label className="editorial-label">Category</label>
-                     <div className="flex flex-wrap gap-2.5">
-                        {CATEGORIES.map(cat => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
-                            className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] sm:tracking-widest transition-all ${
-                              formData.category === cat 
-                              ? 'bg-[var(--color-accent)] text-white shadow-md' 
-                              : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)]'
-                            }`}
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                     </div>
-                  </div>
-
-                  {/* --- SECTION 3: LOGISTICS --- */}
-                  <div className="p-4 sm:p-6 md:p-8 bg-[var(--color-bg-primary)] rounded-2xl md:rounded-3xl border border-[var(--color-border)] space-y-6 md:space-y-10">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-                        <div className="space-y-3">
-                           <label className="editorial-label flex items-center gap-2">
-                             <MapPin size={14} className="text-[var(--color-accent)]" /> Location
-                           </label>
-                           <input 
-                              name="location"
-                              value={formData.location}
-                              onChange={handleChange}
-                              placeholder="Remote or Specific City"
-                              className="editorial-input"
-                           />
-                           {errors.location && <p className="text-[10px] font-bold text-red-500">{errors.location}</p>}
+                    {/* Category */}
+                    <div className="space-y-3">
+                      <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                        <Layers size={16} className="text-[var(--color-accent)]" /> Category
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {CATEGORIES.map(cat => {
+                          const Icon = cat.icon
+                          return (
+                            <button
+                              key={cat.name}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, category: cat.name }))}
+                              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.1em] transition-all ${
+                                formData.category === cat.name
+                                ? 'bg-[var(--color-accent)] text-white shadow-md'
+                                : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)]'
+                              }`}
+                            >
+                              <Icon size={14} />
+                              {cat.name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {formData.category === 'Other' && (
+                        <div className="pt-2">
+                          <input
+                            name="customCategory"
+                            value={formData.customCategory}
+                            onChange={handleChange}
+                            placeholder="Please specify your category..."
+                            className="editorial-input !font-serif !font-medium"
+                          />
                         </div>
-                        <div className="space-y-3">
-                           <label className="editorial-label flex items-center gap-2">
-                             <Clock size={14} className="text-[var(--color-accent)]" /> Target Deadline
-                           </label>
-                           <input 
-                             type="datetime-local"
-                             name="timeline"
-                             value={formData.timeline}
-                             onChange={handleChange}
-                             className="editorial-input cursor-pointer"
-                           />
-                        </div>
-                     </div>
+                      )}
+                    </div>
 
-                     <div className="space-y-3">
-                        <label className="editorial-label flex items-center gap-2">
-                          <DollarSign size={14} className="text-[var(--color-accent)]" /> Budget / Exchange
+                    {/* Location & Deadline Row */}
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-3">
+                        <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                          <MapPin size={16} className="text-[var(--color-accent)]" /> Location
                         </label>
-                        <input 
+                        <input
+                          name="location"
+                          value={formData.location}
+                          onChange={handleChange}
+                          placeholder="Remote or Specific City"
+                          className="editorial-input"
+                        />
+                        {errors.location && <p className="text-[10px] font-bold text-red-500">{errors.location}</p>}
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                          <Clock size={16} className="text-[var(--color-accent)]" /> Target Deadline
+                        </label>
+                        <CustomDatePicker
+                          selected={formData.timeline ? new Date(formData.timeline) : null}
+                          onChange={(date) => setFormData(prev => ({ ...prev, timeline: date ? date.toISOString() : '' }))}
+                          placeholderText="Select deadline..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Budget & Attachment Row */}
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-3">
+                        <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                          <DollarSign size={16} className="text-[var(--color-accent)]" /> Budget / Exchange
+                        </label>
+                        <input
                           name="budget"
                           value={formData.budget}
                           onChange={handleChange}
                           placeholder="e.g. $500 - $1000 or 'Skill Exchange'"
                           className="editorial-input"
                         />
-                     </div>
-                  </div>
-
-                  {/* --- SECTION 4: FINAL OBJECTIVE --- */}
-                  <div className="space-y-6 md:space-y-8">
-                     <div className="space-y-3">
-                        <label className="editorial-label flex items-center gap-2">
-                          <Target size={14} className="text-[var(--color-accent)]" /> Ultimate Objective
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                          <FileUp size={16} className="text-[var(--color-accent)]" /> Attachment
                         </label>
-                        <input 
-                           name="goal"
-                           value={formData.goal}
-                           onChange={handleChange}
-                           placeholder="What defines success for this project?"
-                           className="editorial-input"
-                        />
-                     </div>
-
-                     <div className="space-y-4 md:space-y-6">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2">
-                          <FileUp size={14} className="text-[var(--color-accent)]" /> Attachment (optional)
-                        </label>
-                        
                         {!uploadedFile ? (
-                          <label className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-border)] rounded-2xl md:rounded-3xl p-6 md:p-10 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/20 transition-all cursor-pointer bg-[var(--color-bg-primary)] group">
-                             <Plus size={24} className="text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] mb-2" />
-                             <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">Attach Vision Artifact</p>
-                             <input type="file" onChange={handleFileUpload} className="hidden" />
+                          <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[var(--color-border)] rounded-full px-4 py-3 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/20 transition-all cursor-pointer bg-[var(--color-bg-primary)] group">
+                            <Plus size={18} className="text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)]" />
+                            <span className="text-xs font-medium text-[var(--color-text-secondary)]">Add File</span>
+                            <input type="file" onChange={handleFileUpload} className="hidden" />
                           </label>
                         ) : (
-                          <div className="p-4 md:p-6 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-xl md:rounded-2xl flex items-center justify-between">
-                             <div className="flex items-center gap-4">
-                                <CheckCircle size={20} className="text-[var(--color-accent)]" />
-                                <span className="text-xs sm:text-sm font-bold truncate max-w-[180px] sm:max-w-[220px]">{uploadedFile.name}</span>
-                             </div>
-                             <button type="button" onClick={() => setUploadedFile(null)} className="text-[9px] font-black uppercase text-red-500 hover:underline">Remove</button>
+                          <div className="px-4 py-3 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-full flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <CheckCircle size={16} className="text-[var(--color-accent)]" />
+                              <span className="text-xs font-medium truncate max-w-[150px]">{uploadedFile.name}</span>
+                            </div>
+                            <button type="button" onClick={() => setUploadedFile(null)} className="text-[9px] font-black uppercase text-red-500 hover:underline">Remove</button>
                           </div>
                         )}
                         {fileError && <p className="text-[10px] font-bold text-red-500">{fileError}</p>}
-                     </div>
+                      </div>
+                    </div>
 
-                     {submitError && (
-                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500">
-                           <AlertCircle size={18} />
-                           <p className="text-sm font-medium">{submitError}</p>
-                        </div>
-                     )}
+                    {/* Ultimate Objective */}
+                    <div className="space-y-3">
+                      <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                        <Target size={16} className="text-[var(--color-accent)]" /> Ultimate Objective
+                      </label>
+                      <input
+                        name="goal"
+                        value={formData.goal}
+                        onChange={handleChange}
+                        placeholder="What defines success for this project?"
+                        className="editorial-input"
+                      />
+                    </div>
+
+                    {submitError && (
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500">
+                        <AlertCircle size={18} />
+                        <p className="text-sm font-medium">{submitError}</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Submission Controls */}

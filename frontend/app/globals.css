@@ -154,8 +154,12 @@ h3, .text-h3 {
 input[type="datetime-local"],
 input[type="date"] {
   position: relative;
+  font-family: 'Nunito', sans-serif;
+  accent-color: var(--color-accent);
+  color-scheme: light;
 }
 
+/* Custom Calendar Picker Indicator */
 ::-webkit-calendar-picker-indicator {
   background: transparent;
   bottom: 0;
@@ -168,6 +172,150 @@ input[type="date"] {
   top: 0;
   width: auto;
   z-index: 10;
+}
+
+/* Calendar Popup Styling - Webkit/Blink browsers */
+::-webkit-calendar-picker {
+  background-color: var(--color-bg-secondary);
+  border-radius: 1.5rem;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 20px 60px -15px rgba(2, 26, 84, 0.15);
+  padding: 1rem;
+}
+
+::-webkit-datetime-edit {
+  font-family: 'Nunito', sans-serif;
+  color: var(--color-text-primary);
+}
+
+::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+::-webkit-datetime-edit-text {
+  color: var(--color-text-secondary);
+  padding: 0 0.25rem;
+}
+
+::-webkit-datetime-edit-month-field,
+::-webkit-datetime-edit-day-field,
+::-webkit-datetime-edit-year-field,
+::-webkit-datetime-edit-hour-field,
+::-webkit-datetime-edit-minute-field,
+::-webkit-datetime-edit-ampm-field {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+::-webkit-datetime-edit-month-field:focus,
+::-webkit-datetime-edit-day-field:focus,
+::-webkit-datetime-edit-year-field:focus,
+::-webkit-datetime-edit-hour-field:focus,
+::-webkit-datetime-edit-minute-field:focus {
+  background-color: var(--color-accent-soft);
+  color: var(--color-text-primary);
+  border-radius: 0.5rem;
+}
+
+/* Calendar Grid Styling */
+::-webkit-calendar-picker-view {
+  background-color: var(--color-bg-secondary);
+  border-radius: 1rem;
+}
+
+/* Weekday Headers */
+::-webkit-calendar-picker-view thead th {
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.75rem 0.5rem;
+}
+
+/* Calendar Days */
+::-webkit-calendar-picker-view tbody td {
+  padding: 0.5rem;
+  text-align: center;
+}
+
+::-webkit-calendar-picker-view tbody td button {
+  background-color: transparent;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  height: 2.25rem;
+  width: 2.25rem;
+  transition: all 0.2s ease;
+}
+
+/* Hover State */
+::-webkit-calendar-picker-view tbody td button:hover {
+  background-color: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+/* Selected/Today State */
+::-webkit-calendar-picker-view tbody td button[aria-selected="true"],
+::-webkit-calendar-picker-view tbody td button[today] {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+  font-weight: 700;
+}
+
+/* Disabled Days */
+::-webkit-calendar-picker-view tbody td button:disabled {
+  color: var(--color-border);
+  cursor: not-allowed;
+}
+
+/* Month/Year Navigation Buttons */
+::-webkit-calendar-picker-view button[role="navigation"] {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  height: 2rem;
+  width: 2rem;
+  transition: all 0.2s ease;
+}
+
+::-webkit-calendar-picker-view button[role="navigation"]:hover {
+  background-color: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Time Picker Styling */
+::-webkit-time-picker {
+  background-color: var(--color-bg-secondary);
+  border-radius: 1rem;
+  padding: 0.5rem;
+}
+
+::-webkit-time-picker-button {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+::-webkit-time-picker-button:hover {
+  background-color: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .custom-datetime-container {
@@ -190,5 +338,10 @@ input[type="date"] {
 input::-webkit-inner-spin-button,
 input::-webkit-clear-button {
   display: none;
+}
+
+/* Safe area padding for mobile bottom nav */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 

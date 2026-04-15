@@ -91,12 +91,16 @@ export const initializeDatabase = async () => {
       GROUP BY reviewee_id;
     `;
 
-    const { error } = await supabaseAdmin.rpc('exec', { sql: bootstrapSQL });
-    if (error) {
-      console.warn('⚠️  Could not run bootstrap SQL via RPC. Apply manually in Supabase SQL editor.');
-      console.log(bootstrapSQL);
+    if (!supabaseAdmin) {
+      console.warn('⚠️  supabaseAdmin is not configured. Skipping database initialization via RPC.');
     } else {
-      console.log('✅ Session, credit, and review schema ensured');
+      const { error } = await supabaseAdmin.rpc('exec', { sql: bootstrapSQL });
+      if (error) {
+        console.warn('⚠️  Could not run bootstrap SQL via RPC. Apply manually in Supabase SQL editor.');
+        console.log(bootstrapSQL);
+      } else {
+        console.log('✅ Session, credit, and review schema ensured');
+      }
     }
 
     console.log('✨ Database initialization complete');

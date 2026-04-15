@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, Zap, ArrowUpRight, TrendingUp, Sparkles, Clock, MapPin, Globe, Activity, Rocket, ShieldCheck, Cpu } from 'lucide-react'
+import { LayoutDashboard, Users, Zap, ArrowUpRight, TrendingUp, Sparkles, Clock, MapPin, Globe, Activity, Rocket, Bell } from 'lucide-react'
 import Layout from '@/components/Layout'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
@@ -75,35 +75,19 @@ export default function DashboardPage() {
   const hasData = (stats?.collaborations || 0) > 0 || (sections?.newArrivals.length || 0) > 0
 
   return (
-    <Layout showSidebar={false}>
-      {/* ─── UPLINK TICKER: PLATFORM HEALTH ─── */}
-      <div className="max-w-[1500px] mx-auto mb-6">
-        <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-full px-6 py-2.5 flex items-center justify-between overflow-hidden backdrop-blur-md">
-           <div className="flex items-center gap-6 divide-x divide-[var(--color-border)]">
-              <div className="flex items-center gap-2 pr-6">
-                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-widest opacity-60">System Uplink: Active</span>
-              </div>
-              <div className="px-6 hidden md:flex items-center gap-2">
-                 <Cpu size={12} className="text-[var(--color-accent)]" />
-                 <span className="text-[9px] font-bold uppercase tracking-tighter">Match Velocity: 4.2h Avg</span>
-              </div>
-              <div className="px-6 hidden lg:flex items-center gap-2">
-                 <ShieldCheck size={12} className="text-[var(--color-accent)]" />
-                 <span className="text-[9px] font-bold uppercase tracking-tighter">Verification Rate: 98.4%</span>
-              </div>
-           </div>
-           <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] underline decoration-2 underline-offset-4 cursor-pointer">Live Updates</span>
-           </div>
-        </div>
-      </div>
-
+    <Layout showSidebar={false} showBottomNav={false}>
       <div className="max-w-[1500px] mx-auto space-y-16 pb-20">
         
         {/* ─── INSIGHT HERO: BIRDS EYE VIEW ─── */}
-        <section className="relative overflow-hidden rounded-[3rem] bg-[var(--color-text-primary)] text-white p-10 md:p-16 border border-white/5 shadow-2xl shadow-black/30">
+        <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-[var(--color-text-primary)] text-white p-10 md:p-16 border border-white/5 shadow-2xl shadow-black/30">
            <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-accent)]/20 to-transparent opacity-40" />
+           
+           {/* Notification Icon */}
+           <div className="absolute top-6 right-6 z-20">
+              <button className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-[var(--color-accent)] hover:border-[var(--color-accent)] transition-all">
+                 <Bell size={18} />
+              </button>
+           </div>
            
            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="space-y-8">
@@ -123,13 +107,13 @@ export default function DashboardPage() {
                       onClick={() => router.push('/collaborations')}
                       className="px-8 py-4 bg-[var(--color-accent)] text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all"
                     >
-                       Marketplace
+                       All Intents
                     </button>
                     <button 
                       onClick={() => router.push('/my-collaborations')}
                       className="px-8 py-4 bg-white/5 text-white border border-white/10 text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all font-sans"
                     >
-                       My Projects
+                       My Intents
                     </button>
                  </div>
               </div>
@@ -166,11 +150,11 @@ export default function DashboardPage() {
             <section className="space-y-10">
                <div className="flex justify-between items-end px-2">
                   <div className="space-y-3">
-                    <h2 className="text-2xl md:text-3xl font-serif font-black tracking-tighter text-[var(--color-text-primary)]">Trending Collaborations</h2>
+                    <h2 className="text-2xl md:text-3xl font-serif font-black tracking-tighter text-[var(--color-text-primary)]">Trending Intents</h2>
                     <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">High-velocity engagement zones</p>
                   </div>
                   <button onClick={() => router.push('/collaborations')} className="group flex items-center gap-3 text-[9px] font-black uppercase tracking-widest hover:text-[var(--color-accent)] transition-colors">
-                     Discover More <ArrowUpRight size={14} />
+                     View All Intents <ArrowUpRight size={14} />
                   </button>
                </div>
 
@@ -182,33 +166,35 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.05 }}
                       onClick={() => router.push(`/intent/${intent.id}`)}
-                      className="group bg-white border border-[var(--color-border)] p-6 rounded-[2.5rem] hover:shadow-2xl hover:border-[var(--color-accent)] transition-all cursor-pointer flex flex-col h-full"
+                      className="group bg-white rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
                     >
-                      <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] rounded-2xl overflow-hidden mb-5 shrink-0 relative">
+                      {/* Card Image */}
+                      <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">
                          {intent.attachment_name ? (
-                           <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                           <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
                          ) : (
-                           <div className="w-full h-full flex items-center justify-center text-black/5 font-serif text-3xl font-black italic">COLLIXA</div>
+                           <div className="w-full h-full flex items-center justify-center text-black/10 font-serif text-2xl font-black italic bg-[var(--color-bg-secondary)]">COLLIXA</div>
                          )}
-                         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-black/5 flex items-center gap-1.5">
-                            <TrendingUp size={10} className="text-[var(--color-accent)]" />
-                            <span className="text-[9px] font-black">TOP</span>
+                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <ArrowUpRight size={20} className="text-white drop-shadow-lg" />
                          </div>
                       </div>
-                      <div className="flex-1 space-y-3">
-                        <Badge variant="sage" className="bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] border-none text-[8px] font-black uppercase px-4 py-1">
-                             {intent.category}
-                        </Badge>
-                        <h4 className="text-lg font-serif font-black text-[var(--color-text-primary)] leading-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2">{intent.title}</h4>
-                      </div>
-                      <div className="pt-5 mt-5 border-t border-[var(--color-border)] flex items-center justify-between">
-                         <div className="flex items-center gap-2">
-                           <Avatar name={intent.created_by?.name} src={intent.created_by?.avatar_url ? storageService.getPublicUrl(intent.created_by.avatar_url) : undefined} size="sm" />
-                           <span className="text-[9px] font-bold text-[var(--color-text-secondary)] truncate max-w-[80px]">{intent.created_by?.name.split(' ')[0]}</span>
-                         </div>
-                         <div className="text-right">
-                           <p className="text-[10px] font-black text-[var(--color-text-primary)]">{(intent.requests?.[0]?.count || 0) + 12}</p>
-                           <p className="text-[7px] font-black uppercase tracking-tighter opacity-40">Impact</p>
+
+                      {/* Card Content */}
+                      <div className="p-5">
+                         <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-2 block">{intent.category || 'General'}</span>
+                         <h3 className="text-lg font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors mb-4">
+                           {intent.title}
+                         </h3>
+                         
+                         <div className="flex items-center justify-between text-[var(--color-text-secondary)]">
+                            <div className="flex items-center gap-2">
+                               <MapPin size={12} className="text-[var(--color-accent)]" />
+                               <span className="text-[9px] uppercase font-bold tracking-wider">{intent.location || 'Remote'}</span>
+                            </div>
+                            <Badge variant="sage" className="text-[8px] font-black bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]">
+                              {intent.status === 'looking' ? 'Open' : 'Active'}
+                            </Badge>
                          </div>
                       </div>
                     </motion.div>
@@ -236,9 +222,9 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.05 }}
                       onClick={() => router.push(`/skills?tribe=${tribe.id}`)}
-                      className="group bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 rounded-[3rem] hover:shadow-2xl hover:bg-white hover:border-[var(--color-accent)] transition-all cursor-pointer flex flex-col items-center text-center space-y-4"
+                      className="group bg-white p-8 rounded-[3rem] hover:shadow-2xl hover:bg-white hover:scale-[1.02] transition-all cursor-pointer flex flex-col items-center text-center space-y-4 border-0"
                     >
-                      <div className="w-12 h-12 rounded-full bg-white border border-[var(--color-border)] flex items-center justify-center text-[var(--color-accent)] group-hover:bg-[var(--color-accent)] group-hover:text-white transition-colors overflow-hidden">
+                      <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[var(--color-accent)] group-hover:bg-[var(--color-accent)] group-hover:text-white transition-colors overflow-hidden">
                         {tribe.user?.avatar_url ? (
                           <img src={storageService.getPublicUrl(tribe.user.avatar_url)} className="w-full h-full object-cover" />
                         ) : (
@@ -248,12 +234,6 @@ export default function DashboardPage() {
                       <div>
                         <h4 className="text-lg font-serif font-black mb-1 group-hover:text-[var(--color-accent)]">{tribe.name}</h4>
                         <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] opacity-60">{tribe.category}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                         <div className="flex -space-x-2">
-                            {[1,2,3].map(i => <div key={i} className="w-5 h-5 rounded-full border-2 border-[var(--color-bg-secondary)] bg-gray-200" />)}
-                         </div>
-                         <span className="text-[9px] font-bold opacity-40">+124 Joined</span>
                       </div>
                     </motion.div>
                   ))}
@@ -280,25 +260,36 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.05 }}
                       onClick={() => router.push(`/intent/${intent.id}`)}
-                      className="group bg-white border border-[var(--color-border)] p-6 rounded-[2.5rem] hover:shadow-2xl hover:border-[var(--color-accent-soft)] transition-all cursor-pointer space-y-4 flex flex-col"
+                      className="group bg-white rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
                     >
-                      <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] rounded-2xl overflow-hidden mb-1">
+                      {/* Card Image */}
+                      <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">
                         {intent.attachment_name ? (
-                          <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                          <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-black/5 font-serif text-3xl font-black">COLLIXA</div>
+                          <div className="w-full h-full flex items-center justify-center text-black/10 font-serif text-2xl font-black italic bg-[var(--color-bg-secondary)]">COLLIXA</div>
                         )}
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                           <ArrowUpRight size={20} className="text-white drop-shadow-lg" />
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)] opacity-60 mb-2 block">{intent.category}</span>
-                        <h4 className="text-lg font-serif font-bold text-[var(--color-text-primary)] leading-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2">{intent.title}</h4>
-                      </div>
-                      <div className="pt-4 border-t border-[var(--color-border)] flex items-center justify-between">
-                         <div className="flex items-center gap-2">
-                           <MapPin size={10} className="text-[var(--color-accent)]" />
-                           <span className="text-[8px] font-bold uppercase tracking-wider truncate max-w-[80px]">{intent.location || 'Remote'}</span>
+
+                      {/* Card Content */}
+                      <div className="p-5">
+                         <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-2 block">{intent.category || 'General'}</span>
+                         <h3 className="text-lg font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors mb-4">
+                           {intent.title}
+                         </h3>
+                         
+                         <div className="flex items-center justify-between text-[var(--color-text-secondary)]">
+                            <div className="flex items-center gap-2">
+                               <MapPin size={12} className="text-[var(--color-accent)]" />
+                               <span className="text-[9px] uppercase font-bold tracking-wider">{intent.location || 'Remote'}</span>
+                            </div>
+                            <Badge variant="sage" className="text-[8px] font-black bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]">
+                              {intent.status === 'looking' ? 'Open' : 'Active'}
+                            </Badge>
                          </div>
-                         <span className="text-[8px] font-bold opacity-30">{new Date(intent.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
                       </div>
                     </motion.div>
                   ))}

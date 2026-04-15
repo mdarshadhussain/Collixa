@@ -1,8 +1,7 @@
 'use client'
 
-import { MapPin, Clock, Edit, Trash2, ArrowUpRight, Plus, RefreshCw } from 'lucide-react'
+import { MapPin, Edit, Trash2, ArrowUpRight, Plus, RefreshCw } from 'lucide-react'
 import Badge from '@/components/Badge'
-import Avatar from '@/components/Avatar'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
@@ -14,7 +13,7 @@ import type { Intent } from '@/lib/supabase'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-export default function MyCollaborationsPage() {
+export default function MyIntentsPage() {
   const router = useRouter()
   const { user, isAuthenticated, loading: authLoading, token } = useAuth()
   
@@ -39,7 +38,7 @@ export default function MyCollaborationsPage() {
       if (response.ok) {
         setIntents(data.data || [])
       } else {
-        setError(data.error || 'Failed to load your projects')
+        setError(data.error || 'Failed to load your intents')
       }
     } catch (err) {
       setError('Connection error. Please try again.')
@@ -92,9 +91,9 @@ export default function MyCollaborationsPage() {
           <div className="space-y-4">
             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] opacity-60">Personal Platform</span>
             <h2 className="text-4xl md:text-6xl font-serif font-black leading-tight text-[var(--color-text-primary)] tracking-tighter">
-              <Typewriter text="My Collaborations." speed={0.05} delay={0.2} />
+              <Typewriter text="My Intents." speed={0.05} delay={0.2} />
             </h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-primary)] opacity-40">Manage your active projects and requests</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-primary)] opacity-40">Manage your active intents and requests</p>
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4 w-full md:w-auto">
@@ -106,9 +105,9 @@ export default function MyCollaborationsPage() {
             </button>
             <Link
               href="/create"
-              className="flex-1 md:flex-none px-4 sm:px-6 md:px-10 py-3.5 md:py-5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 sm:gap-3 transition-all hover:bg-[var(--color-text-primary)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl md:rounded-2xl"
+              className="flex-1 md:flex-none px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-[var(--color-text-primary)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl"
             >
-              Post New <Plus size={18} />
+              Post Intent <Plus size={16} />
             </Link>
           </div>
         </div>
@@ -133,45 +132,57 @@ export default function MyCollaborationsPage() {
             {intents.map((intent) => (
               <div
                 key={intent.id}
-                onClick={() => router.push(`/intent/${intent.id}`)}
-                className="group relative bg-white rounded-[2.5rem] p-8 md:p-10 flex flex-col border border-[var(--color-border)] hover:border-[var(--color-accent)] hover:shadow-2xl transition-all duration-700 cursor-pointer overflow-hidden"
+                className="group bg-white rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700"
               >
-                <div className="absolute top-0 right-0 p-8 translate-x-4 -translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-700">
-                   <ArrowUpRight size={20} className="text-[var(--color-accent)]" />
+                {/* Card Image - Clickable */}
+                <div 
+                  onClick={() => router.push(`/intent/${intent.id}`)}
+                  className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative cursor-pointer"
+                >
+                   {intent.attachment_name ? (
+                     <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
+                   ) : (
+                     <div className="w-full h-full flex items-center justify-center text-black/10 font-serif text-2xl font-black italic bg-[var(--color-bg-secondary)]">COLLIXA</div>
+                   )}
+                   <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <ArrowUpRight size={20} className="text-white drop-shadow-lg" />
+                   </div>
                 </div>
 
-                <div className="mb-10">
-                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-4 block">{intent.category || 'General'}</span>
-                   <h3 className="text-xl md:text-2xl font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-3 group-hover:text-[var(--color-accent)] transition-colors">
-                     {intent.title}
-                   </h3>
-                </div>
-
-                <div className="mt-auto space-y-8">
-                   <div className="flex items-center justify-between">
-                     <Badge variant="sage" className="text-[9px] font-black bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] uppercase tracking-widest border-none px-4 py-1.5 ring-1 ring-[var(--color-accent)]/10">
-                        {intent.status === 'looking' ? 'Recruiting' : 'In Progress'}
-                     </Badge>
-                     <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
-                        <Clock size={14} />
-                        <span className="text-[10px] font-bold">{new Date(intent.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-                     </div>
+                {/* Card Content */}
+                <div className="p-5">
+                   <div onClick={() => router.push(`/intent/${intent.id}`)} className="cursor-pointer">
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-2 block">{intent.category || 'General'}</span>
+                      <h3 className="text-lg font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors mb-4">
+                        {intent.title}
+                      </h3>
                    </div>
                    
-                   <div className="pt-8 border-t border-[var(--color-border)] grid grid-cols-2 gap-4">
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                         <MapPin size={12} className="text-[var(--color-accent)]" />
+                         <span className="text-[9px] uppercase font-bold tracking-wider">{intent.location || 'Remote'}</span>
+                      </div>
+                      <Badge variant="sage" className="text-[8px] font-black bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]">
+                        {intent.status === 'looking' ? 'Open' : 'Active'}
+                      </Badge>
+                   </div>
+                   
+                   {/* Action Buttons */}
+                   <div className="mt-4 pt-4 border-t border-[var(--color-border)] grid grid-cols-2 gap-3">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           router.push(`/create?id=${intent.id}`)
                         }}
-                        className="flex items-center justify-center gap-2 py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] rounded-xl lg:rounded-2xl transition-all"
+                        className="flex items-center justify-center gap-2 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] rounded-xl transition-all"
                       >
                         <Edit size={14} /> Edit
                       </button>
                       <button
                         onClick={(e) => handleDelete(e, intent.id)}
                         disabled={deletingId === intent.id}
-                        className="flex items-center justify-center gap-2 py-4 bg-red-500/5 text-red-500 border border-red-500/10 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white rounded-xl lg:rounded-2xl transition-all disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 py-3 bg-red-500/5 text-red-500 border border-red-500/10 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white rounded-xl transition-all disabled:opacity-50"
                       >
                         {deletingId === intent.id ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />} 
                         Delete
@@ -182,13 +193,13 @@ export default function MyCollaborationsPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-32 bg-[var(--color-bg-secondary)] rounded-[3rem] border-2 border-dashed border-[var(--color-border)] flex flex-col items-center group">
-            <h3 className="text-3xl font-serif font-light mb-10 italic text-[var(--color-text-primary)] opacity-40">Your project list <br />is currently empty.</h3>
+          <div className="text-center py-32 flex flex-col items-center group">
+            <h3 className="text-3xl font-serif font-light mb-10 italic text-[var(--color-text-primary)] opacity-40">Your intent list <br />is currently empty.</h3>
             <button 
               onClick={() => router.push('/create')}
               className="px-12 py-5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-[var(--color-text-primary)] rounded-full shadow-2xl"
             >
-              Start New Collaboration
+              Post New Intent
             </button>
           </div>
         )}
