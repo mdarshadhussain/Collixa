@@ -19,10 +19,13 @@ router.patch('/users/:id/unban', AdminController.unbanUser);
 
 // Intent management
 router.get('/intents', AdminController.getAllIntents);
+router.get('/intents/:id', AdminController.getIntentById);
+router.patch('/intents/:id', AdminController.updateIntent);
 router.delete('/intents/:id', AdminController.deleteIntent);
 
 // Skill/Tribe management
 router.get('/tribes', AdminController.getAllTribes);
+router.patch('/tribes/:id', AdminController.updateTribe);
 router.delete('/tribes/:id', AdminController.deleteTribe);
 
 // Session management

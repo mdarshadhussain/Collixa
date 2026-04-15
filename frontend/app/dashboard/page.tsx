@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, Zap, ArrowUpRight, TrendingUp, Sparkles, Clock, MapPin, Globe, Activity, Rocket, Bell } from 'lucide-react'
+import { LayoutDashboard, Users, Zap, ArrowUpRight, TrendingUp, Sparkles, Clock, MapPin, Globe, Activity, Rocket, Bell, Award, Star } from 'lucide-react'
 import Layout from '@/components/Layout'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
@@ -29,24 +29,42 @@ interface HubSections {
   newArrivals: any[]
 }
 
+interface Achievement {
+  id: string
+  name: string
+  description: string
+  icon: string
+  reward: number
+  isUnlocked: boolean
+  unlockedAt: string | null
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [stats, setStats] = useState<PlatformStats | null>(null)
   const [sections, setSections] = useState<HubSections | null>(null)
+  const [achievements, setAchievements] = useState<Achievement[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchData = async () => {
     try {
-      const [statsRes, hubRes] = await Promise.all([
+      const token = localStorage.getItem('auth_token')
+      const [statsRes, hubRes, achievementsRes] = await Promise.all([
         fetch(`${API_URL}/api/intents/stats`),
-        fetch(`${API_URL}/api/intents/hub/sections`)
+        fetch(`${API_URL}/api/intents/hub/sections`),
+        token ? fetch(`${API_URL}/api/achievements`, { headers: { 'Authorization': `Bearer ${token}` } }) : Promise.resolve(new Response(JSON.stringify({}), { status: 401 }))
       ])
-      
+
       const statsData = await statsRes.json()
       const hubData = await hubRes.json()
 
       if (statsRes.ok) setStats(statsData.data)
       if (hubRes.ok) setSections(hubData.data)
+
+      if (achievementsRes.ok) {
+        const achievementsData = await achievementsRes.json()
+        setAchievements(achievementsData.data?.filter((a: Achievement) => a.isUnlocked) || [])
+      }
     } catch (err) {
       console.error('Error fetching hub data:', err)
     } finally {
@@ -145,7 +163,45 @@ export default function DashboardPage() {
         {/* ─── DATA SECTIONS ─── */}
         {hasData ? (
           <div className="space-y-24">
-            
+
+            {/* Achievements Preview */}
+            {achievements.length > 0 && (
+              <section className="space-y-6">
+                <div className="flex justify-between items-end px-2">
+                  <div className="space-y-2">
+                    <h2 className="text-xl md:text-2xl font-serif font-black tracking-tighter text-[var(--color-text-primary)] flex items-center gap-2">
+                      <Award size={24} className="text-[var(--color-accent)]" />
+                      Recent Achievements
+                    </h2>
+                    <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">
+                      {achievements.length} unlocked • {achievements.reduce((sum, a) => sum + a.reward, 0)} credits earned
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => router.push('/profile?tab=achievements')}
+                    className="group flex items-center gap-2 text-[9px] font-black uppercase tracking-widest hover:text-[var(--color-accent)] transition-colors"
+                  >
+                    View All <ArrowUpRight size={14} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {achievements.slice(0, 6).map((achievement, i) => (
+                    <motion.div
+                      key={achievement.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 p-4 rounded-2xl text-center hover:bg-[var(--color-accent)]/20 transition-all"
+                    >
+                      <Star size={20} className="mx-auto mb-2 text-[var(--color-accent)]" />
+                      <p className="text-[10px] font-bold text-[var(--color-text-primary)] truncate">{achievement.name}</p>
+                      <p className="text-[9px] text-[var(--color-accent)] font-bold">+{achievement.reward} credits</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Trending Collaborations (Matches Arrivals Style) */}
             <section className="space-y-10">
                <div className="flex justify-between items-end px-2">

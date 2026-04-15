@@ -1,7 +1,10 @@
 import Stripe from 'stripe';
 import CreditService from '../services/CreditService.js';
+import { NotificationService } from '../services/NotificationService.js';
+import { AchievementService } from '../services/AchievementService.js';
+import UserModel from '../models/User.js';
 import config from '../config/env.js';
-import { supabaseAdmin } from '../config/database.js';
+import { supabaseAdmin, supabase } from '../config/database.js';
 
 const stripeSecretKey = config.STRIPE_SECRET_KEY;
 let stripe = null;
@@ -124,6 +127,119 @@ export class CreditController {
     }
 
     res.status(200).json({ received: true });
+  }
+
+  /**
+   * Share credits with another user by email
+   */
+  static async shareCredits(req, res, next) {
+    try {
+      const { recipientEmail, amount, message } = req.body;
+      const senderId = req.user.id;
+      const senderName = req.user.name;
+
+      // Validate amount
+      const creditAmount = parseInt(amount);
+      if (!creditAmount || creditAmount <= 0) {
+        return res.status(400).json({ success: false, error: 'Invalid credit amount' });
+      }
+
+      // Find recipient by email
+      const recipient = await UserModel.findByEmail(recipientEmail);
+      if (!recipient) {
+        return res.status(404).json({ success: false, error: 'User not found with this email' });
+      }
+
+      // Cannot send to yourself
+      if (recipient.id === senderId) {
+        return res.status(400).json({ success: false, error: 'Cannot send credits to yourself' });
+      }
+
+      // Check sender has enough credits
+      const sender = await UserModel.findById(senderId);
+      if (!sender || (sender.credits || 0) < creditAmount) {
+        return res.status(400).json({ success: false, error: 'Insufficient credits' });
+      }
+
+      // Deduct from sender
+      await CreditService.deductCredits(senderId, creditAmount, 'TRANSFER');
+
+      // Add to recipient
+      await CreditService.addCredits(recipient.id, creditAmount, 'TRANSFER');
+
+      // Record transfer transaction
+      const client = supabaseAdmin || supabase;
+      await client.from('credit_transfers').insert([{
+        sender_id: senderId,
+        recipient_id: recipient.id,
+        amount: creditAmount,
+        message: message || null
+      }]);
+
+      // Notify recipient
+      await NotificationService.send(
+        recipient.id,
+        'CREDIT_RECEIVED',
+        'Credits Received',
+        `${senderName} sent you ${creditAmount} credits${message ? `: "${message}"` : ''}`,
+        '/profile'
+      );
+
+      // Notify sender
+      await NotificationService.send(
+        senderId,
+        'CREDIT_SENT',
+        'Credits Sent',
+        `You sent ${creditAmount} credits to ${recipient.name}`,
+        '/profile'
+      );
+
+      // Check for achievements for sender (don't block response)
+      AchievementService.checkAndAwardAchievements(senderId).catch(console.error);
+      AchievementService.checkAndAwardAchievements(recipient.id).catch(console.error);
+
+      res.status(200).json({
+        success: true,
+        message: `Successfully shared ${creditAmount} credits with ${recipient.name}`,
+        data: {
+          recipient: { name: recipient.name, email: recipient.email },
+          amount: creditAmount
+        }
+      });
+    } catch (error) {
+      console.error('Share credits error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Search user by email (for credit sharing)
+   */
+  static async searchUserByEmail(req, res, next) {
+    try {
+      const { email } = req.query;
+      if (!email) {
+        return res.status(400).json({ success: false, error: 'Email is required' });
+      }
+
+      const user = await UserModel.findByEmail(email);
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+
+      // Return limited info
+      res.status(200).json({
+        success: true,
+        data: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar_url: user.avatar_url
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 }
 

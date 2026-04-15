@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { Star, Trash2, Search, MapPin, DollarSign } from 'lucide-react'
+import { Star, Trash2, Search, MapPin, DollarSign, Edit2, X, Check } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -24,6 +24,13 @@ export default function AdminTribes() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [editingTribe, setEditingTribe] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    category: '',
+    hourly_rate: 0
+  })
 
   const fetchTribes = async () => {
     try {
@@ -59,6 +66,42 @@ export default function AdminTribes() {
       }
     } catch (error) {
       console.error('Error deleting tribe:', error)
+    }
+  }
+
+  const startEdit = (tribe: Tribe) => {
+    setEditingTribe(tribe.id)
+    setEditForm({
+      name: tribe.name,
+      description: tribe.description || '',
+      category: tribe.category || '',
+      hourly_rate: tribe.hourly_rate || 0
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingTribe(null)
+    setEditForm({ name: '', description: '', category: '', hourly_rate: 0 })
+  }
+
+  const saveEdit = async (tribeId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/tribes/${tribeId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editForm)
+      })
+
+      if (response.ok) {
+        const updatedTribe = await response.json()
+        setTribes(tribes.map(t => t.id === tribeId ? { ...t, ...updatedTribe.data } : t))
+        setEditingTribe(null)
+      }
+    } catch (error) {
+      console.error('Error updating tribe:', error)
     }
   }
 
@@ -112,24 +155,94 @@ export default function AdminTribes() {
               className="bg-[var(--color-bg-secondary)] rounded-2xl p-6 border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-all"
             >
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <span className="px-3 py-1 bg-purple-500/10 text-purple-500 rounded-full text-xs font-bold uppercase">
-                    {tribe.category || 'General'}
-                  </span>
-                  <h3 className="text-lg font-bold text-[var(--color-text-primary)] mt-2">{tribe.name}</h3>
+                <div className="flex-1">
+                  {editingTribe === tribe.id ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="w-full px-3 py-2 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-lg text-sm"
+                        placeholder="Tribe name"
+                      />
+                      <input
+                        type="text"
+                        value={editForm.category}
+                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                        className="w-full px-3 py-2 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-lg text-sm"
+                        placeholder="Category"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <span className="px-3 py-1 bg-purple-500/10 text-purple-500 rounded-full text-xs font-bold uppercase">
+                        {tribe.category || 'General'}
+                      </span>
+                      <h3 className="text-lg font-bold text-[var(--color-text-primary)] mt-2">{tribe.name}</h3>
+                    </>
+                  )}
                 </div>
-                <button
-                  onClick={() => setDeleteConfirm(tribe.id)}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                  title="Delete tribe"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex gap-1">
+                  {editingTribe === tribe.id ? (
+                    <>
+                      <button
+                        onClick={() => saveEdit(tribe.id)}
+                        className="p-2 text-green-500 hover:bg-green-500/10 rounded-lg transition-all"
+                        title="Save"
+                      >
+                        <Check size={16} />
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="p-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all"
+                        title="Cancel"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => startEdit(tribe)}
+                        className="p-2 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 rounded-lg transition-all"
+                        title="Edit tribe"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(tribe.id)}
+                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                        title="Delete tribe"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
-              <p className="text-[var(--color-text-secondary)] text-sm mb-4 line-clamp-2">
-                {tribe.description || 'No description'}
-              </p>
+              {editingTribe === tribe.id ? (
+                <div className="space-y-2 mb-4">
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    className="w-full px-3 py-2 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-lg text-sm"
+                    placeholder="Description"
+                    rows={2}
+                  />
+                  <input
+                    type="number"
+                    value={editForm.hourly_rate}
+                    onChange={(e) => setEditForm({ ...editForm, hourly_rate: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-lg text-sm"
+                    placeholder="Hourly rate (credits)"
+                  />
+                </div>
+              ) : (
+                <p className="text-[var(--color-text-secondary)] text-sm mb-4 line-clamp-2">
+                  {tribe.description || 'No description'}
+                </p>
+              )}
 
               <div className="flex flex-wrap gap-2 mb-4">
                 <span className="flex items-center gap-1 px-3 py-1 bg-white/5 rounded-full text-xs">

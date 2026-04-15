@@ -1,4 +1,5 @@
 import { supabase, supabaseAdmin } from '../config/database.js';
+import { NotificationService } from '../services/NotificationService.js';
 
 const getClient = () => supabaseAdmin || supabase;
 
@@ -101,16 +102,19 @@ export class AdminController {
   static async deleteUser(req, res, next) {
     try {
       const { id } = req.params;
-      const client = getClient();
+      // Use supabaseAdmin to bypass RLS policies
+      const adminClient = supabaseAdmin || getClient();
 
       // Check if trying to delete an admin
-      const { data: userToDelete, error: fetchError } = await client
+      const { data: userToDelete, error: fetchError } = await adminClient
         .from('users')
         .select('email')
         .eq('id', id)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
       if (isAdminEmail(userToDelete.email)) {
         return res.status(403).json({
@@ -118,13 +122,18 @@ export class AdminController {
         });
       }
 
-      // Delete user
-      const { error } = await client
+      // Delete user from database
+      const { error } = await adminClient
         .from('users')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      // Also delete from Supabase Auth if admin client available
+      if (supabaseAdmin) {
+        await supabaseAdmin.auth.admin.deleteUser(id);
+      }
 
       return res.status(200).json({
         success: true,
@@ -210,6 +219,70 @@ export class AdminController {
   }
 
   /**
+   * Get intent by ID
+   */
+  static async getIntentById(req, res, next) {
+    try {
+      const { id } = req.params;
+      const client = getClient();
+
+      const { data: intent, error } = await client
+        .from('intents')
+        .select(`
+          *,
+          created_by:users(id, name, email, avatar_url)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        data: intent
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update an intent
+   */
+  static async updateIntent(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { title, description, category, location, status } = req.body;
+      const client = getClient();
+
+      const updates = {};
+      if (title !== undefined) updates.title = title;
+      if (description !== undefined) updates.description = description;
+      if (category !== undefined) updates.category = category;
+      if (location !== undefined) updates.location = location;
+      if (status !== undefined) updates.status = status;
+      updates.updated_at = new Date().toISOString();
+
+      const { data: intent, error } = await client
+        .from('intents')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        message: 'Intent updated successfully',
+        data: intent
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Delete an intent
    */
   static async deleteIntent(req, res, next) {
@@ -277,6 +350,40 @@ export class AdminController {
       return res.status(200).json({
         success: true,
         message: 'Tribe deleted successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update a tribe/skill
+   */
+  static async updateTribe(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { name, description, category, hourly_rate } = req.body;
+      const client = getClient();
+
+      const updateData = {};
+      if (name !== undefined) updateData.name = name;
+      if (description !== undefined) updateData.description = description;
+      if (category !== undefined) updateData.category = category;
+      if (hourly_rate !== undefined) updateData.hourly_rate = hourly_rate;
+
+      const { data, error } = await client
+        .from('skills')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        message: 'Tribe updated successfully',
+        data
       });
     } catch (error) {
       next(error);
@@ -423,6 +530,15 @@ export class AdminController {
           description: reason || 'Admin credit addition'
         }]);
 
+      // Send notification to user
+      await NotificationService.send(
+        userId,
+        'CREDIT_ADDED',
+        'Credits Added',
+        `Admin has added ${amount} credits to your account. Reason: ${reason || 'Bonus'}`,
+        '/profile'
+      );
+
       return res.status(200).json({
         success: true,
         message: `${amount} credits added successfully`,
@@ -469,6 +585,15 @@ export class AdminController {
           type: 'ADMIN_DEDUCT',
           description: reason || 'Admin credit deduction'
         }]);
+
+      // Send notification to user
+      await NotificationService.send(
+        userId,
+        'CREDIT_DEDUCTED',
+        'Credits Deducted',
+        `Admin has deducted ${amount} credits from your account. Reason: ${reason || 'Admin adjustment'}`,
+        '/profile'
+      );
 
       return res.status(200).json({
         success: true,

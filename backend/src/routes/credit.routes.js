@@ -8,6 +8,10 @@ router.get('/', authMiddleware, CreditController.getMyTransactions);
 router.post('/checkout', authMiddleware, CreditController.createCheckoutSession);
 router.post('/simulate-success', authMiddleware, CreditController.simulateSuccess);
 
+// Share credits routes
+router.post('/share', authMiddleware, CreditController.shareCredits);
+router.get('/search-user', authMiddleware, CreditController.searchUserByEmail);
+
 // Webhook must be public because Stripe calls it, but controller handles signature verification
 // Note: This needs express.raw() in server.js to work correctly
 router.post('/webhook', CreditController.handleWebhook);

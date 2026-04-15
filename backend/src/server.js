@@ -13,6 +13,7 @@ import sessionRoutes from './routes/session.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 import creditRoutes from './routes/credit.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import achievementRoutes from './routes/achievement.routes.js';
 import initializeDatabase from './utils/initDatabase.js';
 
 const app = express();
@@ -83,6 +84,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/credits', creditRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/achievements', achievementRoutes);
 
 /**
  * Error handling

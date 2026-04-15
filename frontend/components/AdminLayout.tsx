@@ -83,7 +83,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {sidebarItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            // Dashboard should only be active on exact /admin, not subpages
+            const isActive = item.href === '/admin'
+              ? pathname === '/admin'
+              : pathname === item.href || pathname.startsWith(item.href + '/')
             const Icon = item.icon
 
             return (

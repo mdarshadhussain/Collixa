@@ -1,4 +1,5 @@
 import SkillService from '../services/SkillService.js';
+import { AchievementService } from '../services/AchievementService.js';
 
 export class SkillController {
   /**
@@ -7,6 +8,10 @@ export class SkillController {
   static async addSkill(req, res, next) {
     try {
       const skill = await SkillService.addSkill(req.user.id, req.body);
+
+      // Check for achievements (don't block response)
+      AchievementService.checkAndAwardAchievements(req.user.id).catch(console.error);
+
       res.status(201).json({
         success: true,
         data: skill

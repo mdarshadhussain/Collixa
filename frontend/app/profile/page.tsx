@@ -10,6 +10,8 @@ import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
 import Typewriter from '@/components/Typewriter'
 import CreditPurchaseModal from '@/components/CreditPurchaseModal'
+import ShareCreditsModal from '@/components/ShareCreditsModal'
+import AchievementsSection from '@/components/AchievementsSection'
 import { useAuth } from '@/app/context/AuthContext'
 import { Intent, storageService, conversationService } from '@/lib/supabase'
 
@@ -25,7 +27,7 @@ export default function ProfilePage() {
   const searchParams = useSearchParams()
   const profileUid = searchParams.get('uid')
   const { user, isAuthenticated, loading: authLoading, token, refreshUser, updateUser } = useAuth()
-  const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews'>('intents')
+  const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews' | 'achievements'>('intents')
   const [myIntents, setMyIntents] = useState<Intent[]>([])
   const [loadingIntents, setLoadingIntents] = useState(true)
   const [userSkills, setUserSkills] = useState<any[]>([])
@@ -47,6 +49,7 @@ export default function ProfilePage() {
   const [loadingExternalUser, setLoadingExternalUser] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
   const [showCreditModal, setShowCreditModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   // Derived state for the user being displayed
   const profileUser = profileUid && profileUid !== user?.id ? externalUser : user
@@ -431,13 +434,22 @@ export default function ProfilePage() {
                         <p className="text-lg md:text-xl font-serif font-black inline-flex items-center gap-1">
                           {profileUser?.credits ?? 0}
                           {isOwnProfile && (
-                            <button 
-                              onClick={() => setShowCreditModal(true)}
-                              className="p-1.5 hover:bg-[var(--color-accent-soft)]/20 rounded-full transition-all group"
-                              title="Get More Credits"
-                            >
-                              <Plus size={14} className="text-[var(--color-accent)] group-hover:scale-125 transition-transform" />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setShowShareModal(true)}
+                                className="p-1.5 hover:bg-[var(--color-accent-soft)]/20 rounded-full transition-all group"
+                                title="Share Credits"
+                              >
+                                <Share2 size={14} className="text-[var(--color-accent)] group-hover:scale-125 transition-transform" />
+                              </button>
+                              <button
+                                onClick={() => setShowCreditModal(true)}
+                                className="p-1.5 hover:bg-[var(--color-accent-soft)]/20 rounded-full transition-all group"
+                                title="Get More Credits"
+                              >
+                                <Plus size={14} className="text-[var(--color-accent)] group-hover:scale-125 transition-transform" />
+                              </button>
+                            </>
                           )}
                         </p>
                      </div>
@@ -485,8 +497,8 @@ export default function ProfilePage() {
           {/* Activity Area */}
           <div className="flex flex-col space-y-10">
             {/* Tabs */}
-            <div className="flex gap-3 sm:gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-3 sm:px-4">
-              {['intents', 'skills', 'reviews'].map((tab) => (
+            <div className="flex gap-3 sm:gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-3 sm:px-4 flex-wrap">
+              {['intents', 'skills', 'reviews', 'achievements'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
@@ -625,6 +637,16 @@ export default function ProfilePage() {
                   )}
                 </div>
               )}
+
+              {/* Achievements Tab */}
+              {activeTab === 'achievements' && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Achievement Gallery</h3>
+                  </div>
+                  <AchievementsSection userId={profileUser?.id} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -659,9 +681,16 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-      <CreditPurchaseModal 
-        isOpen={showCreditModal} 
-        onClose={() => setShowCreditModal(false)} 
+      <CreditPurchaseModal
+        isOpen={showCreditModal}
+        onClose={() => setShowCreditModal(false)}
+      />
+      <ShareCreditsModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        onSuccess={() => {
+          refreshUser()
+        }}
       />
     </div>
   )

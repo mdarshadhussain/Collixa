@@ -1,4 +1,5 @@
 import IntentService from '../services/IntentService.js';
+import { AchievementService } from '../services/AchievementService.js';
 import { validationResult } from 'express-validator';
 
 export class IntentController {
@@ -32,6 +33,9 @@ export class IntentController {
       }
 
       const intent = await IntentService.createIntent(intentData, userId);
+
+      // Check for achievements (don't block response)
+      AchievementService.checkAndAwardAchievements(userId).catch(console.error);
 
       return res.status(201).json({
         message: 'Intent created successfully',

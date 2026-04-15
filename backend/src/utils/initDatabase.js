@@ -39,19 +39,46 @@ export const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_sessions_receiver_id ON sessions(receiver_id);
       CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
 
+      -- Credit transfers table for sharing credits
+      CREATE TABLE IF NOT EXISTS credit_transfers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        amount INTEGER NOT NULL,
+        message TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_credit_transfers_sender_id ON credit_transfers(sender_id);
+      CREATE INDEX IF NOT EXISTS idx_credit_transfers_recipient_id ON credit_transfers(recipient_id);
+
+      -- User achievements table
+      CREATE TABLE IF NOT EXISTS user_achievements (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        achievement_id VARCHAR(50) NOT NULL,
+        achievement_name VARCHAR(255) NOT NULL,
+        achievement_description TEXT,
+        achievement_icon VARCHAR(50),
+        reward INTEGER DEFAULT 0,
+        unlocked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, achievement_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
 
       CREATE TABLE IF NOT EXISTS credit_transactions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         amount INTEGER NOT NULL,
-        type VARCHAR(10) NOT NULL CHECK (type IN ('EARN', 'SPEND', 'PURCHASE')),
+        type VARCHAR(10) NOT NULL CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD')),
         session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
       -- Migration for existing table structure if needed
       ALTER TABLE credit_transactions DROP CONSTRAINT IF EXISTS credit_transactions_type_check;
-      ALTER TABLE credit_transactions ADD CONSTRAINT credit_transactions_type_check CHECK (type IN ('EARN', 'SPEND', 'PURCHASE'));
+      ALTER TABLE credit_transactions ADD CONSTRAINT credit_transactions_type_check CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD'));
       ALTER TABLE credit_transactions ALTER COLUMN session_id DROP NOT NULL;
 
       CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
@@ -70,6 +97,21 @@ export const initializeDatabase = async () => {
 
       CREATE INDEX IF NOT EXISTS idx_session_reviews_session_id ON session_reviews(session_id);
       CREATE INDEX IF NOT EXISTS idx_session_reviews_reviewee_id ON session_reviews(reviewee_id);
+
+      -- Notifications table
+      CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        link TEXT,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
 
       -- Views for Aggregated Ratings
       CREATE OR REPLACE VIEW skill_ratings AS
