@@ -73,14 +73,17 @@ export const initializeDatabase = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         amount INTEGER NOT NULL,
-        type VARCHAR(10) NOT NULL CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD')),
+        type VARCHAR(20) NOT NULL CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD', 'ADMIN_DEDUCT')),
+        description TEXT,
         session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
       -- Migration for existing table structure if needed
       ALTER TABLE credit_transactions DROP CONSTRAINT IF EXISTS credit_transactions_type_check;
-      ALTER TABLE credit_transactions ADD CONSTRAINT credit_transactions_type_check CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD'));
+      ALTER TABLE credit_transactions ALTER COLUMN type TYPE VARCHAR(20);
+      ALTER TABLE credit_transactions ADD COLUMN IF NOT EXISTS description TEXT;
+      ALTER TABLE credit_transactions ADD CONSTRAINT credit_transactions_type_check CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD', 'ADMIN_DEDUCT'));
       ALTER TABLE credit_transactions ALTER COLUMN session_id DROP NOT NULL;
 
       CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);

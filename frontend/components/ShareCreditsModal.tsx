@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, Search, Send, User as UserIcon, Loader2 } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 import { notify } from '@/lib/utils'
@@ -21,6 +22,7 @@ interface ShareCreditsModalProps {
 }
 
 export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareCreditsModalProps) {
+  const router = useRouter()
   const { user: currentUser, refreshUser } = useAuth()
   const [email, setEmail] = useState('')
   const [amount, setAmount] = useState('')
@@ -120,13 +122,9 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
       const data = await response.json()
 
       if (response.ok) {
-        notify.success(`Successfully sent ${creditAmount} credits to ${foundUser.name}!`)
-        notify.credits(-creditAmount)
         refreshUser() // Refresh current user's credits
-        setTimeout(() => {
-          onSuccess?.()
-          onClose()
-        }, 1500)
+        router.push(`/payment/success?amount=${creditAmount}&type=TRANSFER&recipient=${encodeURIComponent(foundUser.name)}`)
+        onClose()
       } else {
         setError(data.error || 'Failed to send credits')
       }

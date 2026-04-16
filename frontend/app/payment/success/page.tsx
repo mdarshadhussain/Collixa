@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Check, Sparkles, Zap, ArrowRight, Home, LayoutDashboard } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
+import Header from '@/components/Header'
 
 const PACKAGES = {
   'starter': { name: 'Curious Case', credits: 100, color: 'from-blue-400 to-indigo-500' },
@@ -14,12 +15,21 @@ const PACKAGES = {
   'ultimate': { name: 'The Editorial', credits: 2000, color: 'from-rose-400 to-purple-600' }
 }
 
-export default function PaymentSuccessPage() {
+function SuccessContent() {
   const router = useRouter()
   const { refreshUser } = useAuth()
   const searchParams = useSearchParams()
-  const packageId = searchParams.get('package') || 'starter'
-  const pkg = (PACKAGES as any)[packageId] || PACKAGES.starter
+  
+  // Support both package-based and generic transactions
+  const packageId = searchParams.get('package')
+  const amount = parseInt(searchParams.get('amount') || '0')
+  const type = searchParams.get('type') || (packageId ? 'PURCHASE' : 'TRANSACTION')
+  const recipient = searchParams.get('recipient')
+
+  const pkg = packageId ? ((PACKAGES as any)[packageId] || PACKAGES.starter) : null
+  const displayCredits = pkg ? pkg.credits : amount
+  const displayColor = pkg ? pkg.color : 'from-[var(--color-accent)] to-[var(--color-accent-soft)]'
+  const displayName = pkg ? pkg.pkgName : (type === 'BONUS' ? 'Admin Bonus' : type === 'TRANSFER' ? 'Credit Transfer' : 'Transaction')
 
   const [counter, setCounter] = useState(0)
 
@@ -28,7 +38,12 @@ export default function PaymentSuccessPage() {
     refreshUser()
     
     // Satisfying counter animation for the credits added
-    const target = pkg.credits
+    const target = displayCredits
+    if (target <= 0) {
+      setCounter(0)
+      return
+    }
+
     const duration = 2000
     const steps = 60
     const increment = Math.ceil(target / steps)
@@ -46,7 +61,7 @@ export default function PaymentSuccessPage() {
     }, intervalTime)
 
     return () => clearInterval(timer)
-  }, [pkg.credits])
+  }, [displayCredits, refreshUser])
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans">
@@ -61,7 +76,7 @@ export default function PaymentSuccessPage() {
                initial={{ scale: 0, rotate: -45 }}
                animate={{ scale: 1, rotate: 0 }}
                transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.2 }}
-               className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br ${pkg.color} flex items-center justify-center text-white shadow-xl shadow-[var(--color-accent)]/10 rotate-12`}
+               className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br ${displayColor} flex items-center justify-center text-white shadow-xl shadow-[var(--color-accent)]/10 rotate-12`}
             >
               <Check size={28} className="sm:w-8 md:w-10 sm:h-8 md:h-10" strokeWidth={3} />
             </motion.div>
@@ -111,7 +126,11 @@ export default function PaymentSuccessPage() {
                 <div className="pt-3 border-t border-[var(--color-border)] opacity-60">
                    <p className="text-[7px] font-bold uppercase tracking-widest leading-loose">
                      Account Balance Updated <br />
-                     Tier: <span className="text-[var(--color-text-primary)] font-black">{pkg.name}</span>
+                     {recipient ? (
+                       <>To: <span className="text-[var(--color-text-primary)] font-black">{recipient}</span></>
+                     ) : (
+                       <>Tier: <span className="text-[var(--color-text-primary)] font-black">{pkg?.name || displayName}</span></>
+                     )}
                    </p>
                 </div>
              </div>
@@ -148,5 +167,13 @@ export default function PaymentSuccessPage() {
          <p className="text-[7px] font-serif italic tracking-widest uppercase truncate">Collixa Intelligence Protocol • Identity Verified</p>
       </footer>
     </div>
+  )
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center"><Zap className="animate-pulse text-[var(--color-accent)]" /></div>}>
+      <SuccessContent />
+    </Suspense>
   )
 }

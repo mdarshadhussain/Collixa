@@ -103,7 +103,6 @@ export class AdminController {
   static async deleteUser(req, res, next) {
     try {
       const { id } = req.params;
-      // Use supabaseAdmin to bypass RLS policies
       const adminClient = supabaseAdmin || getClient();
 
       // Check if trying to delete an admin
@@ -123,24 +122,90 @@ export class AdminController {
         });
       }
 
-      // Delete user from database
+      // 1. Manually clean up associated records to prevent FK constraint errors
+      // Use adminClient to bypass RLS policies
+      
+      console.log(`[AdminDelete] Starting cleanup for user ${id}`);
+
+      // --- STAGE 1: CHAT & CONVERSATIONS ---
+      // We must delete messages in conversations the user is in, even if sent by others,
+      // to allow the conversation itself to be deleted.
+      const { data: userConvs } = await adminClient
+        .from('conversations')
+        .select('id')
+        .or(`participant_1.eq.${id},participant_2.eq.${id},admin_id.eq.${id}`);
+      
+      const convIds = userConvs?.map(c => c.id) || [];
+
+      if (convIds.length > 0) {
+        console.log(`[AdminDelete] Clearing ${convIds.length} conversations...`);
+        // Delete all messages in these conversations (from any sender)
+        await adminClient.from('messages').delete().in('conversation_id', convIds);
+        // Delete all participant records for these conversations
+        await adminClient.from('conversation_participants').delete().in('conversation_id', convIds);
+        // Delete the conversations themselves
+        await adminClient.from('conversations').delete().in('id', convIds);
+      }
+
+      // Also ensure any loose messages or participant records for this user are gone
+      await adminClient.from('messages').delete().eq('sender_id', id);
+      await adminClient.from('conversation_participants').delete().eq('user_id', id);
+
+      // --- STAGE 2: SESSIONS & REVIEWS ---
+      // Reviews depend on sessions
+      await adminClient.from('session_reviews').delete().or(`reviewer_id.eq.${id},reviewee_id.eq.${id}`);
+      
+      // Sessions depend on skill_exchanges
+      await adminClient.from('sessions').delete().or(`sender_id.eq.${id},receiver_id.eq.${id}`);
+      
+      // --- STAGE 3: EXCHANGES & TRANSFERS ---
+      await adminClient.from('skill_exchanges').delete().or(`requester_id.eq.${id},provider_id.eq.${id}`);
+      await adminClient.from('credit_transfers').delete().or(`sender_id.eq.${id},recipient_id.eq.${id}`);
+      
+      // --- STAGE 4: INTENTS & SKILLS ---
+      // Collaboration requests depend on intents
+      await adminClient.from('collaboration_requests').delete().eq('user_id', id);
+      
+      // Delete intents (and capture IDs for further cleanup if needed)
+      // Note: we already cleared related collaboration_requests in stage 4.1
+      await adminClient.from('intents').delete().eq('created_by', id);
+      
+      // Delete skills
+      await adminClient.from('skills').delete().eq('user_id', id);
+      
+      // --- STAGE 5: FINANCES & ACHIEVEMENTS ---
+      await adminClient.from('credit_transactions').delete().eq('user_id', id);
+      await adminClient.from('user_achievements').delete().eq('user_id', id);
+      await adminClient.from('notifications').delete().eq('user_id', id);
+      await adminClient.from('user_ratings').delete().eq('user_id', id);
+
+      // --- STAGE 6: FINAL USER REMOVAL ---
+      console.log(`[AdminDelete] Cleanup complete. Removing user record...`);
       const { error } = await adminClient
         .from('users')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database deletion error:', error);
+        throw error;
+      }
 
-      // Also delete from Supabase Auth if admin client available
+      // 3. Also delete from Supabase Auth if admin client available
       if (supabaseAdmin) {
-        await supabaseAdmin.auth.admin.deleteUser(id);
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+        if (authError) {
+          console.warn('Auth deletion warning:', authError.message);
+          // Don't fail the whole request if DB deletion succeeded but auth failed
+        }
       }
 
       return res.status(200).json({
         success: true,
-        message: 'User deleted successfully'
+        message: 'User and all associated data deleted successfully'
       });
     } catch (error) {
+      console.error('Admin delete user error:', error);
       next(error);
     }
   }
@@ -522,14 +587,19 @@ export class AdminController {
       if (updateError) throw updateError;
 
       // Record transaction
-      await client
+      const { error: transactionError } = await client
         .from('credit_transactions')
         .insert([{
           user_id: userId,
           amount: amount,
-          type: 'ADMIN_ADD',
-          description: reason || 'Admin credit addition'
+          type: 'ADMIN_ADD'
+          // description: reason || 'Admin credit addition' // Temporarily disabled until schema is updated
         }]);
+
+      if (transactionError) {
+        console.error('[AdminController] Credit transaction error:', transactionError);
+        throw new Error(`Failed to record transaction: ${transactionError.message}`);
+      }
 
       // Send notification to user
       await NotificationService.send(
@@ -578,14 +648,19 @@ export class AdminController {
       if (updateError) throw updateError;
 
       // Record transaction
-      await client
+      const { error: transactionError } = await client
         .from('credit_transactions')
         .insert([{
           user_id: userId,
           amount: -amount,
-          type: 'ADMIN_DEDUCT',
-          description: reason || 'Admin credit deduction'
+          type: 'ADMIN_DEDUCT'
+          // description: reason || 'Admin credit deduction' // Temporarily disabled until schema is updated
         }]);
+
+      if (transactionError) {
+        console.error('[AdminController] Credit deduction transaction error:', transactionError);
+        throw new Error(`Failed to record transaction: ${transactionError.message}`);
+      }
 
       // Send notification to user
       await NotificationService.send(

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { Coins, Plus, Minus, Search, ArrowRight } from 'lucide-react'
+import { Coins, Plus, Minus, Search, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { useAuth } from '@/app/context/AuthContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -28,14 +30,21 @@ export default function AdminCredits() {
   const [creditAmount, setCreditAmount] = useState(10)
   const [creditReason, setCreditReason] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [lastTransaction, setLastTransaction] = useState<any>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const { refreshUser } = useAuth()
 
   const fetchData = async () => {
     try {
       const [transactionsRes, usersRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/credits`, {
+          cache: 'no-store',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
         }),
         fetch(`${API_URL}/api/admin/users`, {
+          cache: 'no-store',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
         })
       ])
@@ -57,6 +66,9 @@ export default function AdminCredits() {
 
   const addCredits = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitting(true)
+    setFormError(null)
+
     try {
       const response = await fetch(`${API_URL}/api/admin/credits/add`, {
         method: 'POST',
@@ -71,15 +83,36 @@ export default function AdminCredits() {
         })
       })
 
+      const data = await response.json()
+
       if (response.ok) {
+        const user = users.find(u => u.id === selectedUser)
+        
+        setLastTransaction({
+          amount: creditAmount,
+          userName: user?.name || 'User',
+          reason: creditReason
+        })
+        
         setShowAddModal(false)
         setSelectedUser('')
         setCreditAmount(10)
         setCreditReason('')
-        fetchData()
+        setShowSuccessModal(true)
+        
+        // Wait 300ms for DB to catch up, then refresh all UI components
+        setTimeout(() => {
+          fetchData()
+          refreshUser()
+        }, 300)
+      } else {
+        setFormError(data.error || data.message || 'Failed to add credits')
       }
     } catch (error) {
       console.error('Error adding credits:', error)
+      setFormError('An unexpected error occurred. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -258,6 +291,11 @@ export default function AdminCredits() {
                     required
                   />
                 </div>
+                {formError && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                    <p className="text-xs text-red-500 text-center">{formError}</p>
+                  </div>
+                )}
                 <div className="flex gap-3 justify-end pt-4">
                   <button
                     type="button"
@@ -268,13 +306,51 @@ export default function AdminCredits() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80 transition-all"
+                    disabled={submitting}
+                    className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all font-bold flex items-center gap-2"
                   >
-                    Add Credits
+                    {submitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Add Credits'
+                    )}
                   </button>
                 </div>
               </form>
             </div>
+          </div>
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal && lastTransaction && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl"
+            >
+              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="text-green-500 w-10 h-10" />
+              </div>
+              <h3 className="text-2xl font-serif font-black mb-2 italic">Success!</h3>
+              <p className="text-[var(--color-text-secondary)] text-sm mb-6">
+                Successfully added <span className="text-[var(--color-text-primary)] font-bold">{lastTransaction.amount} credits</span> to <br />
+                <span className="text-[var(--color-accent)] font-bold">{lastTransaction.userName}</span>
+              </p>
+              <div className="bg-[var(--color-bg-primary)] rounded-xl p-4 mb-8 text-left border border-[var(--color-border)]">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">Reason</p>
+                <p className="text-xs font-medium text-[var(--color-text-primary)]">{lastTransaction.reason}</p>
+              </div>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full py-3 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[var(--color-accent)] transition-all active:scale-95"
+              >
+                Continue
+              </button>
+            </motion.div>
           </div>
         )}
       </div>

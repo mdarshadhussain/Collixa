@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { Users, Trash2, Ban, CheckCircle, Search } from 'lucide-react'
+import { Users, Trash2, Ban, CheckCircle, Search, Loader2 } from 'lucide-react'
+import { notify } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -20,6 +21,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchUsers = async () => {
     try {
@@ -41,6 +43,7 @@ export default function AdminUsers() {
   }
 
   const deleteUser = async (userId: string) => {
+    setIsDeleting(true)
     try {
       const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
         method: 'DELETE',
@@ -52,9 +55,16 @@ export default function AdminUsers() {
       if (response.ok) {
         setUsers(users.filter(u => u.id !== userId))
         setDeleteConfirm(null)
+        notify.success('User deleted successfully')
+      } else {
+        const data = await response.json()
+        notify.error(data.error || 'Failed to delete user')
       }
     } catch (error) {
       console.error('Error deleting user:', error)
+      notify.error('Connectivity error. Failed to delete user.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -175,16 +185,18 @@ export default function AdminUsers() {
               </p>
               <div className="flex gap-3 justify-end">
                 <button
+                  disabled={isDeleting}
                   onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all"
+                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
+                  disabled={isDeleting}
                   onClick={() => deleteUser(deleteConfirm)}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all min-w-[80px] flex items-center justify-center disabled:opacity-50"
                 >
-                  Delete
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : 'Delete'}
                 </button>
               </div>
             </div>
