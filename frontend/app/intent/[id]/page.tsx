@@ -9,6 +9,7 @@ import { Intent, intentService, conversationService, userService, storageService
 import { useAuth } from '@/app/context/AuthContext'
 import { 
   MessageSquare, 
+  MessageCircle,
   Users, 
   MapPin, 
   Calendar, 
@@ -18,6 +19,7 @@ import {
   CheckCircle2,
   Clock,
   Briefcase,
+  Settings,
   Avatar as AvatarIcon
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
