@@ -130,13 +130,13 @@ export default function AdminAchievementsPage() {
                   [1, 2, 3, 4, 5].map((i) => (
                     <tr key={i} className="animate-pulse">
                       <td colSpan={5} className="px-6 py-8">
-                        <div className="h-4 bg-white/5 rounded w-full" />
+                        <div className="h-4 bg-[var(--color-bg-secondary)]/5 rounded w-full" />
                       </td>
                     </tr>
                   ))
                 ) : filteredStats.length > 0 ? (
                   filteredStats.map((stat) => (
-                    <tr key={stat.id} className="hover:bg-white/5 transition-colors">
+                    <tr key={stat.id} className="hover:bg-[var(--color-bg-secondary)]/5 transition-colors">
                       <td className="px-6 py-5">
                         <div>
                           <p className="text-sm font-bold text-[var(--color-text-primary)]">{stat.name}</p>
@@ -144,7 +144,7 @@ export default function AdminAchievementsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-white/5 rounded border border-[var(--color-border)]">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-[var(--color-bg-secondary)]/5 rounded border border-[var(--color-border)]">
                           {stat.category}
                         </span>
                       </td>

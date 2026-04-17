@@ -131,7 +131,7 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
                     onClick={() => setFormData({ ...formData, level })}
                     className={`px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
                       formData.level === level 
-                        ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]' 
+                        ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)]' 
                         : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)] hover:border-[var(--color-accent)]'
                     }`}
                   >
@@ -155,7 +155,7 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
             <button
               disabled={loading}
               type="submit"
-              className="w-full py-6 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] rounded-[1.5rem] hover:bg-[var(--color-accent)] transition-all shadow-xl flex items-center justify-center gap-4 disabled:opacity-40"
+              className="w-full py-6 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.4em] rounded-[1.5rem] hover:bg-[var(--color-accent)] transition-all shadow-xl flex items-center justify-center gap-4 disabled:opacity-40"
             >
               {loading ? (
                 <div className="h-4 w-4 border-2 border-[var(--color-bg-primary)] border-t-transparent animate-spin rounded-full" />

@@ -115,7 +115,7 @@ export default function IntentsPage() {
             </button>
             <button 
               onClick={() => router.push('/create')}
-              className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-[var(--color-text-primary)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl"
+              className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl"
             >
               Post Intent <Plus size={16} />
             </button>
@@ -130,8 +130,8 @@ export default function IntentsPage() {
                onClick={() => setFilterCategory(cat)}
               className={`px-8 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap border ${
                 filterCategory === cat 
-                ? 'bg-[var(--color-text-primary)] text-white border-[var(--color-text-primary)] shadow-lg shadow-[var(--color-text-primary)]/10' 
-                : 'bg-white text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
+                ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] border-[var(--color-inverse-bg)] shadow-lg shadow-[var(--color-text-primary)]/10' 
+                : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
               }`}
             >
               {cat}
@@ -152,7 +152,7 @@ export default function IntentsPage() {
               <div
                 key={intent.id}
                 onClick={() => router.push(`/intent/${intent.id}`)}
-                className="group bg-white rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
+                className="group bg-[var(--color-bg-secondary)] rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
               >
                 {/* Card Image */}
                 <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">

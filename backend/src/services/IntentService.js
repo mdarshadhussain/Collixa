@@ -13,7 +13,7 @@ export class IntentService {
     const intentData = {
       ...data,
       created_by: userId,
-      status: 'looking',
+      status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

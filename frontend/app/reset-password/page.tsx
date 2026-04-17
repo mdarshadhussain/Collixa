@@ -91,7 +91,7 @@ export default function ResetPasswordPage() {
 
   if (!email) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[var(--color-bg-secondary)] flex items-center justify-center px-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Link</h1>
           <p className="text-gray-600 mb-4">
@@ -109,7 +109,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--color-bg-secondary)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -123,7 +123,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-gray-100 rounded-lg p-8 shadow-subtle">
+        <div className="bg-[var(--color-bg-secondary)] border border-gray-100 rounded-lg p-8 shadow-subtle">
           {success ? (
             <div className="text-center space-y-4">
               <div className="flex justify-center">
@@ -167,7 +167,7 @@ export default function ResetPasswordPage() {
                     }}
                     placeholder="000000"
                     maxLength={6}
-                    className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-white text-center text-2xl font-bold tracking-widest transition-all ${
+                    className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-[var(--color-bg-secondary)] text-center text-2xl font-bold tracking-widest transition-all ${
                       errors.otp ? 'border-red-300' : 'border-gray-200'
                     }`}
                     disabled={loading}
@@ -191,7 +191,7 @@ export default function ResetPasswordPage() {
                         if (errors.newPassword) setErrors({ ...errors, newPassword: '' })
                       }}
                       placeholder="SecurePass123"
-                      className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-white transition-all ${
+                      className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-[var(--color-bg-secondary)] transition-all ${
                         errors.newPassword ? 'border-red-300' : 'border-gray-200'
                       }`}
                       disabled={loading}
@@ -223,7 +223,7 @@ export default function ResetPasswordPage() {
                         if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' })
                       }}
                       placeholder="SecurePass123"
-                      className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-white transition-all ${
+                      className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-[var(--color-bg-secondary)] transition-all ${
                         errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
                       }`}
                       disabled={loading}

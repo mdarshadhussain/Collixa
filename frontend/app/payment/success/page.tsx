@@ -17,7 +17,7 @@ const PACKAGES = {
 
 function SuccessContent() {
   const router = useRouter()
-  const { refreshUser } = useAuth()
+  const { refreshUser, user } = useAuth()
   const searchParams = useSearchParams()
   
   // Support both package-based and generic transactions
@@ -61,7 +61,8 @@ function SuccessContent() {
     }, intervalTime)
 
     return () => clearInterval(timer)
-  }, [displayCredits, refreshUser])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayCredits])
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans">
@@ -106,7 +107,7 @@ function SuccessContent() {
               className="text-2xl sm:text-3xl md:text-5xl font-serif font-black tracking-tighter leading-tight"
             >
               Transaction <br />
-              <span className="italic font-light text-[var(--color-accent)]">Archived.</span>
+              <span className="italic font-light text-[var(--color-accent)]">Successful.</span>
             </motion.h1>
           </div>
 
@@ -118,19 +119,23 @@ function SuccessContent() {
             className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-5 sm:p-6 rounded-[1.5rem] md:rounded-[2rem] max-w-[320px] sm:max-w-sm mx-auto relative overflow-hidden shadow-lg"
           >
              <div className="relative space-y-2">
-                <p className="text-[7px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)]">Vault Deposit</p>
+                <p className="text-[7px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)]">
+                  {type === 'TRANSFER' ? 'Vault Withdrawn' : 'Vault Deposit'}
+                </p>
                 <div className="flex items-center justify-center gap-3">
                    <Zap size={18} className="text-[var(--color-accent)] fill-[var(--color-accent)]" />
-                   <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-black tracking-tighter tabular-nums">+{counter}</h2>
+                   <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-black tracking-tighter tabular-nums">
+                     {type === 'TRANSFER' ? '-' : '+'}{counter}
+                   </h2>
                 </div>
                 <div className="pt-3 border-t border-[var(--color-border)] opacity-60">
                    <p className="text-[7px] font-bold uppercase tracking-widest leading-loose">
-                     Account Balance Updated <br />
                      {recipient ? (
-                       <>To: <span className="text-[var(--color-text-primary)] font-black">{recipient}</span></>
+                       <>Sent To: <span className="text-[var(--color-text-primary)] font-black">{recipient}</span><br /></>
                      ) : (
-                       <>Tier: <span className="text-[var(--color-text-primary)] font-black">{pkg?.name || displayName}</span></>
+                       <>Tier: <span className="text-[var(--color-text-primary)] font-black">{pkg?.name || displayName}</span><br /></>
                      )}
+                     Available Balance: <span className="text-[var(--color-text-primary)] font-black">{user?.credits || 0} CR</span>
                    </p>
                 </div>
              </div>
@@ -145,7 +150,7 @@ function SuccessContent() {
           >
             <Link 
               href="/dashboard"
-              className="w-full sm:w-auto px-8 py-3.5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-[0.4em] rounded-xl hover:bg-[var(--color-accent)] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 group"
+              className="w-full sm:w-auto px-8 py-3.5 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-[0.4em] rounded-xl hover:bg-[var(--color-accent)] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 group"
             >
               The Sanctuary
               <LayoutDashboard size={12} className="group-hover:translate-x-1 transition-transform" />

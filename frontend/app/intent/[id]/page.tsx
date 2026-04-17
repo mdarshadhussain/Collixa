@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import BottomNav from '@/components/BottomNav'
 import { Intent, intentService, conversationService, userService, storageService } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 import { 
@@ -245,7 +246,7 @@ export default function IntentDetailPage() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="p-4 sm:p-6 md:p-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-2xl md:rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 overflow-hidden relative"
+                  className="p-4 sm:p-6 md:p-10 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-2xl md:rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 overflow-hidden relative"
                 >
                    <div className="relative z-10 space-y-5 md:space-y-8">
                       <div className="space-y-2">
@@ -287,7 +288,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="outline" 
                               fullWidth 
-                              className="py-4 md:py-6 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/10"
+                              className="py-4 md:py-6 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-[var(--color-bg-secondary)]/10"
                               onClick={handleChatWithOwner}
                             >
                               <span className="flex items-center gap-2"><MessageSquare size={16} /> Chat with Owner</span>
@@ -302,7 +303,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="accent" 
                               fullWidth 
-                              className="py-4 md:py-6 rounded-xl md:rounded-2xl bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
+                              className="py-4 md:py-6 rounded-xl md:rounded-2xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
                               onClick={() => router.push('/chat')}
                             >
                                <MessageCircle size={16} />
@@ -311,7 +312,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="outline" 
                               fullWidth 
-                              className="py-3 md:py-4 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/10 text-[9px] md:text-[10px] font-bold uppercase tracking-widest"
+                              className="py-3 md:py-4 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-[var(--color-bg-secondary)]/10 text-[9px] md:text-[10px] font-bold uppercase tracking-widest"
                               onClick={() => router.push(`/create?id=${intent.id}`)}
                             >
                                <Settings size={16} />
@@ -373,6 +374,7 @@ export default function IntentDetailPage() {
           </div>
         </div>
       </main>
+      <BottomNav />
     </div>
   )
 }

@@ -9,6 +9,7 @@ export class SkillService {
   static async addSkill(userId, skillData) {
     return await SkillModel.create({
       user_id: userId,
+      status: 'active',
       ...skillData
     });
   }

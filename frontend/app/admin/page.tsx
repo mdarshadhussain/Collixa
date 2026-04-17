@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { Users, Briefcase, Star, Calendar, Coins, TrendingUp, Activity } from 'lucide-react'
+import { Users, Briefcase, Star, Calendar, Coins, TrendingUp, Activity, ShieldAlert } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -59,9 +59,9 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="bg-[var(--color-bg-secondary)] rounded-2xl p-6 animate-pulse">
-              <div className="h-12 w-12 rounded-xl bg-white/10 mb-4" />
-              <div className="h-8 w-24 bg-white/10 rounded mb-2" />
-              <div className="h-4 w-16 bg-white/10 rounded" />
+              <div className="h-12 w-12 rounded-xl bg-[var(--color-bg-secondary)]/10 mb-4" />
+              <div className="h-8 w-24 bg-[var(--color-bg-secondary)]/10 rounded mb-2" />
+              <div className="h-4 w-16 bg-[var(--color-bg-secondary)]/10 rounded" />
             </div>
           ))}
         </div>
@@ -107,6 +107,12 @@ export default function AdminDashboard() {
         <div className="bg-[var(--color-bg-secondary)] rounded-2xl p-6 border border-[var(--color-border)]">
           <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Quick Actions</h3>
           <div className="flex flex-wrap gap-3">
+            <a
+              href="/admin/approvals"
+              className="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-600 transition-all flex items-center gap-2"
+            >
+              <ShieldAlert size={16} /> Approvals
+            </a>
             <a
               href="/admin/users"
               className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-accent)]/80 transition-all"

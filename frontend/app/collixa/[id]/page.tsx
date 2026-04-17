@@ -64,7 +64,7 @@ export default function IntentDetailPage({ params }: { params: { id: string } })
             <p className="text-[var(--color-text-secondary)] text-lg mb-12 uppercase tracking-[0.2em] font-bold">{error || 'This intent has dissolved into the binary.'}</p>
             <button 
               onClick={() => router.push('/dashboard')}
-              className="px-12 py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-text-primary)] transition-all"
+              className="px-12 py-6 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-inverse-bg)] transition-all"
             >
               Back to Marketplace
             </button>
@@ -168,7 +168,7 @@ export default function IntentDetailPage({ params }: { params: { id: string } })
                         href={storageService.getPublicUrl(intent.attachment_name)} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="px-10 py-5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-text-primary)] transition-all shadow-xl shadow-[var(--color-accent)]/20"
+                        className="px-10 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-inverse-bg)] transition-all shadow-xl shadow-[var(--color-accent)]/20"
                       >
                         Access Archive
                       </a>
@@ -217,7 +217,7 @@ export default function IntentDetailPage({ params }: { params: { id: string } })
 
               {/* Sidebar Actions */}
               <div className="mt-16 space-y-4">
-                <button className="w-full py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-text-primary)] transition-all flex items-center justify-center gap-3 shadow-2xl shadow-[var(--color-accent)]/10">
+                <button className="w-full py-6 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-inverse-bg)] transition-all flex items-center justify-center gap-3 shadow-2xl shadow-[var(--color-accent)]/10">
                   Join Collective <Zap size={14} />
                 </button>
                 <button className="w-full py-6 border border-[var(--color-border)] text-[var(--color-text-primary)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-accent-soft)] transition-all flex items-center justify-center gap-3">

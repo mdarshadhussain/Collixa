@@ -51,7 +51,7 @@ export default function LegalModal({ isOpen, onClose, onAccept }: LegalModalProp
               className="bg-[#F5F5F0] w-full max-w-[1100px] h-[85vh] md:h-[700px] rounded-[3rem] shadow-[0_32px_120px_-20px_rgba(0,0,0,0.5)] pointer-events-auto overflow-hidden flex flex-col md:flex-row relative border border-white/20"
             >
               {/* Sidebar (Navigation) - Hidden on very small screens */}
-              <div className="hidden md:flex w-[280px] bg-white/40 backdrop-blur-xl border-r border-black/5 flex-col p-8">
+              <div className="hidden md:flex w-[280px] bg-[var(--color-bg-secondary)]/40 backdrop-blur-xl border-r border-black/5 flex-col p-8">
                 <div className="mb-12">
                   <div className="w-10 h-10 bg-[#FF85BB] rounded-xl mb-4 flex items-center justify-center">
                     <Shield className="w-5 h-5 text-white" />
@@ -85,7 +85,7 @@ export default function LegalModal({ isOpen, onClose, onAccept }: LegalModalProp
               </div>
 
               {/* Main Content Area */}
-              <div className="flex-1 flex flex-col h-full overflow-hidden bg-white/20">
+              <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--color-bg-secondary)]/20">
                 {/* Header (Sticky-ish) */}
                 <div className="p-8 md:px-12 md:py-8 flex justify-between items-center bg-[#F5F5F0]/80 backdrop-blur-md z-10">
                   <div>

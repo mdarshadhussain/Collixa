@@ -3,6 +3,7 @@ import "./globals.css"
 import { AuthProvider } from "@/app/context/AuthContext"
 import { ToastProvider } from "@/app/context/ToastContext"
 import { ToastContainer } from "@/components/ToastContainer"
+import { ThemeProvider } from "@/components/ThemeProvider"
 
 export const metadata: Metadata = {
   title: "Collixa - Skill & Intent Marketplace",
@@ -17,12 +18,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <AuthProvider>
-          <ToastProvider>
-            {children}
-            <ToastContainer />
-          </ToastProvider>
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+          <AuthProvider>
+            <ToastProvider>
+              {children}
+              <ToastContainer />
+            </ToastProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

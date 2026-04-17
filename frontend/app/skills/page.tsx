@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import CustomDateTimePicker from '@/components/CustomDateTimePicker'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
+import BottomNav from '@/components/BottomNav'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'
 import { skillService, sessionService, reviewService, conversationService } from '@/lib/supabase'
@@ -264,7 +265,7 @@ export default function SkillsPage() {
           )}
 
           {/* Editorial Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-8 bg-white border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5">
             <div className="space-y-4">
                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] opacity-60">Tribes Directory</span>
                <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-black tracking-tighter leading-none text-[var(--color-text-primary)]">
@@ -275,7 +276,7 @@ export default function SkillsPage() {
             <div className="flex items-center gap-4">
                <button 
                  onClick={() => setIsAddModalOpen(true)}
-                 className="flex items-center gap-2 sm:gap-4 px-4 sm:px-7 py-3.5 sm:py-4 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-xl sm:rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.32em] hover:bg-[var(--color-accent)] transition-all shadow-xl group"
+                 className="flex items-center gap-2 sm:gap-4 px-4 sm:px-7 py-3.5 sm:py-4 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-xl sm:rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.32em] hover:bg-[var(--color-accent)] transition-all shadow-xl group"
                >
                  <Plus size={16} className="group-hover:rotate-90 transition-transform" />
                  List Your expertise
@@ -320,8 +321,8 @@ export default function SkillsPage() {
                   onClick={() => setActiveCategory(cat)}
                   className={`px-8 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${
                     activeCategory === cat 
-                      ? 'bg-[var(--color-text-primary)] text-white border-[var(--color-text-primary)] shadow-lg shadow-[var(--color-text-primary)]/10' 
-                      : 'bg-white text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
+                      ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] border-[var(--color-inverse-bg)] shadow-lg shadow-[var(--color-text-primary)]/10' 
+                      : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
                   }`}
                 >
                   {cat}
@@ -335,7 +336,7 @@ export default function SkillsPage() {
               onClick={() => setActiveTab('tribes')}
               className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-[0.12em] ${
                 activeTab === 'tribes'
-                  ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]'
+                  ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)]'
                   : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
               }`}
             >
@@ -345,7 +346,7 @@ export default function SkillsPage() {
               onClick={() => setActiveTab('requests')}
               className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-[0.12em] ${
                 activeTab === 'requests'
-                  ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]'
+                  ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)]'
                   : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
               }`}
             >
@@ -390,7 +391,7 @@ export default function SkillsPage() {
                                 <button
                                   onClick={() => handleExchangeStatus(req.id, 'ACCEPTED')}
                                   disabled={processingId === req.id}
-                                  className="px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] disabled:opacity-50"
+                                  className="px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] rounded-lg bg-[var(--color-accent)] text-[var(--color-inverse-text)] disabled:opacity-50"
                                 >
                                   {processingId === req.id ? 'Working...' : 'Accept'}
                                 </button>
@@ -406,7 +407,7 @@ export default function SkillsPage() {
                             {req.status === 'ACCEPTED' && (
                               <button
                                 onClick={() => setScheduleTarget(req)}
-                                className="px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] flex items-center gap-1"
+                                className="px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] rounded-lg bg-[var(--color-accent)] text-[var(--color-inverse-text)] flex items-center gap-1"
                               >
                                 <CalendarClock size={10} /> Schedule Session
                               </button>
@@ -510,7 +511,7 @@ export default function SkillsPage() {
                 <div className="p-2 sm:p-3 md:p-4 border-t border-[var(--color-border)] bg-[var(--color-bg-primary)]/10 group-hover:bg-[var(--color-accent-soft)]/30 transition-colors">
                   <button
                     onClick={() => setSelectedSkill(skill)}
-                    className="w-full py-1.5 sm:py-2 md:py-2.5 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[6px] sm:text-[7px] md:text-[8px] font-black uppercase tracking-[0.06em] sm:tracking-[0.1em] md:tracking-[0.18em] rounded-md sm:rounded-lg group-hover:bg-[var(--color-accent)] transition-all flex items-center justify-center gap-1 sm:gap-2 group/btn shadow-sm"
+                    className="w-full py-1.5 sm:py-2 md:py-2.5 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[6px] sm:text-[7px] md:text-[8px] font-black uppercase tracking-[0.06em] sm:tracking-[0.1em] md:tracking-[0.18em] rounded-md sm:rounded-lg group-hover:bg-[var(--color-accent)] transition-all flex items-center justify-center gap-1 sm:gap-2 group/btn shadow-sm"
                   >
                     Request Exchange
                     <ArrowRight size={9} className="sm:w-[10px] sm:h-[10px] md:w-3 md:h-3 group-hover/btn:translate-x-1 transition-transform" />
@@ -568,7 +569,7 @@ export default function SkillsPage() {
                                   disabled={processingId === session.id || !isPastScheduled}
                                   className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-[0.1em] transition-all flex items-center gap-1 ${
                                     isPastScheduled 
-                                      ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] hover:bg-[var(--color-text-primary)]' 
+                                      ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] hover:bg-[var(--color-inverse-bg)]' 
                                       : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] border border-[var(--color-border)] cursor-not-allowed'
                                   }`}
                                   title={!isPastScheduled ? 'You can only complete after scheduled time' : ''}
@@ -613,7 +614,7 @@ export default function SkillsPage() {
                           ) : (
                             <button
                               onClick={() => setReviewTarget(session)}
-                              className="px-3 py-1.5 rounded-lg bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[8px] font-black uppercase tracking-[0.1em]"
+                              className="px-3 py-1.5 rounded-lg bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[8px] font-black uppercase tracking-[0.1em]"
                             >
                               Give Feedback
                             </button>
@@ -716,7 +717,7 @@ export default function SkillsPage() {
             <button
               onClick={handleScheduleSession}
               disabled={submittingSchedule || !scheduleForm.scheduledTime}
-              className="w-full py-4 rounded-full bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[var(--color-accent)] transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full py-4 rounded-full bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[var(--color-accent)] transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {submittingSchedule ? (
                 <span className="flex items-center justify-center gap-2">
@@ -756,13 +757,14 @@ export default function SkillsPage() {
             <button
               onClick={handleSubmitReview}
               disabled={submittingReview}
-              className="w-full py-2.5 rounded-lg bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] disabled:opacity-50"
+              className="w-full py-2.5 rounded-lg bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.1em] disabled:opacity-50"
             >
               {submittingReview ? 'Submitting...' : 'Submit Feedback'}
             </button>
           </div>
         </div>
       )}
+      <BottomNav />
     </div>
   )
 }

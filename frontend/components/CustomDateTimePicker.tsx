@@ -157,14 +157,14 @@ export default function CustomDateTimePicker({
               <button
                 type="button"
                 onClick={() => setMode('date')}
-                className={`flex-1 py-1 rounded-full text-[7.5px] font-black uppercase tracking-wider transition-all ${mode === 'date' ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]' : 'text-[var(--color-text-secondary)]'}`}
+                className={`flex-1 py-1 rounded-full text-[7.5px] font-black uppercase tracking-wider transition-all ${mode === 'date' ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)]' : 'text-[var(--color-text-secondary)]'}`}
               >
                 Date
               </button>
               <button
                 type="button"
                 onClick={() => setMode('time')}
-                className={`flex-1 py-1 rounded-full text-[7.5px] font-black uppercase tracking-wider transition-all ${mode === 'time' ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]' : 'text-[var(--color-text-secondary)]'}`}
+                className={`flex-1 py-1 rounded-full text-[7.5px] font-black uppercase tracking-wider transition-all ${mode === 'time' ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)]' : 'text-[var(--color-text-secondary)]'}`}
               >
                 Time
               </button>
@@ -197,7 +197,7 @@ export default function CustomDateTimePicker({
                       className={`
                         relative w-full aspect-square flex items-center justify-center rounded-full text-[8.5px] font-bold transition-all
                         ${dateObj.month !== 'current' ? 'opacity-10' : 'opacity-100'}
-                        ${isSelected(dateObj.date) ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] shadow-sm' : 'hover:bg-[var(--color-accent-soft)]/50 hover:text-[var(--color-accent)]'}
+                        ${isSelected(dateObj.date) ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] shadow-sm' : 'hover:bg-[var(--color-accent-soft)]/50 hover:text-[var(--color-accent)]'}
                         ${isPast(dateObj.date) ? 'cursor-not-allowed opacity-5' : 'cursor-pointer'}
                       `}
                     >
@@ -217,7 +217,7 @@ export default function CustomDateTimePicker({
                           key={h}
                           type="button"
                           onClick={() => handleTimeChange('hour', h)}
-                          className={`w-full py-0.5 rounded text-[9px] font-bold transition-all ${selectedDate.getHours() === h ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]' : 'hover:bg-[var(--color-bg-primary)]'}`}
+                          className={`w-full py-0.5 rounded text-[9px] font-bold transition-all ${selectedDate.getHours() === h ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)]' : 'hover:bg-[var(--color-bg-primary)]'}`}
                         >
                           {h.toString().padStart(2, '0')}
                         </button>
@@ -233,7 +233,7 @@ export default function CustomDateTimePicker({
                           key={m}
                           type="button"
                           onClick={() => handleTimeChange('minute', m)}
-                          className={`w-full py-0.5 rounded text-[9px] font-bold transition-all ${selectedDate.getMinutes() === m ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]' : 'hover:bg-[var(--color-bg-primary)]'}`}
+                          className={`w-full py-0.5 rounded text-[9px] font-bold transition-all ${selectedDate.getMinutes() === m ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)]' : 'hover:bg-[var(--color-bg-primary)]'}`}
                         >
                           {m.toString().padStart(2, '0')}
                         </button>
@@ -252,7 +252,7 @@ export default function CustomDateTimePicker({
               <button
                 type="button"
                 onClick={confirmSelection}
-                className="px-3 py-1 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full text-[7.5px] font-black uppercase tracking-wider hover:bg-[var(--color-accent)] transition-all"
+                className="px-3 py-1 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full text-[7.5px] font-black uppercase tracking-wider hover:bg-[var(--color-accent)] transition-all"
               >
                 Confirm
               </button>

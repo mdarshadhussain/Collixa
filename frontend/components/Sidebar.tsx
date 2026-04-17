@@ -3,9 +3,10 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, MessageSquare, Users, User, Zap } from 'lucide-react'
+import { LayoutDashboard, FileText, MessageSquare, Users, User, Zap, Award } from 'lucide-react'
 import { messageService, supabase } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
+import ThemeToggle from './ThemeToggle'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Hub', href: '/dashboard' },
@@ -13,6 +14,7 @@ const navItems = [
   { icon: MessageSquare, label: 'Messages', href: '/chat' },
   { icon: Users, label: 'Tribes', href: '/skills' },
   { icon: User, label: 'Profile', href: '/profile' },
+  { icon: Award, label: 'Achievements', href: '/rewards' },
 ]
 
 export default function Sidebar() {
@@ -71,7 +73,7 @@ export default function Sidebar() {
                   <item.icon size={18} className={isActive ? 'opacity-100' : 'opacity-40 group-hover:opacity-100 transition-opacity'} />
                   <span className={`text-[11px] font-black uppercase tracking-[0.2em] flex-1 ${isActive ? '' : 'text-[var(--color-text-primary)] opacity-70'}`}>{item.label}</span>
                   {item.label === 'Messages' && unreadCount > 0 && (
-                    <span className="px-2 py-0.5 min-w-[1.5rem] text-center text-[9px] font-black bg-white text-[var(--color-accent)] rounded-full shadow-sm ring-2 ring-[var(--color-accent)]/20 animate-pulse">
+                    <span className="px-2 py-0.5 min-w-[1.5rem] text-center text-[9px] font-black bg-[var(--color-bg-secondary)] text-[var(--color-accent)] rounded-full shadow-sm ring-2 ring-[var(--color-accent)]/20 animate-pulse">
                       {unreadCount}
                     </span>
                   )}
@@ -83,6 +85,10 @@ export default function Sidebar() {
 
         <div className="mt-auto">
           <div className="pt-8 border-t border-[var(--color-border)]">
+            <div className="flex items-center justify-between px-4 mb-6">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)] opacity-60">Appearance</span>
+              <ThemeToggle />
+            </div>
             <div className="flex items-center gap-4 px-4">
                <div className="w-10 h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)] font-serif font-black">C.</div>
                <div>

@@ -129,8 +129,8 @@ export default function AdminCredits() {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-white/10 rounded w-1/4" />
-          <div className="h-64 bg-white/10 rounded" />
+          <div className="h-12 bg-[var(--color-bg-secondary)]/10 rounded w-1/4" />
+          <div className="h-64 bg-[var(--color-bg-secondary)]/10 rounded" />
         </div>
       </AdminLayout>
     )
@@ -201,7 +201,7 @@ export default function AdminCredits() {
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {filteredTransactions.slice(0, 50).map((transaction) => (
-                <tr key={transaction.id} className="hover:bg-white/5">
+                <tr key={transaction.id} className="hover:bg-[var(--color-bg-secondary)]/5">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white text-sm font-bold">
@@ -300,7 +300,7 @@ export default function AdminCredits() {
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all"
+                    className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]/5 rounded-lg transition-all"
                   >
                     Cancel
                   </button>
@@ -346,7 +346,7 @@ export default function AdminCredits() {
               </div>
               <button
                 onClick={() => setShowSuccessModal(false)}
-                className="w-full py-3 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[var(--color-accent)] transition-all active:scale-95"
+                className="w-full py-3 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[var(--color-accent)] transition-all active:scale-95"
               >
                 Continue
               </button>

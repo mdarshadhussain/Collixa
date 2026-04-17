@@ -76,10 +76,10 @@ export default function DashboardPage() {
     return (
       <Layout showSidebar={false}>
         <div className="max-w-[1400px] mx-auto space-y-8 py-6 animate-pulse">
-           <div className="h-10 bg-white/5 rounded-full w-1/2 mx-auto mb-8" />
-           <div className="h-[300px] bg-white/5 rounded-[3rem] border border-white/10" />
+           <div className="h-10 bg-[var(--color-bg-secondary)]/5 rounded-full w-1/2 mx-auto mb-8" />
+           <div className="h-[300px] bg-[var(--color-bg-secondary)]/5 rounded-[3rem] border border-white/10" />
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-             {[1,2,3,4].map(i => <div key={i} className="h-32 bg-white/5 rounded-2xl" />)}
+             {[1,2,3,4].map(i => <div key={i} className="h-32 bg-[var(--color-bg-secondary)]/5 rounded-2xl" />)}
            </div>
         </div>
       </Layout>
@@ -89,16 +89,16 @@ export default function DashboardPage() {
   const hasData = (stats?.collaborations || 0) > 0 || (sections?.newArrivals.length || 0) > 0
 
   return (
-    <Layout showSidebar={false} showBottomNav={false}>
+    <Layout showSidebar={false}>
       <div className="max-w-[1500px] mx-auto space-y-16 pb-20">
         
         {/* ─── INSIGHT HERO: BIRDS EYE VIEW ─── */}
-        <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-[var(--color-text-primary)] text-white p-10 md:p-16 border border-white/5 shadow-2xl shadow-black/30">
+        <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-10 md:p-16 border border-white/5 shadow-2xl shadow-black/30">
            <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-accent)]/20 to-transparent opacity-40" />
            
            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="space-y-8">
-                 <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
+                 <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-white/10 bg-[var(--color-bg-secondary)]/5 backdrop-blur-md">
                     <Activity size={12} className="text-[var(--color-accent)]" />
                     <span className="text-[9px] font-black uppercase tracking-[0.3em]">Operational Dashboard</span>
                  </div>
@@ -112,13 +112,13 @@ export default function DashboardPage() {
                  <div className="flex gap-4">
                     <button 
                       onClick={() => router.push('/collaborations')}
-                      className="px-8 py-4 bg-[var(--color-accent)] text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all"
+                      className="px-8 py-4 bg-[var(--color-accent)] text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-[var(--color-bg-secondary)] transition-all"
                     >
                        All Intents
                     </button>
                     <button 
                       onClick={() => router.push('/my-collaborations')}
-                      className="px-8 py-4 bg-white/5 text-white border border-white/10 text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all font-sans"
+                      className="px-8 py-4 bg-[var(--color-bg-secondary)]/5 text-white border border-white/10 text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-[var(--color-bg-secondary)]/10 transition-all font-sans"
                     >
                        My Intents
                     </button>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                      animate={{ opacity: 1, y: 0 }}
                      transition={{ delay: i * 0.1 }}
                      key={metric.label} 
-                     className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] hover:bg-white/10 transition-all border-glow"
+                     className="bg-[var(--color-bg-secondary)]/5 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] hover:bg-[var(--color-bg-secondary)]/10 transition-all border-glow"
                    >
                       <metric.icon size={16} className="text-[var(--color-accent)] mb-4" />
                       <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1">{metric.label}</p>
@@ -153,35 +153,7 @@ export default function DashboardPage() {
         {hasData ? (
           <div className="space-y-24">
 
-            {/* Platform Achievements & Rewards */}
-            {authUser && (
-              <section className="space-y-10">
-                <div className="flex justify-between items-end px-2">
-                  <div className="space-y-3">
-                    <h2 className="text-2xl md:text-3xl font-serif font-black tracking-tighter text-[var(--color-text-primary)] flex items-center gap-3">
-                      <Award size={32} className="text-[var(--color-accent)]" />
-                      Achievements & Rewards
-                    </h2>
-                    <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">
-                      Unlock credits by engaging with the platform • Know what to do to get rewarded
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => router.push('/rewards')}
-                    className="group flex items-center gap-3 text-[9px] font-black uppercase tracking-widest hover:text-[var(--color-accent)] transition-colors"
-                  >
-                    View All Rewards <ArrowUpRight size={14} />
-                  </button>
-                </div>
-                
-                <div className="bg-[var(--color-bg-secondary)]/30 border border-[var(--color-border)] rounded-[3rem] p-8 md:p-12 overflow-hidden relative">
-                  <div className="absolute top-0 right-0 p-8 opacity-5">
-                    <Trophy size={120} />
-                  </div>
-                  <AchievementsSection userId={authUser.id} variant="summary" />
-                </div>
-              </section>
-            )}
+
 
             {/* Trending Intents (Matches Arrivals Style) */}
             <section className="space-y-10">
@@ -203,7 +175,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.05 }}
                       onClick={() => router.push(`/intent/${intent.id}`)}
-                      className="group bg-white rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
+                      className="group bg-[var(--color-bg-secondary)] rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
                     >
                       {/* Card Image */}
                       <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">
@@ -259,9 +231,9 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.05 }}
                       onClick={() => router.push(`/skills?tribe=${tribe.id}`)}
-                      className="group bg-white p-8 rounded-[3rem] hover:shadow-2xl hover:bg-white hover:scale-[1.02] transition-all cursor-pointer flex flex-col items-center text-center space-y-4 border-0"
+                      className="group bg-[var(--color-bg-secondary)] p-8 rounded-[3rem] hover:shadow-2xl hover:bg-[var(--color-bg-secondary)] hover:scale-[1.02] transition-all cursor-pointer flex flex-col items-center text-center space-y-4 border-0"
                     >
-                      <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[var(--color-accent)] group-hover:bg-[var(--color-accent)] group-hover:text-white transition-colors overflow-hidden">
+                      <div className="w-12 h-12 rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center text-[var(--color-accent)] group-hover:bg-[var(--color-accent)] group-hover:text-white transition-colors overflow-hidden">
                         {tribe.user?.avatar_url ? (
                           <img src={storageService.getPublicUrl(tribe.user.avatar_url)} className="w-full h-full object-cover" />
                         ) : (
@@ -280,7 +252,7 @@ export default function DashboardPage() {
             {/* Fresh Intake */}
             <section className="space-y-10">
                <div className="flex items-center gap-5 px-2">
-                 <div className="w-12 h-12 rounded-2xl bg-[var(--color-text-primary)] flex items-center justify-center text-white shadow-lg">
+                 <div className="w-12 h-12 rounded-2xl bg-[var(--color-inverse-bg)] flex items-center justify-center text-white shadow-lg">
                     <Rocket size={18} />
                  </div>
                  <div>
@@ -297,7 +269,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.05 }}
                       onClick={() => router.push(`/intent/${intent.id}`)}
-                      className="group bg-white rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
+                      className="group bg-[var(--color-bg-secondary)] rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
                     >
                       {/* Card Image */}
                       <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">
