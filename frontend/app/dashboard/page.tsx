@@ -161,7 +161,7 @@ export default function DashboardPage() {
                         </div>
                      )}
                   </div>
-              </div>      </div>
+              </div>
 
               <div className="flex gap-4 w-full lg:w-auto">
                  <div className="bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center flex-1 lg:min-w-[140px] hover:bg-black/60 transition-colors cursor-pointer ring-1 ring-[var(--color-accent)]/20 shadow-[0_0_20px_rgba(var(--color-accent-rgb),0.1)]">
