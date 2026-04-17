@@ -45,7 +45,7 @@ export default function IntentDetailPage() {
   const { user } = useAuth()
   const [intent, setIntent] = useState<Intent | null>(null)
   const [loading, setLoading] = useState(true)
-  const [requestSending, setRequestSending] = useState(false)
+  const [isJoining, setIsJoining] = useState(false)
   const [hasRequested, setHasRequested] = useState(false)
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function IntentDetailPage() {
   const handleJoinProject = async () => {
     if (!user || !intent) return
     try {
-      setRequestSending(true)
+      setIsJoining(true)
       await intentService.joinProject(intent.id as any, user.id)
       setHasRequested(true)
       notify.success("Joined successfully! You can now access the intent chat.")
@@ -93,7 +93,7 @@ export default function IntentDetailPage() {
     } catch (err: any) {
       notify.error(err.message || "Failed to join intent")
     } finally {
-      setRequestSending(false)
+      setIsJoining(false)
     }
   }
 
