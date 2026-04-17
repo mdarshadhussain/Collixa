@@ -13,13 +13,18 @@ export interface User {
   id: string
   name: string
   email: string
+  role?: string
   title?: string
   location?: string
   bio?: string
   avatar_url?: string
   hourly_rate?: number
-  created_at?: string
   credits?: number
+  xp?: number
+  level?: number
+  is_verified?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Intent {

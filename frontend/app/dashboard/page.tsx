@@ -18,6 +18,14 @@ interface HubSections {
   newArrivals: any[]
 }
 
+const getLevelInfo = (xp: number = 0) => {
+  if (xp >= 3500) return { level: 5, label: 'Master', next: null, currentRange: 3500 }
+  if (xp >= 1500) return { level: 4, label: 'Professional', next: 3500, currentRange: 1500 }
+  if (xp >= 500) return { level: 3, label: 'Collaborator', next: 1500, currentRange: 500 }
+  if (xp >= 100) return { level: 2, label: 'Contributor', next: 500, currentRange: 100 }
+  return { level: 1, label: 'Novice', next: 100, currentRange: 0 }
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const { user: authUser } = useAuth()
@@ -119,23 +127,41 @@ export default function DashboardPage() {
         {/* ─── PERSONAL HUB HERO ─── */}
         <section className="relative overflow-hidden rounded-3xl md:rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-8 md:p-14 border border-white/5 shadow-2xl shadow-black/30">
            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[var(--color-accent)]/30 to-transparent rounded-full blur-[80px] opacity-60 pointer-events-none" />
-           
-           <div className="relative z-10 flex flex-col lg:flex-row gap-10 items-start lg:items-center justify-between">
+            <div className="relative z-10 flex flex-col lg:flex-row gap-10 items-start lg:items-center justify-between">
               <div className="flex items-center gap-6">
                   <div className="relative shadow-2xl rounded-full">
                     <Avatar src={authUser.avatar_url || ''} name={authUser.name} size="xl" />
-                    <div className="absolute -bottom-2 -right-2 bg-[var(--color-accent)] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border-4 border-black">Lvl 1</div>
+                    <div className="absolute -bottom-2 -right-2 bg-[var(--color-accent)] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border-4 border-black">Lvl {authUser.level || 1}</div>
                   </div>
-                  <div>
-                     <h1 className="text-3xl md:text-5xl font-serif font-black tracking-tighter leading-none mb-3">
-                        Welcome back, <br className="hidden md:block"/>
-                        <span className="italic text-[var(--color-accent)]">{authUser.name?.split(' ')[0]}</span>.
-                     </h1>
-                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50 flex items-center gap-2">
-                        <Activity size={12} className="text-[var(--color-accent)]"/> Your Collixa Command Center
-                     </p>
+                  <div className="space-y-3">
+                     <div>
+                        <h1 className="text-3xl md:text-5xl font-serif font-black tracking-tighter leading-none mb-1">
+                           Welcome back, <br className="hidden md:block"/>
+                           <span className="italic text-[var(--color-accent)]">{authUser.name?.split(' ')[0]}</span>.
+                        </h1>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50 flex items-center gap-2">
+                           {getLevelInfo(authUser.xp).label} • {authUser.xp || 0} XP
+                        </p>
+                     </div>
+                     
+                     {/* XP PROGRESS BAR */}
+                     {getLevelInfo(authUser.xp).next && (
+                        <div className="w-full max-w-xs space-y-1.5">
+                           <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/30">
+                              <span>Next Level</span>
+                              <span>{Math.round(((authUser.xp || 0) - getLevelInfo(authUser.xp).currentRange) / (getLevelInfo(authUser.xp).next! - getLevelInfo(authUser.xp).currentRange) * 100)}%</span>
+                           </div>
+                           <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.round(((authUser.xp || 0) - getLevelInfo(authUser.xp).currentRange) / (getLevelInfo(authUser.xp).next! - getLevelInfo(authUser.xp).currentRange) * 100)}%` }}
+                                className="h-full bg-[var(--color-accent)] shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.5)]"
+                              />
+                           </div>
+                        </div>
+                     )}
                   </div>
-              </div>
+              </div>      </div>
 
               <div className="flex gap-4 w-full lg:w-auto">
                  <div className="bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center flex-1 lg:min-w-[140px] hover:bg-black/60 transition-colors cursor-pointer ring-1 ring-[var(--color-accent)]/20 shadow-[0_0_20px_rgba(var(--color-accent-rgb),0.1)]">

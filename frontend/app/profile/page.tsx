@@ -23,6 +23,17 @@ const AVATAR_PRESETS = [
   'Ethan', 'Faith', 'Gabe', 'Hazel', 'Issac'
 ].map(seed => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`)
 
+const getLevelLabel = (level: number = 1) => {
+  const labels: Record<number, string> = {
+    1: 'Novice',
+    2: 'Contributor',
+    3: 'Collaborator',
+    4: 'Professional',
+    5: 'Master'
+  }
+  return labels[level] || 'Novice'
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -454,10 +465,28 @@ export default function ProfilePage() {
                            <Edit2 size={14} />
                         </button>
                         <div>
-                          <h1 className="text-3xl md:text-5xl font-serif font-black text-[var(--color-text-primary)] mb-1 tracking-tighter">
-                            <Typewriter text={profileUser?.name || 'User'} speed={0.05} delay={0.2} />
-                          </h1>
-                          <div className="flex items-center gap-3">
+                     <div className="space-y-4">
+                    <div className="space-y-2">
+                       <h1 className="text-3xl md:text-5xl font-serif font-black tracking-tight leading-none">
+                          {profileUser?.name}
+                       </h1>
+                       <div className="flex flex-wrap items-center gap-2">
+                          <div className="px-3 py-1 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-full">
+                             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                               Level {profileUser?.level || 1} • {getLevelLabel(profileUser?.level)}
+                             </span>
+                          </div>
+                          {profileUser?.role === 'ADMIN' && (
+                             <Badge variant="accent" className="text-[9px] font-black">Admin</Badge>
+                          )}
+                       </div>
+                    </div>
+                    {profileUser?.bio && (
+                       <p className="text-xs md:text-sm text-[var(--color-text-secondary)] font-medium max-w-lg leading-relaxed">
+                          {profileUser.bio}
+                       </p>
+                    )}
+                  </div>         <div className="flex items-center gap-3">
                             <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] md:tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
                             {profileUser?.age && (
                               <span className="text-[10px] font-bold text-[var(--color-text-secondary)] opacity-60">• {profileUser.age}y</span>

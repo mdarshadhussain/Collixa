@@ -28,6 +28,17 @@ import Badge from '@/components/Badge'
 import Button from '@/components/Button'
 import { notify } from '@/lib/utils'
 
+const getLevelLabel = (level: number) => {
+  const labels: Record<number, string> = {
+    1: 'Novice',
+    2: 'Contributor',
+    3: 'Collaborator',
+    4: 'Professional',
+    5: 'Master'
+  }
+  return labels[level] || 'Novice'
+}
+
 export default function IntentDetailPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -345,8 +356,12 @@ export default function IntentDetailPage() {
                         className="rounded-2xl shrink-0" 
                      />
                      <div>
-                        <p className="text-lg md:text-xl font-serif font-bold">{owner?.name}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">{owner?.email}</p>
+                        <p className="text-lg md:text-xl font-serif font-black tracking-tight">{owner?.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                           <div className="px-2 py-0.5 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-full">
+                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)]">Level {owner?.level || 1} • {getLevelLabel(owner?.level || 1)}</span>
+                           </div>
+                        </div>
                      </div>
                   </div>
                </motion.div>

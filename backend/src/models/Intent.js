@@ -11,7 +11,7 @@ const enrichIntentWithUser = async (intent) => {
     // Fetch user details
     const { data: user, error } = await getClient()
       .from('users')
-      .select('id, email, name, avatar_url')
+      .select('id, email, name, avatar_url, xp, level')
       .eq('id', intent.created_by)
       .single();
     

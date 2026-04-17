@@ -4,6 +4,7 @@ import UserModel from '../models/User.js';
 import CreditTransactionModel from '../models/CreditTransaction.js';
 import NotificationService from './NotificationService.js';
 import CreditService from './CreditService.js';
+import LevelService from './LevelService.js';
 
 export class SessionService {
   static async scheduleSession(userId, payload) {
@@ -127,6 +128,10 @@ export class SessionService {
       await CreditService.addCredits(teacher.id, 10, 'EARN', session.id);
 
       updates.status = 'COMPLETED';
+
+      // AWARD XP: Provider gets 150 XP for teaching a session
+      LevelService.awardXP(teacher.id, 150).catch(err => console.error('XP Award failure (Provider):', err));
+      // Optionally give some to the learner too? Let's just do provider for now per plan.
     }
 
     return await SessionModel.update(session.id, updates);
