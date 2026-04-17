@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus, GraduationCap, Building2, ExternalLink, ChevronRight, Globe } from 'lucide-react'
+import { Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus } from 'lucide-react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import BottomNav from '@/components/BottomNav'
@@ -39,7 +39,7 @@ export default function ProfilePage() {
   const searchParams = useSearchParams()
   const profileUid = searchParams.get('uid')
   const { user, isAuthenticated, loading: authLoading, token, refreshUser, updateUser } = useAuth()
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'intents' | 'skills' | 'reviews' | 'achievements'>('portfolio')
+  const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews' | 'achievements'>('intents')
   const [myIntents, setMyIntents] = useState<Intent[]>([])
   const [loadingIntents, setLoadingIntents] = useState(true)
   const [userSkills, setUserSkills] = useState<any[]>([])
@@ -52,10 +52,8 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [editForm, setEditForm] = useState({
     name: '',
-    title: '',
     bio: '',
     location: '',
-    portfolio_url: '',
     age: '',
     gender: ''
   })
@@ -102,15 +100,11 @@ export default function ProfilePage() {
     if (user) {
       setEditForm({
         name: user.name || '',
-        title: user.title || '',
         bio: user.bio || '',
         location: user.location || '',
-        portfolio_url: user.portfolio_url || '',
         age: user.age || '',
-        gender: user.gender || '',
-        education: user.education || [],
-        experience: user.experience || []
-      }) as any
+        gender: user.gender || ''
+      })
       const userAvatar = user.avatar_url ? (user.avatar_url.startsWith('http') ? user.avatar_url : storageService.getPublicUrl(user.avatar_url)) : null
       setAvatarPreview(userAvatar)
     }
@@ -227,28 +221,6 @@ export default function ProfilePage() {
     } finally {
       setLoadingIntents(false)
     }
-  }
-
-  const addItem = (field: 'education' | 'experience', defaultItem: any) => {
-    setEditForm(prev => ({
-      ...prev,
-      [field]: [...((prev as any)[field] || []), defaultItem]
-    }))
-  }
-
-  const removeItem = (field: 'education' | 'experience', index: number) => {
-    setEditForm(prev => ({
-      ...prev,
-      [field]: (prev as any)[field].filter((_: any, i: number) => i !== index)
-    }))
-  }
-
-  const updateItem = (field: 'education' | 'experience', index: number, updates: any) => {
-    setEditForm(prev => {
-      const newList = [...(prev as any)[field]]
-      newList[index] = { ...newList[index], ...updates }
-      return { ...prev, [field]: newList }
-    })
   }
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -416,26 +388,6 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="text-left">
-                      <label className="editorial-label">Professional Title</label>
-                      <input 
-                        type="text" 
-                        value={editForm.title} 
-                        onChange={(e) => setEditForm({...editForm, title: e.target.value})}
-                        className="editorial-input" 
-                        placeholder="e.g. Senior Software Architect"
-                      />
-                    </div>
-                    <div className="text-left">
-                      <label className="editorial-label">Digital Portfolio URL</label>
-                      <input 
-                        type="url" 
-                        value={editForm.portfolio_url} 
-                        onChange={(e) => setEditForm({...editForm, portfolio_url: e.target.value})}
-                        className="editorial-input" 
-                        placeholder="https://..."
-                      />
-                    </div>
-                    <div className="text-left">
                       <label className="editorial-label">Origin / Location</label>
                       <input 
                         type="text" 
@@ -480,57 +432,6 @@ export default function ProfilePage() {
                         className="editorial-textarea" 
                         placeholder="Tell the community about your goals..."
                       />
-                    </div>
-
-                    {/* EXPERIENCE EDITOR */}
-                    <div className="space-y-6 pt-6 border-t border-[var(--color-border)]">
-                      <div className="flex items-center justify-between">
-                        <label className="editorial-label !mb-0">Work Portfolio</label>
-                        <button 
-                          onClick={() => addItem('experience', { role: '', company: '', duration: '', description: '' })}
-                          className="px-4 py-2 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[9px] font-black uppercase rounded-full hover:bg-[var(--color-accent)] hover:text-white transition-all"
-                        >
-                          + Add Experience
-                        </button>
-                      </div>
-                      <div className="space-y-4">
-                        {(editForm as any).experience?.map((exp: any, i: number) => (
-                           <div key={i} className="bg-[var(--color-bg-primary)] p-5 rounded-2xl border border-[var(--color-border)] space-y-4 relative group">
-                              <button onClick={() => removeItem('experience', i)} className="absolute top-4 right-4 text-red-500 opacity-20 group-hover:opacity-100 transition-opacity"><X size={14}/></button>
-                              <div className="grid grid-cols-2 gap-4">
-                                 <input placeholder="Role (e.g. Lead Designer)" className="editorial-input" value={exp.role} onChange={e => updateItem('experience', i, { role: e.target.value })} />
-                                 <input placeholder="Company" className="editorial-input" value={exp.company} onChange={e => updateItem('experience', i, { company: e.target.value })} />
-                              </div>
-                              <input placeholder="Duration (e.g. 2021 - Present)" className="editorial-input" value={exp.duration} onChange={e => updateItem('experience', i, { duration: e.target.value })} />
-                              <textarea placeholder="Briefly describe your impact..." className="editorial-textarea !min-h-[80px]" value={exp.description} onChange={e => updateItem('experience', i, { description: e.target.value })} />
-                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* EDUCATION EDITOR */}
-                    <div className="space-y-6 pt-6 border-t border-[var(--color-border)]">
-                      <div className="flex items-center justify-between">
-                        <label className="editorial-label !mb-0">Academic Foundation</label>
-                        <button 
-                          onClick={() => addItem('education', { degree: '', school: '', year: '' })}
-                          className="px-4 py-2 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[9px] font-black uppercase rounded-full hover:bg-[var(--color-accent)] hover:text-white transition-all"
-                        >
-                          + Add Education
-                        </button>
-                      </div>
-                      <div className="space-y-4">
-                        {(editForm as any).education?.map((edu: any, i: number) => (
-                           <div key={i} className="bg-[var(--color-bg-primary)] p-5 rounded-2xl border border-[var(--color-border)] space-y-4 relative group">
-                              <button onClick={() => removeItem('education', i)} className="absolute top-4 right-4 text-red-500 opacity-20 group-hover:opacity-100 transition-opacity"><X size={14}/></button>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 <input placeholder="Degree (e.g. BSc Computer Science)" className="editorial-input" value={edu.degree} onChange={e => updateItem('education', i, { degree: e.target.value })} />
-                                 <input placeholder="Institution" className="editorial-input" value={edu.school} onChange={e => updateItem('education', i, { school: e.target.value })} />
-                              </div>
-                              <input placeholder="Year" className="editorial-input" value={edu.year} onChange={e => updateItem('education', i, { year: e.target.value })} />
-                           </div>
-                        ))}
-                      </div>
                     </div>
                   </div>
 
@@ -684,177 +585,27 @@ export default function ProfilePage() {
             </div>
           </div>
 
-            {/* Activity Area */}
-            <div className="flex flex-col space-y-10">
-              {/* Navigation Tabs */}
-              <div className="flex gap-4 sm:gap-6 border-b border-[var(--color-border)] overflow-x-auto no-scrollbar">
-                {[
-                  { id: 'portfolio', label: 'Portfolio' },
-                  { id: 'intents', label: 'Intents' },
-                  { id: 'skills', label: 'Expertise' },
-                  { id: 'reviews', label: 'Reviews' },
-                  { id: 'achievements', label: 'Honors' }
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`pb-4 px-2 text-[10px] font-black uppercase tracking-[0.25em] transition-all relative ${
-                      activeTab === tab.id
-                        ? 'text-[var(--color-accent)]'
-                        : 'text-[var(--color-text-secondary)] opacity-50 hover:opacity-100'
-                    }`}
-                  >
-                    {tab.label}
-                    {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent)]" />
-                    )}
-                  </button>
-                ))}
-              </div>
+          {/* Activity Area */}
+          <div className="flex flex-col space-y-10">
+            {/* Tabs */}
+            <div className="flex gap-3 sm:gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-3 sm:px-4 flex-wrap">
+              {['intents', 'skills', 'reviews', 'achievements', ...(isOwnProfile ? ['history'] : [])].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab as any)}
+                  className={`py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.32em] border-b-2 transition-all ${
+                    activeTab === tab
+                      ? 'text-[var(--color-accent)] border-[var(--color-accent)]'
+                      : 'text-[var(--color-text-secondary)] border-transparent hover:text-[var(--color-text-primary)]'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
             {/* Content Pane */}
             <div className="space-y-8 min-h-[500px]">
-              {activeTab === 'portfolio' && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  {/* LEFT: CV SIDEBAR (Vitals) */}
-                  <div className="lg:col-span-4 space-y-10">
-                    <section className="space-y-6">
-                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] opacity-60">Identity</p>
-                      <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 space-y-8 shadow-xl">
-                        <div className="flex flex-col items-center text-center space-y-5">
-                          <Avatar 
-                            name={profileUser?.name || 'User'} 
-                            src={profileUser?.avatar_url ? (profileUser.avatar_url.startsWith('http') ? profileUser.avatar_url : storageService.getPublicUrl(profileUser.avatar_url)) : undefined} 
-                            size="xl" 
-                            className="ring-4 ring-[var(--color-accent-soft)]" 
-                          />
-                          <div>
-                            <h2 className="text-3xl font-serif font-black tracking-tight">{profileUser?.name}</h2>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)] mt-1">{profileUser?.title || 'Community Member'}</p>
-                          </div>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            <div className="px-3 py-1 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-full">
-                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)]">Lvl {profileUser?.level || 1} • {getLevelLabel(profileUser?.level)}</span>
-                            </div>
-                            {profileUser?.is_verified && (
-                              <div className="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                <span className="text-[8px] font-black uppercase tracking-widest text-green-500">Verified</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-4 pt-4 border-t border-[var(--color-border)]/50">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Location</span>
-                            <span className="text-[10px] font-bold text-[var(--color-text-primary)]">{profileUser?.location || 'Unset'}</span>
-                          </div>
-                          {profileUser?.portfolio_url && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Digital Home</span>
-                              <a 
-                                href={profileUser.portfolio_url} 
-                                target="_blank" 
-                                className="text-[10px] font-bold text-[var(--color-accent)] hover:underline flex items-center gap-1"
-                              >
-                                Visit <Globe size={10} />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="pt-6">
-                          {isOwnProfile ? (
-                            <button 
-                              onClick={() => setIsEditing(true)}
-                              className="w-full py-4 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-accent)] transition-all flex items-center justify-center gap-2 shadow-xl"
-                            >
-                              <Edit2 size={14} /> Update Portfolio
-                            </button>
-                          ) : (
-                            <button 
-                              onClick={handleStartChat}
-                              className="w-full py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:shadow-2xl hover:shadow-[var(--color-accent)]/20 transition-all flex items-center justify-center gap-2 shadow-xl"
-                            >
-                              <MessageCircle size={14} /> Send Message
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-
-                  {/* RIGHT: PROFESSIONAL CHRONOLOGY */}
-                  <div className="lg:col-span-8 space-y-16">
-                    {/* BIO SECTION */}
-                    <section className="space-y-6">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] opacity-60">The Narrative</h3>
-                      <p className="text-xl md:text-2xl font-serif leading-relaxed text-[var(--color-text-primary)] italic">
-                        {profileUser?.bio ? `"${profileUser.bio}"` : '"Collective intelligence starts with individual intent."'}
-                      </p>
-                    </section>
-
-                    {/* EXPERIENCE TIMELINE */}
-                    <section className="space-y-10">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] opacity-60">Professional Arc</h3>
-                        {isOwnProfile && <button onClick={() => setIsEditing(true)} className="p-2 border border-[var(--color-border)] rounded-full hover:bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]"><Plus size={14}/></button>}
-                      </div>
-                      
-                      <div className="relative pl-8 border-l border-[var(--color-border)] space-y-12">
-                        {(profileUser?.experience && profileUser.experience.length > 0) ? (
-                          profileUser.experience.map((exp: any, i: number) => (
-                            <div key={i} className="relative">
-                              <div className="absolute -left-[41px] top-1 w-4 h-4 rounded-full bg-[var(--color-bg-primary)] border-4 border-[var(--color-accent)] shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.5)]" />
-                              <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)]">{exp.duration || 'Present'}</p>
-                                <h4 className="text-xl font-serif font-black">{exp.role}</h4>
-                                <div className="flex items-center gap-2 text-[var(--color-text-secondary)] font-bold uppercase text-[9px] tracking-widest">
-                                  <Building2 size={12} className="opacity-40" />
-                                  {exp.company}
-                                </div>
-                                <p className="text-xs text-[var(--color-text-secondary)] mt-4 leading-relaxed max-w-xl">{exp.description}</p>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-[var(--color-text-secondary)] opacity-40 italic text-sm">No professional experiences listed yet.</div>
-                        )}
-                      </div>
-                    </section>
-
-                    {/* EDUCATION TIMELINE */}
-                    <section className="space-y-10">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] opacity-60">Academic Foundation</h3>
-                        {isOwnProfile && <button onClick={() => setIsEditing(true)} className="p-2 border border-[var(--color-border)] rounded-full hover:bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]"><Plus size={14}/></button>}
-                      </div>
-                      
-                      <div className="relative pl-8 border-l border-[var(--color-border)] space-y-12">
-                        {(profileUser?.education && profileUser.education.length > 0) ? (
-                          profileUser.education.map((edu: any, i: number) => (
-                            <div key={i} className="relative">
-                              <div className="absolute -left-[41px] top-1 w-4 h-4 rounded-full bg-[var(--color-bg-primary)] border-4 border-white/20" />
-                              <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">{edu.year}</p>
-                                <h4 className="text-lg font-serif font-bold">{edu.degree}</h4>
-                                <div className="flex items-center gap-2 text-[var(--color-text-secondary)] font-medium text-[10px]">
-                                  <GraduationCap size={12} className="opacity-40" />
-                                  {edu.school}
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-[var(--color-text-secondary)] opacity-40 italic text-sm">Academic history is still being written.</div>
-                        )}
-                      </div>
-                    </section>
-                  </div>
-                </div>
-              )}
-
               {activeTab === 'intents' && (
                 <div className="grid grid-cols-1 gap-8">
                   {loadingIntents ? (
