@@ -629,8 +629,6 @@ export default function SkillsPage() {
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mt-4">Try adjusting your filters or search terms.</p>
             </div>
           )}
-        </main>
-      </div>
 
       <AddSkillModal 
         isOpen={isAddModalOpen} 
