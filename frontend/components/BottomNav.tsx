@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, MessageSquare, Briefcase } from 'lucide-react'
+import { LayoutDashboard, Users, MessageSquare, Briefcase, User } from 'lucide-react'
 
 const BottomNav = () => {
   const pathname = usePathname()
@@ -12,6 +12,7 @@ const BottomNav = () => {
     { name: 'Intents', href: '/collaborations', icon: Briefcase },
     { name: 'Tribes', href: '/skills', icon: Users },
     { name: 'Messages', href: '/chat', icon: MessageSquare },
+    { name: 'Profile', href: '/profile', icon: User },
   ]
 
   return (

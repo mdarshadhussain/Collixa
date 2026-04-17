@@ -5,9 +5,7 @@ import { motion } from 'framer-motion'
 import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import CustomDateTimePicker from '@/components/CustomDateTimePicker'
-import Header from '@/components/Header'
-import Sidebar from '@/components/Sidebar'
-import BottomNav from '@/components/BottomNav'
+import Layout from '@/components/Layout'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'
 import { skillService, sessionService, reviewService, conversationService } from '@/lib/supabase'
@@ -246,23 +244,17 @@ export default function SkillsPage() {
   }
 
   return (
-    <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen transition-colors duration-700 font-sans">
-      <Header />
-
-      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-8 py-5 md:py-8 gap-4 md:gap-8">
-        
-        <Sidebar />
-
-        <main className="flex-1 space-y-6 md:space-y-12 overflow-y-auto">
-          {feedback && (
-            <div className={`border rounded-xl px-4 py-3 text-[10px] font-semibold ${
+    <Layout>
+      <div className="space-y-6 md:space-y-12">
+        {feedback && (
+          <div className={`border rounded-xl px-4 py-3 text-[10px] font-semibold ${
               feedback.type === 'success'
                 ? 'bg-[var(--color-accent-soft)]/30 border-[var(--color-accent)]/30 text-[var(--color-text-primary)]'
                 : 'bg-red-500/10 border-red-500/30 text-red-500'
             }`}>
-              {feedback.text}
-            </div>
-          )}
+            {feedback.text}
+          </div>
+        )}
 
           {/* Editorial Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5">
@@ -764,7 +756,7 @@ export default function SkillsPage() {
           </div>
         </div>
       )}
-      <BottomNav />
-    </div>
+      </div>
+    </Layout>
   )
 }
