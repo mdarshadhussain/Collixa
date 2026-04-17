@@ -22,6 +22,10 @@ export interface User {
   credits?: number
   xp?: number
   level?: number
+  title?: string
+  portfolio_url?: string
+  education?: any[]
+  experience?: any[]
   is_verified?: boolean
   created_at?: string
   updated_at?: string
