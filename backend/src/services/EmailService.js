@@ -36,15 +36,23 @@ export class EmailService {
         },
       });
     } else if (emailProvider === 'sendgrid') {
-      // SendGrid configuration (requires sendgrid package)
-      const sgTransport = require('nodemailer-sendgrid-transport');
-      this.transporter = nodemailer.createTransport(
-        sgTransport({
-          auth: {
-            api_key: config.SENDGRID_API_KEY,
-          },
-        })
-      );
+      // SendGrid configuration (requires @sendgrid/mail package)
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(config.SENDGRID_API_KEY);
+      
+      // Create a mock nodemailer transporter that maps to sgMail
+      this.transporter = {
+        sendMail: async (mailOptions) => {
+          const msg = {
+            to: mailOptions.to,
+            from: mailOptions.from,
+            subject: mailOptions.subject,
+            html: mailOptions.html,
+          };
+          const response = await sgMail.send(msg);
+          return { messageId: response[0].headers['x-message-id'] || 'sendgrid-generated' };
+        }
+      };
     }
 
     return this.transporter;
