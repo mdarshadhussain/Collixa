@@ -91,14 +91,22 @@ export const initializeDatabase = async () => {
 
       CREATE TABLE IF NOT EXISTS session_reviews (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+        session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
+        intent_id INTEGER REFERENCES intents(id) ON DELETE CASCADE,
         reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
         comment TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(session_id, reviewer_id)
+        UNIQUE(session_id, reviewer_id),
+        UNIQUE(intent_id, reviewer_id)
       );
+
+      -- Migration for existing session_reviews if it was created without intent_id
+      ALTER TABLE session_reviews ALTER COLUMN session_id DROP NOT NULL;
+      ALTER TABLE session_reviews ADD COLUMN IF NOT EXISTS intent_id INTEGER REFERENCES intents(id) ON DELETE CASCADE;
+      ALTER TABLE session_reviews DROP CONSTRAINT IF EXISTS session_reviews_intent_id_reviewer_id_key;
+      ALTER TABLE session_reviews ADD CONSTRAINT session_reviews_intent_id_reviewer_id_key UNIQUE(intent_id, reviewer_id);
 
       CREATE INDEX IF NOT EXISTS idx_session_reviews_session_id ON session_reviews(session_id);
       CREATE INDEX IF NOT EXISTS idx_session_reviews_reviewee_id ON session_reviews(reviewee_id);
@@ -136,6 +144,15 @@ export const initializeDatabase = async () => {
         COUNT(id) as total_reviews
       FROM session_reviews
       GROUP BY reviewee_id;
+      -- Update intents table for 1-on-1 collaboration
+      ALTER TABLE intents ADD COLUMN IF NOT EXISTS collaborator_id UUID REFERENCES users(id);
+      ALTER TABLE intents ADD COLUMN IF NOT EXISTS creator_confirmed_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE intents ADD COLUMN IF NOT EXISTS collaborator_confirmed_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE intents ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE;
+      
+      -- Ensure intents status check constraint allows 'in_progress'
+      ALTER TABLE intents DROP CONSTRAINT IF EXISTS intents_status_check;
+      ALTER TABLE intents ADD CONSTRAINT intents_status_check CHECK (status IN ('pending', 'looking', 'in_progress', 'completed', 'rejected'));
     `;
 
     if (!supabaseAdmin) {

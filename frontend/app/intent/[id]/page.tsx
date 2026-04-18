@@ -27,6 +27,7 @@ import Avatar from '@/components/Avatar'
 import { motion } from 'framer-motion'
 import Badge from '@/components/Badge'
 import Button from '@/components/Button'
+import IntentReviewModal from '@/components/IntentReviewModal'
 import { notify } from '@/lib/utils'
 
 const getLevelLabel = (level: number) => {
@@ -52,6 +53,8 @@ export default function IntentDetailPage() {
   const [collaborator, setCollaborator] = useState<User | null>(null)
   const [requests, setRequests] = useState<any[]>([])
   const [isAccepting, setIsAccepting] = useState<string | null>(null)
+  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [hasReviewed, setHasReviewed] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -67,11 +70,28 @@ export default function IntentDetailPage() {
        }
        
        const ownerId = typeof intent.created_by === 'object' ? intent.created_by.id : intent.created_by
-       if (user.id === ownerId && intent.status === 'looking') {
-          fetchRequests()
-       }
+        if (user.id === ownerId && intent.status === 'looking') {
+           fetchRequests()
+        }
+        if (intent.status === 'completed') {
+           checkIfReviewed()
+        }
     }
   }, [intent, user])
+
+  const checkIfReviewed = async () => {
+    if (!user || !intent) return
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/reviews/user/${intent.collaborator_id || ''}`)
+      const data = await response.json()
+      if (data.success) {
+        const alreadyReviewed = data.data.some((r: any) => r.intent_id === intent.id && r.reviewer_id === user.id)
+        setHasReviewed(alreadyReviewed)
+      }
+    } catch (err) {
+      console.error('Failed to check review status:', err)
+    }
+  }
 
   const fetchCollaborator = async (collaboratorId: string) => {
      try {
@@ -153,6 +173,34 @@ export default function IntentDetailPage() {
       notify.error(err.message || "Failed to confirm completion")
     } finally {
       setIsConfirming(false)
+    }
+  }
+
+  const handleReviewSubmit = async (rating: number, comment: string) => {
+    if (!user || !intent) return
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          intentId: intent.id,
+          rating,
+          comment
+        })
+      })
+      const data = await response.json()
+      if (response.ok) {
+        notify.success("Testimonial recorded successfully!")
+        setHasReviewed(true)
+      } else {
+        notify.error(data.error || "Failed to submit feedback")
+      }
+    } catch (err) {
+      console.error(err)
+      notify.error("Connection error while submitting feedback")
     }
   }
 
@@ -401,7 +449,7 @@ export default function IntentDetailPage() {
                                            <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
                                               <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Collaboration Requests</p>
                                               <div className="space-y-3">
-                                                 {requests.filter((r: any) => r.status === 'PENDING').map((req: any) => (
+                                                 {requests.filter((r: any) => ['PENDING', 'ACCEPTED'].includes(r.status)).map((req: any) => (
                                                     <div key={req.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between group">
                                                        <div className="flex items-center gap-2">
                                                           <Avatar src={req.user?.avatar_url ? storageService.getPublicUrl(req.user.avatar_url) : undefined} name={req.user?.name} size="xs" />
@@ -478,15 +526,20 @@ export default function IntentDetailPage() {
                                     <p className="text-sm font-serif font-black text-green-500 uppercase tracking-widest">Connection Completed</p>
                                     <p className="text-[10px] opacity-70 mt-1 italic text-white/60">5 credits awarded to your vision.</p>
                                  </div>
-                                 {isParticipant && (
-                                   <Button 
-                                     variant="outline" 
-                                     className="text-[10px] border-white/20 text-white w-full"
-                                     onClick={() => router.push('/dashboard?tab=reviews')}
-                                   >
-                                     Leave Feedback
-                                   </Button>
-                                 )}
+                                  {isParticipant && !hasReviewed && (
+                                    <Button 
+                                      variant="outline" 
+                                      className="text-[10px] border-white/20 text-white w-full"
+                                      onClick={() => setShowReviewModal(true)}
+                                    >
+                                      Leave Feedback
+                                    </Button>
+                                  )}
+                                  {hasReviewed && (
+                                    <p className="text-[10px] font-black uppercase text-green-500/60 tracking-widest mt-2 flex items-center gap-1">
+                                      <CheckCircle2 size={12} /> Feedback Sent
+                                    </p>
+                                  )}
                               </div>
                             )}
                           </div>
@@ -496,6 +549,14 @@ export default function IntentDetailPage() {
                    {/* Aesthetic backgrounds */}
                    <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-[var(--color-accent)] opacity-10 rounded-full blur-3xl"></div>
                 </motion.div>
+
+                <IntentReviewModal 
+                  isOpen={showReviewModal}
+                  onClose={() => setShowReviewModal(false)}
+                  onSubmit={handleReviewSubmit}
+                  intentTitle={intent.title}
+                  partnerName={(isOwner ? collaborator?.name : owner?.name) || 'Partner'}
+                />
 
                 {/* Partner Card (If In Progress) */}
                 {intent.status !== 'looking' && collaborator && (

@@ -697,25 +697,34 @@ export default function ProfilePage() {
                         <div key={review.id} className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 rounded-2xl md:rounded-[2rem]">
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
-                              <Avatar name={review.reviewer_name} src={review.reviewer_avatar} size="sm" />
+                              <Avatar name={review.reviewer_name} src={review.reviewer_avatar ? (review.reviewer_avatar.startsWith('http') ? review.reviewer_avatar : storageService.getPublicUrl(review.reviewer_avatar)) : undefined} size="sm" />
                               <div>
                                  <p className="text-[10px] font-black uppercase tracking-widest">{review.reviewer_name}</p>
                                  <p className="text-[8px] text-[var(--color-text-secondary)]">{new Date(review.created_at).toLocaleDateString()}</p>
                               </div>
                             </div>
-                            <div className="flex gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <Star key={i} size={10} className={i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'} />
-                              ))}
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="flex gap-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star key={i} size={10} className={i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'} />
+                                ))}
+                              </div>
+                              <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${review.type === 'INTENT' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                {review.type || 'Review'}
+                              </span>
                             </div>
                           </div>
                           <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed bg-[var(--color-bg-primary)]/40 p-4 rounded-xl border border-[var(--color-border)]/30">
                             {review.comment || "Endorsed with a 5-star rating."}
                           </p>
-                          {review.skill_name && (
+                          {(review.skill_name || review.intent_title) && (
                             <div className="mt-3 flex items-center gap-2">
-                               <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Skill:</span>
-                               <span className="text-[8px] font-black uppercase text-[var(--color-accent)]">{review.skill_name}</span>
+                               <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">
+                                 {review.type === 'INTENT' ? 'Project:' : 'Skill:'}
+                               </span>
+                               <span className="text-[8px] font-black uppercase text-[var(--color-accent)]">
+                                 {review.intent_title || review.skill_name}
+                               </span>
                             </div>
                           )}
                         </div>

@@ -38,13 +38,27 @@ export class ReviewModel {
             id,
             skill:skills(name, category)
           )
+        ),
+        intent:intents(
+          id,
+          title,
+          category
         )
       `)
       .eq('reviewee_id', revieweeId)
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(`Failed to fetch reviews: ${error.message}`);
-    return data || [];
+    
+    // Map data to a flatter structure for frontend convenience
+    return (data || []).map(review => ({
+      ...review,
+      reviewer_name: review.reviewer?.name,
+      reviewer_avatar: review.reviewer?.avatar_url,
+      skill_name: review.session?.exchange?.skill?.name,
+      intent_title: review.intent?.title,
+      type: review.intent_id ? 'INTENT' : 'SESSION'
+    }));
   }
 }
 

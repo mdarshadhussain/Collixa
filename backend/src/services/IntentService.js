@@ -85,6 +85,24 @@ export class IntentService {
     intent.request_count = requests.length;
     intent.accepted_count = requests.filter(r => r.status === 'ACCEPTED').length;
 
+    // Attach collaborator info if it exists
+    if (intent.collaborator_id) {
+       try {
+         const userSelector = 'id, name, avatar_url, email, level';
+         const { data: collaborator, error: collabError } = await getClient()
+           .from('users')
+           .select(userSelector)
+           .eq('id', intent.collaborator_id)
+           .single();
+         
+         if (!collabError) {
+           intent.collaborator = collaborator;
+         }
+       } catch (err) {
+         console.error('Failed to enrich collaborator info:', err);
+       }
+    }
+
     return intent;
   }
 
@@ -393,11 +411,12 @@ export class IntentService {
     }
 
     // Verify user is intent creator
-    if (request.intent.created_by !== userId) {
+    const creatorId = typeof request.intent.created_by === 'object' ? request.intent.created_by.id : request.intent.created_by;
+    if (String(creatorId) !== String(userId)) {
       throw new Error('Not authorized to accept this request');
     }
 
-    if (request.status !== 'PENDING') {
+    if (request.status !== 'PENDING' && request.status !== 'ACCEPTED') {
       throw new Error(`Cannot accept a ${request.status} request`);
     }
 
