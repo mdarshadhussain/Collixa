@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 interface AvatarProps {
   name: string
   src?: string
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   className?: string
 }
 
@@ -21,6 +21,7 @@ export default function Avatar({
   const [imgError, setImgError] = useState(false)
 
   const sizes = {
+    xs: 'w-6 h-6 text-[8px]',
     sm: 'w-8 h-8 text-[10px]',
     md: 'w-10 h-10 text-xs',
     lg: 'w-14 h-14 text-sm',

@@ -132,7 +132,7 @@ export class IntentController {
   }
 
   /**
-   * Complete intent
+   * Complete intent (Dual confirmation)
    * PATCH /api/intents/:id/complete
    */
   static async completeIntent(req, res, next) {
@@ -140,18 +140,23 @@ export class IntentController {
       const { id } = req.params;
       const userId = req.user.id;
 
-      const intent = await IntentService.completeIntent(id, userId);
+      const intent = await IntentService.confirmCompletion(id, userId);
 
       return res.status(200).json({
-        message: 'Intent marked as completed',
+        message: intent.status === 'completed' 
+          ? 'Partnership successfully completed' 
+          : 'Completion confirmed. Waiting for partner signature.',
         data: intent,
       });
     } catch (error) {
       if (error.message === 'Intent not found') {
         return res.status(404).json({ error: 'Intent not found' });
       }
-      if (error.message.includes('Not authorized')) {
+      if (error.message.includes('Not authorized') || error.message.includes('Only participants')) {
         return res.status(403).json({ error: error.message });
+      }
+      if (error.message.includes('only be confirmed') || error.message.includes('already confirmed')) {
+        return res.status(400).json({ error: error.message });
       }
       next(error);
     }

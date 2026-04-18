@@ -19,8 +19,9 @@ import {
   CheckCircle2,
   Clock,
   Briefcase,
-  Settings,
-  Avatar as AvatarIcon
+  Avatar as AvatarIcon,
+  FileX2,
+  Settings
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import { motion } from 'framer-motion'
@@ -47,6 +48,10 @@ export default function IntentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isJoining, setIsJoining] = useState(false)
   const [hasRequested, setHasRequested] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [collaborator, setCollaborator] = useState<User | null>(null)
+  const [requests, setRequests] = useState<any[]>([])
+  const [isAccepting, setIsAccepting] = useState<string | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -57,8 +62,25 @@ export default function IntentDetailPage() {
   useEffect(() => {
     if (intent && user) {
        checkExistingRequest()
+       if (intent.collaborator_id) {
+          fetchCollaborator(intent.collaborator_id)
+       }
+       
+       const ownerId = typeof intent.created_by === 'object' ? intent.created_by.id : intent.created_by
+       if (user.id === ownerId && intent.status === 'looking') {
+          fetchRequests()
+       }
     }
   }, [intent, user])
+
+  const fetchCollaborator = async (collaboratorId: string) => {
+     try {
+        const data = await userService.getUser(collaboratorId)
+        setCollaborator(data)
+     } catch (err) {
+        console.error('Failed to fetch collaborator:', err)
+     }
+  }
 
   const fetchIntent = async () => {
     try {
@@ -82,6 +104,16 @@ export default function IntentDetailPage() {
      }
   }
 
+  const fetchRequests = async () => {
+    if (!id) return
+    try {
+      const data = await intentService.getCollaborationRequests(id as string)
+      setRequests(data)
+    } catch (err) {
+      console.error('Failed to fetch requests:', err)
+    }
+  }
+
   const handleJoinProject = async () => {
     if (!user || !intent) return
     try {
@@ -89,11 +121,38 @@ export default function IntentDetailPage() {
       await intentService.joinProject(intent.id as any, user.id)
       setHasRequested(true)
       notify.success("Joined successfully! You can now access the intent chat.")
-      router.push('/chat')
+      fetchIntent() // Refresh state
     } catch (err: any) {
       notify.error(err.message || "Failed to join intent")
     } finally {
       setIsJoining(false)
+    }
+  }
+
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      setIsAccepting(requestId)
+      const res = await intentService.acceptCollaborationRequest(requestId)
+      notify.success(res.message || "Request accepted!")
+      fetchIntent() 
+    } catch (err: any) {
+      notify.error(err.message || "Failed to accept request")
+    } finally {
+      setIsAccepting(null)
+    }
+  }
+
+  const handleConfirmCompletion = async () => {
+    if (!user || !intent) return
+    try {
+      setIsConfirming(true)
+      const res = await intentService.confirmCompletion(intent.id as any)
+      notify.success(res.message || "Completion confirmed")
+      fetchIntent() // Refresh for state change
+    } catch (err: any) {
+      notify.error(err.message || "Failed to confirm completion")
+    } finally {
+      setIsConfirming(false)
     }
   }
 
@@ -144,7 +203,13 @@ export default function IntentDetailPage() {
   }
 
   const owner = typeof intent.created_by === 'object' ? intent.created_by : null
-  const isOwner = user?.id === owner?.id
+  const ownerId = owner?.id || (typeof intent.created_by === 'string' ? intent.created_by : null)
+  const isOwner = user?.id === ownerId
+  const isCollaborator = user?.id === intent.collaborator_id
+  const isParticipant = !!user && (isOwner || isCollaborator)
+
+  const hasConfirmed = isOwner ? !!intent.creator_confirmed_at : !!intent.collaborator_confirmed_at
+  const partnerConfirmed = isOwner ? !!intent.collaborator_confirmed_at : !!intent.creator_confirmed_at
 
   return (
     <div className="flex h-screen bg-[var(--color-bg-primary)] overflow-hidden">
@@ -204,15 +269,17 @@ export default function IntentDetailPage() {
                          <p className="text-xs sm:text-sm font-bold">{intent.timeline || 'Flexible'}</p>
                       </div>
                    </div>
-                   <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
-                         <Briefcase size={18} />
-                      </div>
-                      <div>
-                         <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Status</p>
-                         <p className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[var(--color-accent)]">{intent.status}</p>
-                      </div>
-                   </div>
+                    <div className="flex items-center gap-3">
+                       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
+                          <Briefcase size={18} />
+                       </div>
+                       <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Status</p>
+                          <p className={`text-xs sm:text-sm font-bold uppercase tracking-widest ${intent.status === 'completed' ? 'text-green-500' : 'text-[var(--color-accent)]'}`}>
+                            {intent.status === 'in_progress' ? 'In Progress' : intent.status}
+                          </p>
+                       </div>
+                    </div>
                 </div>
               </motion.div>
 
@@ -267,7 +334,6 @@ export default function IntentDetailPage() {
                          <h3 className="text-2xl md:text-3xl font-serif font-bold italic underline decoration-[var(--color-accent)] decoration-2">Get Involved.</h3>
                       </div>
 
-                      <div className="space-y-4">
                         {/* GUEST VIEW */}
                         {!user && (
                           <Button 
@@ -280,65 +346,200 @@ export default function IntentDetailPage() {
                           </Button>
                         )}
 
-                        {/* COLLABORATOR VIEW (Logged in, Not Owner) */}
-                        {user && !isOwner && (
-                          <>
-                            <Button 
-                              variant="accent" 
-                              fullWidth 
-                              className="py-4 md:py-6 rounded-xl md:rounded-2xl shadow-lg w-full flex items-center justify-center gap-2"
-                              onClick={handleJoinProject}
-                              disabled={isJoining || hasRequested}
-                            >
-                              {isJoining ? (
-                                <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Joining...</span>
-                              ) : hasRequested ? (
-                                <span className="flex items-center gap-2"><CheckCircle2 size={16} /> Request Sent</span>
-                              ) : (
-                                <span className="flex items-center gap-2"><Plus size={16}/> Join Intent</span>
-                              )}
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              fullWidth 
-                              className="py-4 md:py-6 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-[var(--color-bg-secondary)]/10"
-                              onClick={handleChatWithOwner}
-                            >
-                              <span className="flex items-center gap-2"><MessageSquare size={16} /> Chat with Owner</span>
-                            </Button>
-                          </>
-                        )}
-                        
-                        {/* OWNER VIEW (Logged in, Is Owner) */}
-                        {user && isOwner && (
+                        {/* LOGGED IN VIEW */}
+                        {user && (
                           <div className="space-y-4">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-center opacity-70 mb-2">This is your intent</p>
-                            <Button 
-                              variant="accent" 
-                              fullWidth 
-                              className="py-4 md:py-6 rounded-xl md:rounded-2xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
-                              onClick={() => router.push('/chat')}
-                            >
-                               <MessageCircle size={16} />
-                               Open Intent Chat
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              fullWidth 
-                              className="py-3 md:py-4 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-[var(--color-bg-secondary)]/10 text-[9px] md:text-[10px] font-bold uppercase tracking-widest"
-                              onClick={() => router.push(`/create?id=${intent.id}`)}
-                            >
-                               <Settings size={16} />
-                               Edit Intent
-                            </Button>
+                            {/* PHASE: LOOKING */}
+                            {intent.status === 'looking' && (
+                               <div className="space-y-4">
+                                  {!isOwner ? (
+                                     <>
+                                        <Button 
+                                          variant="accent" 
+                                          fullWidth 
+                                          className="py-4 md:py-6 rounded-xl md:rounded-2xl shadow-lg w-full flex items-center justify-center gap-2"
+                                          onClick={handleJoinProject}
+                                          disabled={isJoining || hasRequested}
+                                        >
+                                          {isJoining ? (
+                                            <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Joining...</span>
+                                          ) : hasRequested ? (
+                                            <span className="flex items-center gap-2"><CheckCircle2 size={16} /> Request Sent</span>
+                                          ) : (
+                                            <span className="flex items-center gap-2"><Plus size={16}/> Join Intent</span>
+                                          )}
+                                        </Button>
+                                        <Button 
+                                          variant="outline" 
+                                          fullWidth 
+                                          className="py-4 md:py-6 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/5"
+                                          onClick={handleChatWithOwner}
+                                        >
+                                          <span className="flex items-center gap-2"><MessageSquare size={16} /> Chat with Owner</span>
+                                        </Button>
+                                     </>
+                                  ) : (
+                                     <>
+                                        <Button 
+                                          variant="accent" 
+                                          fullWidth 
+                                          className="py-4 md:py-6 rounded-xl md:rounded-2xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
+                                          onClick={() => router.push('/chat')}
+                                        >
+                                           <span className="flex items-center gap-2"><MessageCircle size={16} /> Open Intent Chat</span>
+                                        </Button>
+                                        <Button 
+                                          variant="outline" 
+                                          fullWidth 
+                                          className="py-3 md:py-4 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/5 text-[9px] md:text-[10px] font-bold uppercase tracking-widest"
+                                          onClick={() => router.push(`/create?id=${intent.id}`)}
+                                        >
+                                           <span className="flex items-center gap-2"><Settings size={16} /> Edit Intent</span>
+                                        </Button>
+
+                                        {requests.length > 0 && (
+                                           <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
+                                              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Collaboration Requests</p>
+                                              <div className="space-y-3">
+                                                 {requests.filter((r: any) => r.status === 'PENDING').map((req: any) => (
+                                                    <div key={req.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between group">
+                                                       <div className="flex items-center gap-2">
+                                                          <Avatar src={req.user?.avatar_url ? storageService.getPublicUrl(req.user.avatar_url) : undefined} name={req.user?.name} size="xs" />
+                                                          <span className="text-xs font-bold truncate max-w-[100px] text-white">{req.user?.name}</span>
+                                                       </div>
+                                                       <Button 
+                                                         variant="accent" 
+                                                         className="h-7 text-[8px] font-black uppercase tracking-widest px-3 bg-[var(--color-accent)] text-black hover:scale-105 transition-transform"
+                                                         onClick={() => handleAcceptRequest(req.id)}
+                                                         disabled={!!isAccepting}
+                                                       >
+                                                         {isAccepting === req.id ? 'Wait' : 'Accept'}
+                                                       </Button>
+                                                    </div>
+                                                 ))}
+                                              </div>
+                                           </div>
+                                        )}
+                                     </>
+                                  )}
+                               </div>
+                            )}
+
+                            {/* PHASE: IN PROGRESS */}
+                            {intent.status === 'in_progress' && (
+                               <div className="space-y-4">
+                                  {isParticipant ? (
+                                     <>
+                                        <Button 
+                                          variant="accent" 
+                                          fullWidth 
+                                          className={`py-4 md:py-6 rounded-xl md:rounded-2xl shadow-lg border-2 ${hasConfirmed ? 'border-green-500 bg-green-500/10' : 'border-transparent'}`}
+                                          onClick={handleConfirmCompletion}
+                                          disabled={isConfirming || hasConfirmed}
+                                        >
+                                          {isConfirming ? (
+                                            <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Confirming...</span>
+                                          ) : hasConfirmed ? (
+                                            <span className="flex items-center gap-2 text-green-500"><CheckCircle2 size={16} /> Waiting for Partner</span>
+                                          ) : (
+                                            <span className="flex items-center gap-2"><CheckCircle2 size={16} /> Mark as Finished</span>
+                                          )}
+                                        </Button>
+                                        <Button 
+                                          variant="accent"
+                                          fullWidth 
+                                          className="py-4 md:py-6 rounded-xl md:rounded-2xl"
+                                          onClick={() => router.push('/chat')}
+                                        >
+                                          <span className="flex items-center gap-2"><MessageSquare size={16} /> Open Project Chat</span>
+                                        </Button>
+                                        {partnerConfirmed && !hasConfirmed && (
+                                           <p className="text-[10px] text-center font-bold text-green-400 animate-pulse uppercase tracking-widest mt-2">
+                                             Partner has signed off!
+                                           </p>
+                                        )}
+                                     </>
+                                  ) : (
+                                     <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Status</p>
+                                        <p className="text-sm font-serif font-black text-[var(--color-accent)] mt-1">IN PROGRESS</p>
+                                     </div>
+                                  )}
+                               </div>
+                            )}
+
+                            {/* PHASE: COMPLETED */}
+                            {intent.status === 'completed' && (
+                              <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-2xl flex flex-col items-center gap-4">
+                                 <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-green-500/40">
+                                    <CheckCircle2 size={24} />
+                                 </div>
+                                 <div className="text-center">
+                                    <p className="text-sm font-serif font-black text-green-500 uppercase tracking-widest">Connection Completed</p>
+                                    <p className="text-[10px] opacity-70 mt-1 italic text-white/60">5 credits awarded to your vision.</p>
+                                 </div>
+                                 {isParticipant && (
+                                   <Button 
+                                     variant="outline" 
+                                     className="text-[10px] border-white/20 text-white w-full"
+                                     onClick={() => router.push('/dashboard?tab=reviews')}
+                                   >
+                                     Leave Feedback
+                                   </Button>
+                                 )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                   </div>
 
                    {/* Aesthetic backgrounds */}
                    <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-[var(--color-accent)] opacity-10 rounded-full blur-3xl"></div>
                 </motion.div>
+
+                {/* Partner Card (If In Progress) */}
+                {intent.status !== 'looking' && collaborator && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="p-4 sm:p-6 md:p-10 bg-[var(--color-accent-soft)]/30 border border-[var(--color-accent)]/20 rounded-2xl md:rounded-[2.5rem] relative overflow-hidden group"
+                  >
+                     <div className="absolute top-0 right-0 p-4">
+                        <Badge variant="outline" className="border-[var(--color-accent)]/30 text-[var(--color-accent)]">Partner</Badge>
+                     </div>
+                     <h4 className="text-[9px] font-black uppercase tracking-[0.28em] md:tracking-[0.4em] text-[var(--color-text-secondary)] mb-5 md:mb-8">Collaborating With</h4>
+                     <div className="flex items-center gap-4">
+                        <Avatar 
+                           name={collaborator.name} 
+                           src={collaborator.avatar_url ? storageService.getPublicUrl(collaborator.avatar_url) : undefined} 
+                           size="lg" 
+                           className="rounded-2xl shrink-0 border-2 border-[var(--color-accent)]/20" 
+                        />
+                        <div>
+                           <p className="text-lg md:text-xl font-serif font-black tracking-tight">{collaborator.name}</p>
+                           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-accent)] mt-1">{collaborator.title || 'Collaborator'}</p>
+                        </div>
+                     </div>
+                     
+                     {intent.status === 'in_progress' && (
+                        <div className="mt-8 pt-6 border-t border-[var(--color-accent)]/10 flex items-center justify-between">
+                           <div className="flex items-center gap-2 text-[var(--color-accent)]">
+                              <div className={`w-2 h-2 rounded-full ${partnerConfirmed ? 'bg-green-500' : 'bg-[var(--color-accent)] animate-pulse'}`} />
+                              <span className="text-[9px] font-black uppercase tracking-widest opacity-70">
+                                {partnerConfirmed ? 'Partner Ready' : 'Focusing...'}
+                              </span>
+                           </div>
+                           <Button 
+                             variant="outline" 
+                             className="text-[8px] h-8 border-[var(--color-accent)]/20 text-[var(--color-accent)]"
+                             onClick={() => router.push(`/chat`)}
+                           >
+                             Message
+                           </Button>
+                        </div>
+                     )}
+                  </motion.div>
+                )}
 
                {/* Owner Card */}
                <motion.div 

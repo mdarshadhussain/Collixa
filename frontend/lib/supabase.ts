@@ -37,6 +37,9 @@ export interface Intent {
   budget?: string
   timeline?: string
   goal?: string
+  collaborator_id?: string
+  creator_confirmed_at?: string
+  collaborator_confirmed_at?: string
   created_by: string | { id: string; name: string; email: string; avatar_url?: string }
   created_at?: string
   updated_at?: string
@@ -303,26 +306,68 @@ export const intentService = {
     return true
   },
 
-  // Filter intents
-  async filterIntents(status?: string, category?: string): Promise<Intent[]> {
-    let query = supabase.from('intents').select()
+  // Confirm completion of an intent
+  async confirmCompletion(intentId: string | number): Promise<any> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/intents/${intentId}/complete`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      })
 
-    if (status) {
-      query = query.eq('status', status)
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to confirm completion')
+      }
+
+      return await response.json()
+    } catch (err) {
+      console.error('Error confirming completion:', err)
+      throw err
     }
+  },
 
-    if (category) {
-      query = query.eq('category', category)
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error filtering intents:', error)
+  // Get collaboration requests for an intent
+  async getCollaborationRequests(intentId: string | number): Promise<any[]> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/intents/${intentId}/requests`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+      return data.data || []
+    } catch (err) {
+      console.error('Error fetching collaboration requests:', err)
       return []
     }
+  },
 
-    return data as Intent[]
+  // Accept a collaboration request
+  async acceptCollaborationRequest(requestId: string | number): Promise<any> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/intents/requests/${requestId}/accept`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to accept request')
+      }
+
+      return await response.json()
+    } catch (err) {
+      console.error('Error accepting request:', err)
+      throw err
+    }
   },
 }
 

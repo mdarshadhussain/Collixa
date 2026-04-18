@@ -374,6 +374,37 @@ export class AdminController {
   }
 
   /**
+   * Force complete an intent (Admin override)
+   */
+  static async forceCompleteIntent(req, res, next) {
+    try {
+      const { id } = req.params;
+      const client = getClient();
+
+      const { data, error } = await client
+        .from('intents')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        message: 'Intent force-completed by admin',
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get all tribes/skills
    */
   static async getAllTribes(req, res, next) {

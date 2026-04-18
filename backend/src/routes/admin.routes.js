@@ -22,6 +22,7 @@ router.patch('/users/:id/unban', AdminController.unbanUser);
 router.get('/intents', AdminController.getAllIntents);
 router.get('/intents/:id', AdminController.getIntentById);
 router.patch('/intents/:id', AdminController.updateIntent);
+router.patch('/intents/:id/complete', AdminController.forceCompleteIntent);
 router.delete('/intents/:id', AdminController.deleteIntent);
 
 // Skill/Tribe management
