@@ -99,7 +99,7 @@ export default function SkillExchangeModal({ isOpen, onClose, onSuccess, skill }
             <button
               disabled={loading}
               type="submit"
-              className="w-full py-6 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] rounded-[1.5rem] hover:bg-[var(--color-accent)] transition-all shadow-xl flex items-center justify-center gap-4 disabled:opacity-40"
+              className="w-full py-6 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.4em] rounded-[1.5rem] hover:bg-[var(--color-accent)] transition-all shadow-xl flex items-center justify-center gap-4 disabled:opacity-40"
             >
               {loading ? (
                 <div className="h-4 w-4 border-2 border-[var(--color-bg-primary)] border-t-transparent animate-spin rounded-full" />

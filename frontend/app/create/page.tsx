@@ -35,6 +35,7 @@ import CustomDatePicker from '@/components/CustomDatePicker'
 import { useAuth } from '@/app/context/AuthContext'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
+import BottomNav from '@/components/BottomNav'
 import { storageService } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import Badge from '@/components/Badge'
@@ -464,6 +465,7 @@ function CreateIntentContent() {
           </div>
         </main>
       </div>
+      <BottomNav />
     </div>
   )
 }

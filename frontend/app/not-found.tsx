@@ -1,47 +1,63 @@
 'use client'
 
 import Link from 'next/link'
-import { Home, AlertCircle } from 'lucide-react'
-import Button from '@/components/Button'
+import { Home, Sparkles, ArrowRight } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function NotFoundPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center">
-        <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 bg-sage-light dark:bg-sage-dark rounded-full flex items-center justify-center">
-            <AlertCircle size={40} className="text-sage-dark dark:text-sage-light" />
-          </div>
-        </div>
+    <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center p-6 lg:p-12 font-sans overflow-hidden relative">
+      {/* Abstract Background Elements */}
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[var(--color-accent)] rounded-full blur-[160px] opacity-10 pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-blue-500 rounded-full blur-[160px] opacity-10 pointer-events-none" />
 
-        <h1 className="text-6xl font-bold text-gray-900 dark:text-white mb-2">404</h1>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Page Not Found</h2>
+      <div className="relative z-10 max-w-2xl w-full flex flex-col items-center text-center space-y-12">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative inline-flex"
+        >
+           <h1 className="text-[120px] md:text-[180px] font-serif font-black tracking-tighter text-[var(--color-text-primary)] leading-none select-none drop-shadow-2xl">
+             4<span className="italic font-light text-[var(--color-accent)]">0</span>4
+           </h1>
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
+             <span className="px-6 py-2 bg-[var(--color-bg-secondary)]/80 backdrop-blur-md rounded-full border border-[var(--color-border)] text-xs font-black uppercase tracking-[0.4em] shadow-xl text-[var(--color-text-secondary)]">
+               Sector Uncharted
+             </span>
+           </div>
+        </motion.div>
 
-        <p className="text-gray-600 dark:text-gray-400 mb-8">
-          Sorry, the page you&apos;re looking for doesn&apos;t exist in Collixa. It might have been moved or deleted.
-        </p>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="space-y-4"
+        >
+          <h2 className="text-3xl md:text-5xl font-serif font-black tracking-tighter text-[var(--color-text-primary)]">The page vanished.</h2>
+          <p className="text-[var(--color-text-secondary)] font-medium max-w-md mx-auto leading-relaxed">
+            We couldn't locate the intent you're searching for. It might have been archived, moved, or restricted.
+          </p>
+        </motion.div>
 
-        <Link href="/">
-          <Button variant="primary" size="lg" fullWidth>
-            <Home size={20} />
-            Back to Home
-          </Button>
-        </Link>
-
-        <div className="mt-8 grid grid-cols-2 gap-4">
-          <Link href="/dashboard">
-            <button className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-center w-full">
-              <p className="font-medium text-gray-900 dark:text-white">Dashboard</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">View projects</p>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="flex flex-col sm:flex-row gap-4 w-full justify-center max-w-lg mx-auto"
+        >
+          <Link href="/" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-3 py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-[1.02] transition-transform shadow-lg shadow-[var(--color-accent)]/20">
+              <Home size={16} /> Return to Base
             </button>
           </Link>
-          <Link href="/skills">
-            <button className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-center w-full">
-              <p className="font-medium text-gray-900 dark:text-white">Skills</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Find collaborators</p>
+          <Link href="/dashboard" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-3 py-4 bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-[var(--color-accent-soft)]/20 hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/50 transition-all group">
+              <Sparkles size={16} className="text-[var(--color-accent)]" /> 
+              Enter Hub <ArrowRight size={14} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
             </button>
           </Link>
-        </div>
+        </motion.div>
       </div>
     </div>
   )

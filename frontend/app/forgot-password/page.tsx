@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--color-bg-secondary)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-gray-100 rounded-lg p-8 shadow-subtle">
+        <div className="bg-[var(--color-bg-secondary)] border border-gray-100 rounded-lg p-8 shadow-subtle">
           {success ? (
             <div className="text-center space-y-4">
               <div className="flex justify-center">

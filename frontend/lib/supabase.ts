@@ -13,13 +13,18 @@ export interface User {
   id: string
   name: string
   email: string
+  role?: string
   title?: string
   location?: string
   bio?: string
   avatar_url?: string
   hourly_rate?: number
-  created_at?: string
   credits?: number
+  xp?: number
+  level?: number
+  is_verified?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Intent {
@@ -51,6 +56,7 @@ export interface Conversation {
   participant_1?: string
   participant_2?: string
   type: 'DIRECT' | 'GROUP'
+  status?: 'PENDING' | 'ACCEPTED'
   title?: string
   admin_id?: string
   intent_id?: number
@@ -60,6 +66,22 @@ export interface Conversation {
 
 // User Functions
 export const userService = {
+  // Get user by email
+  async getUserByEmail(email: string): Promise<User | null> {
+    const { data, error } = await supabase
+      .from('users')
+      .select()
+      .eq('email', email)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Error fetching user by email:', error)
+      return null
+    }
+
+    return data as User
+  },
+
   // Get user by ID
   async getUser(id: string): Promise<User | null> {
     const { data, error } = await supabase
@@ -441,13 +463,14 @@ export const conversationService = {
 
     if (existing) return existing as Conversation
 
-    // Create new
+    // Create new with PENDING status. The creator is inherently participant_1 here.
     const { data, error } = await supabase
       .from('conversations')
       .insert([{
         participant_1: user1,
         participant_2: user2,
-        type: 'DIRECT'
+        type: 'DIRECT',
+        status: 'PENDING'
       }])
       .select()
       .single()
@@ -501,6 +524,64 @@ export const conversationService = {
     }
 
     return data as Conversation
+  },
+
+  // Leave a conversation (removes from mapped participants but preserves chat)
+  async leaveConversation(conversationId: number, userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('conversation_participants')
+      .delete()
+      .match({ conversation_id: conversationId, user_id: userId })
+
+    if (error) {
+      console.error('Error leaving conversation:', error)
+      return false
+    }
+
+    return true
+  },
+
+  // Accept a chat request
+  async acceptMessageRequest(conversationId: number): Promise<boolean> {
+    const { error } = await supabase
+      .from('conversations')
+      .update({ status: 'ACCEPTED' })
+      .eq('id', conversationId)
+      
+    return !error
+  },
+
+  // Clear all messages in a conversation
+  async clearChat(conversationId: number): Promise<boolean> {
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('conversation_id', conversationId)
+
+    if (error) {
+      console.error('Error clearing chat:', error)
+      return false
+    }
+
+    // Also reset last_message to make it reflect empty state
+    await this.updateConversation(conversationId, { last_message: '' })
+    
+    return true
+  },
+
+  // Delete an entire conversation
+  async deleteConversation(conversationId: number): Promise<boolean> {
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', conversationId)
+
+    if (error) {
+      console.error('Error deleting conversation:', error)
+      return false
+    }
+
+    return true
   },
 }
 

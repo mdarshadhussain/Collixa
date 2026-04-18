@@ -11,7 +11,7 @@ const enrichIntentWithUser = async (intent) => {
     // Fetch user details
     const { data: user, error } = await getClient()
       .from('users')
-      .select('id, email, name, avatar_url')
+      .select('id, email, name, avatar_url, xp, level')
       .eq('id', intent.created_by)
       .single();
     
@@ -61,6 +61,7 @@ export class IntentModel {
     const { data, error } = await getClient()
       .from('intents')
       .select(`*`)
+      .neq('status', 'pending')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -135,7 +136,7 @@ export class IntentModel {
       query = query.eq('status', filters.status);
     }
 
-    query = query.order('created_at', { ascending: false });
+    query = query.neq('status', 'pending').order('created_at', { ascending: false });
 
     const { data, error } = await query;
 

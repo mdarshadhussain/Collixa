@@ -160,7 +160,7 @@ function AuthContent() {
             </div>
 
             {/* Mode Switcher */}
-            <div className="flex gap-2 mb-8 bg-white p-1.5 rounded-2xl border border-[#EBEBEB] shadow-sm">
+            <div className="flex gap-2 mb-8 bg-[var(--color-bg-secondary)] p-1.5 rounded-2xl border border-[#EBEBEB] shadow-sm">
               <button
                 onClick={() => handleModeToggle(true)}
                 className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
@@ -206,7 +206,7 @@ function AuthContent() {
                     onChange={handleChange}
                     error={errors.name}
                     icon={<User size={16} className="opacity-30" />}
-                    className="w-full px-6 py-3.5 bg-white border border-[#EBEBEB] rounded-full text-xs font-semibold focus:border-[#FF85BB] focus:ring-1 focus:ring-[#FF85BB]/20 outline-none transition-all"
+                    className="w-full px-6 py-3.5 bg-[var(--color-bg-secondary)] border border-[#EBEBEB] rounded-full text-xs font-semibold focus:border-[#FF85BB] focus:ring-1 focus:ring-[#FF85BB]/20 outline-none transition-all"
                    />
                 </motion.div>
               )}
@@ -227,7 +227,7 @@ function AuthContent() {
                       onChange={handleChange}
                       error={errors.email}
                       icon={<Mail size={16} className="opacity-30" />}
-                      className="w-full px-6 py-3.5 bg-white border border-[#EBEBEB] rounded-full text-xs font-semibold focus:border-[#FF85BB] focus:ring-1 focus:ring-[#FF85BB]/20 outline-none transition-all"
+                      className="w-full px-6 py-3.5 bg-[var(--color-bg-secondary)] border border-[#EBEBEB] rounded-full text-xs font-semibold focus:border-[#FF85BB] focus:ring-1 focus:ring-[#FF85BB]/20 outline-none transition-all"
                      />
                   </motion.div>
 
@@ -246,7 +246,7 @@ function AuthContent() {
                       onChange={handleChange}
                       error={errors.password}
                       icon={<Lock size={16} className="opacity-30" />}
-                      className="w-full px-6 py-3.5 bg-white border border-[#EBEBEB] rounded-full text-xs font-semibold focus:border-[#FF85BB] focus:ring-1 focus:ring-[#FF85BB]/20 outline-none transition-all"
+                      className="w-full px-6 py-3.5 bg-[var(--color-bg-secondary)] border border-[#EBEBEB] rounded-full text-xs font-semibold focus:border-[#FF85BB] focus:ring-1 focus:ring-[#FF85BB]/20 outline-none transition-all"
                      />
                   </motion.div>
                </div>
@@ -267,7 +267,7 @@ function AuthContent() {
                      onChange={handleChange}
                      error={errors.confirmPassword}
                      icon={<Lock size={16} className="opacity-30" />}
-                     className="w-full px-6 py-3.5 bg-white border border-[#EBEBEB] rounded-full text-xs font-semibold focus:border-[#FF85BB] focus:ring-1 focus:ring-[#FF85BB]/20 outline-none transition-all"
+                     className="w-full px-6 py-3.5 bg-[var(--color-bg-secondary)] border border-[#EBEBEB] rounded-full text-xs font-semibold focus:border-[#FF85BB] focus:ring-1 focus:ring-[#FF85BB]/20 outline-none transition-all"
                     />
                  </motion.div>
                )}
@@ -320,7 +320,7 @@ function AuthContent() {
                     const { error } = await loginWithGoogle()
                     if (error) setApiError(error)
                   }}
-                  className="flex items-center justify-center gap-3 py-3 bg-white border border-[#EBEBEB] rounded-2xl hover:border-[#FF85BB] hover:shadow-xl hover:shadow-[#FF85BB]/5 transition-all group active:scale-95 disabled:opacity-50"
+                  className="flex items-center justify-center gap-3 py-3 bg-[var(--color-bg-secondary)] border border-[#EBEBEB] rounded-2xl hover:border-[#FF85BB] hover:shadow-xl hover:shadow-[#FF85BB]/5 transition-all group active:scale-95 disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 size={16} className="animate-spin text-[#021A54]" />
@@ -343,7 +343,7 @@ function AuthContent() {
                     const { error } = await loginWithFacebook()
                     if (error) setApiError(error)
                   }}
-                  className="flex items-center justify-center gap-3 py-3 bg-white border border-[#EBEBEB] rounded-2xl hover:border-[#FF85BB] hover:shadow-xl hover:shadow-[#FF85BB]/5 transition-all group active:scale-95 disabled:opacity-50"
+                  className="flex items-center justify-center gap-3 py-3 bg-[var(--color-bg-secondary)] border border-[#EBEBEB] rounded-2xl hover:border-[#FF85BB] hover:shadow-xl hover:shadow-[#FF85BB]/5 transition-all group active:scale-95 disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 size={20} className="animate-spin text-[#1877F2]" />

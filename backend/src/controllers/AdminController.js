@@ -318,7 +318,7 @@ export class AdminController {
   static async updateIntent(req, res, next) {
     try {
       const { id } = req.params;
-      const { title, description, category, location, status } = req.body;
+      const { title, description, category, location, status, rejection_reason } = req.body;
       const client = getClient();
 
       const updates = {};
@@ -327,6 +327,7 @@ export class AdminController {
       if (category !== undefined) updates.category = category;
       if (location !== undefined) updates.location = location;
       if (status !== undefined) updates.status = status;
+      if (rejection_reason !== undefined) updates.rejection_reason = rejection_reason;
       updates.updated_at = new Date().toISOString();
 
       const { data: intent, error } = await client
@@ -428,7 +429,7 @@ export class AdminController {
   static async updateTribe(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, description, category, hourly_rate } = req.body;
+      const { name, description, category, hourly_rate, status } = req.body;
       const client = getClient();
 
       const updateData = {};
@@ -436,6 +437,7 @@ export class AdminController {
       if (description !== undefined) updateData.description = description;
       if (category !== undefined) updateData.category = category;
       if (hourly_rate !== undefined) updateData.hourly_rate = hourly_rate;
+      if (status !== undefined) updateData.status = status;
 
       const { data, error } = await client
         .from('skills')

@@ -145,7 +145,7 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
           <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Share Credits</h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-lg transition-all"
+            className="p-2 hover:bg-[var(--color-bg-secondary)]/5 rounded-lg transition-all"
           >
             <X size={20} className="text-[var(--color-text-secondary)]" />
           </button>

@@ -49,7 +49,7 @@ export default function RewardsPage() {
   }
 
   if (!user) {
-    if (typeof window !== 'undefined') router.push('/login')
+    if (typeof window !== 'undefined') router.push('/auth')
     return null
   }
 
@@ -58,71 +58,61 @@ export default function RewardsPage() {
       <div className="max-w-[1400px] mx-auto space-y-24 pb-32">
         
         {/* ─── PREMIUM HERO ─── */}
-        <section className="relative h-[600px] rounded-[3rem] overflow-hidden group border border-[var(--color-border)] shadow-2xl">
-           <div className="absolute inset-0 z-0">
-              <img 
-                src="/rewards_hero_crystal_1776256116363.png" 
-                className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105" 
-                alt="Rewards Hero"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg-primary)] via-transparent to-transparent opacity-90" />
-              <div className="absolute inset-0 bg-black/40" />
+        <section className="relative rounded-[3rem] overflow-hidden group border border-[var(--color-border)] shadow-md shadow-black/5 bg-[var(--color-bg-secondary)] flex flex-col justify-center p-12 md:p-16 xl:p-20 space-y-8">
+           <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-bg-secondary)] via-[var(--color-bg-primary)] to-[var(--color-accent)]/10" />
+           
+           <div className="relative z-10 space-y-4">
+             <motion.div 
+               initial={{ opacity: 0, x: -20 }}
+               animate={{ opacity: 1, x: 0 }}
+               className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-[var(--color-accent)] text-[var(--color-inverse-text)] shadow-lg shadow-[var(--color-accent)]/20"
+             >
+               <Trophy size={14} />
+               <span className="text-[10px] font-black uppercase tracking-[0.2em]">Platform Excellence</span>
+             </motion.div>
+             
+             <h1 className="text-5xl md:text-7xl font-serif font-black tracking-tighter leading-tight text-[var(--color-text-primary)]">
+               Achieve <span className="italic font-light text-[var(--color-accent)]"> greatness.</span>
+             </h1>
+             
+             <p className="text-lg text-[var(--color-text-secondary)] font-medium max-w-lg leading-relaxed">
+               Every interaction counts toward your digital legacy. Secure rewards, build reputation, and unlock the future.
+             </p>
            </div>
 
-           <div className="relative z-10 h-full flex flex-col justify-end p-12 md:p-20 space-y-6">
-              <div className="space-y-4">
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="inline-flex items-center gap-3 px-4 py-1 rounded-full bg-[var(--color-accent)] text-black"
-                >
-                  <Trophy size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Platform Excellence</span>
-                </motion.div>
-                
-                <h1 className="text-5xl md:text-7xl font-serif font-black tracking-tighter leading-tight text-white">
-                  Achieve <span className="italic font-light text-[var(--color-accent)]"> greatness.</span>
-                </h1>
-                
-                <p className="text-lg text-white/70 font-medium max-w-lg leading-relaxed">
-                  Every interaction counts toward your digital legacy. Secure rewards, build reputation, and unlock the future.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
-                {[
-                  { label: 'Platform Rank', value: 'Explorer', icon: Globe },
-                  { label: 'Credits Balance', value: user.credits ?? 0, icon: Star },
-                  { label: 'Engagement', value: 'High', icon: Zap },
-                  { label: 'Status', value: 'Verified', icon: Shield },
-                ].map((stat) => (
-                  <div key={stat.label} className="bg-white/10 backdrop-blur-xl border border-white/10 p-5 rounded-3xl hover:bg-white/20 transition-all">
-                    <stat.icon size={16} className="text-[var(--color-accent)] mb-3" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mb-1">{stat.label}</p>
-                    <h3 className="text-2xl font-black text-white">{stat.value}</h3>
-                  </div>
-                ))}
-              </div>
+           <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
+             {[
+               { label: 'Platform Rank', value: 'Explorer', icon: Globe },
+               { label: 'Credits Balance', value: user.credits ?? 0, icon: Star },
+               { label: 'Engagement', value: 'High', icon: Zap },
+               { label: 'Status', value: 'Verified', icon: Shield },
+             ].map((stat) => (
+               <div key={stat.label} className="bg-[var(--color-bg-primary)]/50 backdrop-blur-xl border border-[var(--color-border)] p-6 rounded-[2rem] hover:border-[var(--color-accent)] transition-all">
+                 <stat.icon size={18} className="text-[var(--color-accent)] mb-4" />
+                 <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">{stat.label}</p>
+                 <h3 className="text-2xl font-black text-[var(--color-text-primary)]">{stat.value}</h3>
+               </div>
+             ))}
            </div>
         </section>
 
         {/* ─── CATEGORY HIGHLIGHTS (Graphical) ─── */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-           <div className="relative aspect-[16/10] rounded-[3rem] overflow-hidden group border border-[var(--color-border)] shadow-xl">
-              <img src="/rewards_intent_mastery_1776256579549.png" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-12 flex flex-col justify-end">
-                 <Target className="text-[var(--color-accent)] mb-4" size={32} />
-                 <h2 className="text-3xl font-serif font-black text-white mb-2">Intent Mastery</h2>
-                 <p className="text-white/60 text-sm max-w-xs">Earn rewards by launching high-impact intents and matching with the perfect collaborators.</p>
+           <div className="relative bg-[var(--color-bg-secondary)] rounded-[3rem] overflow-hidden group border border-[var(--color-border)] shadow-md shadow-black/5 flex flex-col justify-start p-10 md:p-14 transition-transform duration-700 hover:scale-[1.02]">
+              <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-accent)]/5 to-transparent pointer-events-none" />
+              <div className="relative z-10">
+                 <Target className="text-[var(--color-accent)] mb-6 drop-shadow-sm" size={36} />
+                 <h2 className="text-3xl font-serif font-black text-[var(--color-text-primary)] mb-3">Intent Mastery</h2>
+                 <p className="text-[var(--color-text-secondary)] text-sm max-w-sm leading-relaxed">Earn rewards by launching high-impact intents and matching with the perfect collaborators.</p>
               </div>
            </div>
 
-           <div className="relative aspect-[16/10] rounded-[3rem] overflow-hidden group border border-[var(--color-border)] shadow-xl">
-              <img src="/rewards_collaboration_rings_1776256617166.png" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-12 flex flex-col justify-end">
-                 <Users className="text-[var(--color-accent)] mb-4" size={32} />
-                 <h2 className="text-3xl font-serif font-black text-white mb-2">Global Intent</h2>
-                 <p className="text-white/60 text-sm max-w-xs">Connecting minds and sharing visions. Complete joint intents to unlock crystalline rewards.</p>
+           <div className="relative bg-[var(--color-bg-secondary)] rounded-[3rem] overflow-hidden group border border-[var(--color-border)] shadow-md shadow-black/5 flex flex-col justify-start p-10 md:p-14 transition-transform duration-700 hover:scale-[1.02]">
+              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
+              <div className="relative z-10">
+                 <Users className="text-blue-500 mb-6 drop-shadow-sm" size={36} />
+                 <h2 className="text-3xl font-serif font-black text-[var(--color-text-primary)] mb-3">Global Intent</h2>
+                 <p className="text-[var(--color-text-secondary)] text-sm max-w-sm leading-relaxed">Connecting minds and sharing visions. Complete joint intents to unlock crystalline rewards.</p>
               </div>
            </div>
         </section>
@@ -134,7 +124,7 @@ export default function RewardsPage() {
               <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-40">Transaction Timeline • Balance Flows</p>
            </div>
 
-           <div className="bg-white rounded-[3rem] border border-[var(--color-border)] shadow-xl overflow-hidden">
+           <div className="bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)] shadow-xl overflow-hidden">
               <div className="overflow-x-auto">
                  <table className="w-full text-left border-collapse">
                     <thead>
@@ -207,7 +197,7 @@ export default function RewardsPage() {
                  <p className="text-base text-[var(--color-text-primary)] opacity-60 max-w-xl">Every trophy earned adds to your permanent platform standing. Track your progress across all disciplines below.</p>
               </div>
               
-              <div className="bg-black/5 rounded-[3rem] p-8 md:p-12 border border-black/5">
+              <div className="bg-[var(--color-bg-primary)]/40 rounded-[3rem] p-8 md:p-12 border border-[var(--color-border)] shadow-xl">
                 <AchievementsSection userId={user.id} />
               </div>
            </div>

@@ -108,7 +108,7 @@ export default function MyIntentsPage() {
             </button>
             <Link
               href="/create"
-              className="flex-1 md:flex-none px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-[var(--color-text-primary)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl"
+              className="flex-1 md:flex-none px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl"
             >
               Post Intent <Plus size={16} />
             </Link>
@@ -135,7 +135,7 @@ export default function MyIntentsPage() {
             {intents.map((intent) => (
               <div
                 key={intent.id}
-                className="group bg-white rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700"
+                className="group bg-[var(--color-bg-secondary)] rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700"
               >
                 {/* Card Image - Clickable */}
                 <div 
@@ -166,13 +166,25 @@ export default function MyIntentsPage() {
                          <MapPin size={12} className="text-[var(--color-accent)]" />
                          <span className="text-[9px] uppercase font-bold tracking-wider">{intent.location || 'Remote'}</span>
                       </div>
-                      <Badge variant="sage" className="text-[8px] font-black bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]">
-                        {intent.status === 'looking' ? 'Open' : 'Active'}
+                      <Badge variant="sage" className={`text-[8px] font-black ${
+                        intent.status === 'rejected' ? 'bg-red-500/20 text-red-500' :
+                        intent.status === 'pending' ? 'bg-amber-500/20 text-amber-500' :
+                        'bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]'
+                      }`}>
+                        {intent.status}
                       </Badge>
                    </div>
                    
+                   {intent.status === 'rejected' && (intent as any).rejection_reason && (
+                     <div className="mt-3 p-3 rounded-xl bg-red-500/5 border border-red-500/10 text-red-600 dark:text-red-400 text-xs">
+                       <strong className="block mb-1 text-[9px] uppercase tracking-widest text-red-500">Rejection Reason</strong>
+                       {(intent as any).rejection_reason}
+                     </div>
+                   )}
+
                    {/* Action Buttons */}
-                   <div className="mt-4 pt-4 border-t border-[var(--color-border)] grid grid-cols-2 gap-3">
+                   {intent.status === 'pending' && (
+                     <div className="mt-4 pt-4 border-t border-[var(--color-border)] grid grid-cols-2 gap-3">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -190,7 +202,8 @@ export default function MyIntentsPage() {
                         {deletingId === intent.id ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />} 
                         Delete
                       </button>
-                   </div>
+                     </div>
+                   )}
                 </div>
               </div>
             ))}
@@ -200,7 +213,7 @@ export default function MyIntentsPage() {
             <h3 className="text-3xl font-serif font-light mb-10 italic text-[var(--color-text-primary)] opacity-40">Your intent list <br />is currently empty.</h3>
             <button 
               onClick={() => router.push('/create')}
-              className="px-12 py-5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-[var(--color-text-primary)] rounded-full shadow-2xl"
+              className="px-12 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-[var(--color-inverse-bg)] rounded-full shadow-2xl"
             >
               Post New Intent
             </button>

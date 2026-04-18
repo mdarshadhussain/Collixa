@@ -127,7 +127,7 @@ function VerifyOtpContent() {
          <div className="relative z-10">
             <div className="flex items-center gap-4 cursor-pointer group mb-20" onClick={() => router.push('/')}>
               <div className="w-16 h-16 bg-[var(--color-accent)] rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-[var(--color-accent)]/20 transition-transform">
-                <span className="text-[var(--color-bg-primary)] font-serif font-black text-4xl">C.</span>
+                <span className="text-[var(--color-inverse-text)] font-serif font-black text-4xl">C.</span>
               </div>
               <h1 className="text-4xl font-serif font-black tracking-tighter">Collixa.</h1>
             </div>
@@ -206,7 +206,7 @@ function VerifyOtpContent() {
                   <button
                     type="submit"
                     disabled={loading || otp.length !== 6}
-                    className="w-full py-6 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.5em] rounded-[1.5rem] hover:bg-[var(--color-accent)] transition-all flex items-center justify-center gap-4 shadow-xl disabled:opacity-20"
+                    className="w-full py-6 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.5em] rounded-[1.5rem] hover:bg-[var(--color-accent)] transition-all flex items-center justify-center gap-4 shadow-xl disabled:opacity-20"
                   >
                     {loading ? <Loader2 size={18} className="animate-spin" /> : 'Validate Credentials'}
                   </button>

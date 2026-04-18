@@ -119,8 +119,8 @@ export default function AdminTribes() {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-white/10 rounded w-1/4" />
-          <div className="h-64 bg-white/10 rounded" />
+          <div className="h-12 bg-[var(--color-bg-secondary)]/10 rounded w-1/4" />
+          <div className="h-64 bg-[var(--color-bg-secondary)]/10 rounded" />
         </div>
       </AdminLayout>
     )
@@ -194,7 +194,7 @@ export default function AdminTribes() {
                       </button>
                       <button
                         onClick={cancelEdit}
-                        className="p-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all"
+                        className="p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]/5 rounded-lg transition-all"
                         title="Cancel"
                       >
                         <X size={16} />
@@ -245,7 +245,7 @@ export default function AdminTribes() {
               )}
 
               <div className="flex flex-wrap gap-2 mb-4">
-                <span className="flex items-center gap-1 px-3 py-1 bg-white/5 rounded-full text-xs">
+                <span className="flex items-center gap-1 px-3 py-1 bg-[var(--color-bg-secondary)]/5 rounded-full text-xs">
                   <DollarSign size={12} />
                   {tribe.hourly_rate || 0} credits/hr
                 </span>
@@ -287,7 +287,7 @@ export default function AdminTribes() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all"
+                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]/5 rounded-lg transition-all"
                 >
                   Cancel
                 </button>

@@ -138,7 +138,7 @@ export default function CreditPurchaseModal({ isOpen, onClose }: CreditPurchaseM
                   }`}
                 >
                   {pkg.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[6px] md:text-[8px] font-black uppercase tracking-widest rounded-full shadow-lg z-20">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[6px] md:text-[8px] font-black uppercase tracking-widest rounded-full shadow-lg z-20">
                       Primary
                     </div>
                   )}
@@ -176,7 +176,7 @@ export default function CreditPurchaseModal({ isOpen, onClose }: CreditPurchaseM
                       onClick={() => handlePurchase(pkg)}
                       className={`w-full py-2 lg:py-3 rounded-lg lg:rounded-xl text-[7px] lg:text-[8px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
                         pkg.popular 
-                          ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] hover:bg-[var(--color-text-primary)]' 
+                          ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] hover:bg-[var(--color-inverse-bg)]' 
                           : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent)]'
                       }`}
                     >

@@ -21,7 +21,7 @@ interface Intent {
 }
 
 const CATEGORIES = ['Intents', 'Study', 'Fitness', 'Travel', 'Events', 'Startup', 'Networking', 'Creative', 'Social', 'Other']
-const STATUSES = ['looking', 'active', 'completed', 'cancelled']
+const STATUSES = ['pending', 'looking', 'active', 'completed', 'cancelled', 'rejected']
 
 export default function AdminIntents() {
   const [intents, setIntents] = useState<Intent[]>([])
@@ -30,6 +30,8 @@ export default function AdminIntents() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [editingIntent, setEditingIntent] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<Intent>>({})
+  const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   const fetchIntents = async () => {
     try {
@@ -66,6 +68,35 @@ export default function AdminIntents() {
     } catch (error) {
       console.error('Error deleting intent:', error)
     }
+  }
+
+  const approveIntent = async (intentId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/intents/${intentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ status: 'looking' })
+      })
+      if (response.ok) {
+        fetchIntents()
+      }
+    } catch(err) {}
+  }
+
+  const rejectIntent = async () => {
+    if(!rejectingId || !rejectReason.trim()) return;
+    try {
+      const response = await fetch(`${API_URL}/api/admin/intents/${rejectingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ status: 'rejected', rejection_reason: rejectReason })
+      })
+      if (response.ok) {
+        fetchIntents()
+        setRejectingId(null)
+        setRejectReason('')
+      }
+    } catch(err) {}
   }
 
   const startEdit = (intent: Intent) => {
@@ -116,12 +147,15 @@ export default function AdminIntents() {
     intent.created_by?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const pendingIntents = filteredIntents.filter(i => i.status === 'pending')
+  const existingIntents = filteredIntents.filter(i => i.status !== 'pending')
+
   if (loading) {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-white/10 rounded w-1/4" />
-          <div className="h-64 bg-white/10 rounded" />
+          <div className="h-12 bg-[var(--color-bg-secondary)]/10 rounded w-1/4" />
+          <div className="h-64 bg-[var(--color-bg-secondary)]/10 rounded" />
         </div>
       </AdminLayout>
     )
@@ -148,9 +182,36 @@ export default function AdminIntents() {
           </div>
         </div>
 
+        {/* Pending Requests Section */}
+        {pendingIntents.length > 0 && (
+          <div className="mb-10">
+            <h3 className="text-xl font-bold font-serif mb-4 flex items-center gap-3">
+              Pending Requests <span className="bg-amber-500/20 text-amber-500 text-xs px-3 py-1 rounded-full">{pendingIntents.length}</span>
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {pendingIntents.map(intent => (
+                <div key={intent.id} className="bg-amber-500/5 rounded-2xl p-6 border border-amber-500/20">
+                  <h4 className="font-bold text-lg mb-2">{intent.title}</h4>
+                  <p className="text-sm opacity-70 mb-4">{intent.description}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)] mb-4">By: {intent.created_by?.name || 'Unknown'}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => approveIntent(intent.id)} className="flex-1 py-2 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2">
+                      <Check size={14} /> Approve
+                    </button>
+                    <button onClick={() => setRejectingId(intent.id)} className="flex-1 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2">
+                      <X size={14} /> Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <h3 className="text-xl font-bold font-serif mb-4">All Intents</h3>
         {/* Intents Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filteredIntents.map((intent) => (
+          {existingIntents.map((intent) => (
             <div
               key={intent.id}
               className="bg-[var(--color-bg-secondary)] rounded-2xl p-6 border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-all"
@@ -261,7 +322,7 @@ export default function AdminIntents() {
                   </p>
 
                   <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="flex items-center gap-1 px-3 py-1 bg-white/5 rounded-full text-xs">
+                    <span className="flex items-center gap-1 px-3 py-1 bg-[var(--color-bg-secondary)]/5 rounded-full text-xs">
                       <MapPin size={12} />
                       {intent.location || 'Remote'}
                     </span>
@@ -294,10 +355,45 @@ export default function AdminIntents() {
           ))}
         </div>
 
-        {filteredIntents.length === 0 && (
+
+        {existingIntents.length === 0 && (
           <div className="text-center py-12 bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)]">
             <Briefcase size={48} className="mx-auto text-[var(--color-text-secondary)] mb-4" />
-            <p className="text-[var(--color-text-secondary)]">No intents found</p>
+            <p className="text-[var(--color-text-secondary)]">No active intents found</p>
+          </div>
+        )}
+
+        {/* Reject Confirmation Modal */}
+        {rejectingId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-[var(--color-bg-secondary)] rounded-2xl p-6 max-w-md w-full mx-4 border border-[var(--color-border)]">
+              <h3 className="text-lg font-bold text-red-500 mb-2">Reject Intent</h3>
+              <p className="text-[var(--color-text-secondary)] mb-4 text-sm">
+                Provide a reason for rejection. This will be visible to the user.
+              </p>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Type rejection reason here..."
+                rows={4}
+                className="w-full px-3 py-2 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-lg text-sm mb-6 resize-none"
+              />
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]/5 rounded-lg transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={rejectIntent}
+                  disabled={!rejectReason.trim()}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all disabled:opacity-50"
+                >
+                  Confirm Rejection
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -312,7 +408,7 @@ export default function AdminIntents() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all"
+                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]/5 rounded-lg transition-all"
                 >
                   Cancel
                 </button>

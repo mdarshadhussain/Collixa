@@ -23,7 +23,7 @@ export default function Button({
   const baseStyles = 'font-bold uppercase tracking-[0.2em] rounded-2xl transition-all duration-500 flex items-center justify-center gap-2 transform active:scale-95'
 
   const variants = {
-    primary: 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] hover:bg-[var(--color-text-primary)] shadow-xl shadow-[var(--color-accent)]/10',
+    primary: 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/10',
     secondary: 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] shadow-sm',
     outline: 'border-2 border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/20',
     ghost: 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/10',

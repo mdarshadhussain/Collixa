@@ -81,8 +81,8 @@ export default function AdminSessions() {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-white/10 rounded w-1/4" />
-          <div className="h-64 bg-white/10 rounded" />
+          <div className="h-12 bg-[var(--color-bg-secondary)]/10 rounded w-1/4" />
+          <div className="h-64 bg-[var(--color-bg-secondary)]/10 rounded" />
         </div>
       </AdminLayout>
     )
@@ -124,7 +124,7 @@ export default function AdminSessions() {
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {filteredSessions.map((session) => (
-                <tr key={session.id} className="hover:bg-white/5">
+                <tr key={session.id} className="hover:bg-[var(--color-bg-secondary)]/5">
                   <td className="px-6 py-4">
                     <span className="font-medium text-[var(--color-text-primary)]">{session.skill?.name || 'Unknown'}</span>
                   </td>

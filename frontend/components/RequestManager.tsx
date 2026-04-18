@@ -127,7 +127,7 @@ export default function RequestManager() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => handleAction(req.id, 'ACCEPTED')}
-                className="flex-1 md:flex-none px-6 py-3 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-[var(--color-text-primary)] transition-all shadow-lg shadow-[var(--color-accent)]/10 flex items-center justify-center gap-2"
+                className="flex-1 md:flex-none px-6 py-3 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-[var(--color-inverse-bg)] transition-all shadow-lg shadow-[var(--color-accent)]/10 flex items-center justify-center gap-2"
               >
                 <Check size={14} /> Accept
               </button>

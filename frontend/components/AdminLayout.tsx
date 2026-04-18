@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
 import { useEffect } from 'react'
+import ThemeToggle from '@/components/ThemeToggle'
 import {
   LayoutDashboard,
   Users,
@@ -129,6 +130,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               Admin Mode
             </span>
           </div>
+          <ThemeToggle />
         </div>
 
         {children}

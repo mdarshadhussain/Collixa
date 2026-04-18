@@ -7,6 +7,7 @@ import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'
+import BottomNav from '@/components/BottomNav'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile')
@@ -79,7 +80,7 @@ export default function SettingsPage() {
                   onClick={() => setActiveTab(item.id as any)}
                   className={`w-full flex items-center justify-between px-8 py-5 rounded-[1.5rem] transition-all duration-500 group relative overflow-hidden ${
                     activeTab === item.id
-                      ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)] shadow-xl shadow-[var(--color-accent)]/10'
+                      ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] shadow-xl shadow-[var(--color-accent)]/10'
                       : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent-soft)]'
                   }`}
                 >
@@ -88,7 +89,7 @@ export default function SettingsPage() {
                     <span className="text-[10px] font-black uppercase tracking-[0.3em]">{item.label}</span>
                   </div>
                   {activeTab === item.id && (
-                     <div className="w-2 h-2 bg-white rounded-full relative z-10" />
+                     <div className="w-2 h-2 bg-[var(--color-bg-secondary)] rounded-full relative z-10" />
                   )}
                 </button>
               ))}
@@ -115,7 +116,7 @@ export default function SettingsPage() {
                   <div className="flex flex-col md:flex-row items-center gap-12 relative z-10">
                     <div className="relative group">
                       <Avatar name="John Doe" size="xl" className="ring-8 ring-[var(--color-accent-soft)] shadow-2xl transition-all group-hover:scale-105" />
-                      <button className="absolute bottom-2 right-2 p-3 bg-[var(--color-accent)] text-[var(--color-bg-primary)] rounded-full shadow-xl hover:scale-110 transition-transform">
+                      <button className="absolute bottom-2 right-2 p-3 bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-full shadow-xl hover:scale-110 transition-transform">
                          <Camera size={18} />
                       </button>
                     </div>
@@ -123,7 +124,7 @@ export default function SettingsPage() {
                       <h2 className="text-3xl font-serif font-black mb-2 tracking-tight">Visual Identity</h2>
                       <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-8">Persona Branding & Assets</p>
                       <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                         <button className="px-10 py-4 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-text-primary)] transition-all shadow-xl shadow-[var(--color-accent)]/20">
+                         <button className="px-10 py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-inverse-bg)] transition-all shadow-xl shadow-[var(--color-accent)]/20">
                             Upload Revision
                          </button>
                          <button className="px-10 py-4 border border-[var(--color-border)] text-[var(--color-text-primary)] text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-accent-soft)]/20 transition-all">
@@ -184,7 +185,7 @@ export default function SettingsPage() {
                     />
 
                     <div className="md:col-span-2 pt-8">
-                      <button className="px-16 py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[11px] font-black uppercase tracking-[0.4em] rounded-[2rem] hover:bg-[var(--color-text-primary)] transition-all shadow-2xl shadow-[var(--color-accent)]/20">
+                      <button className="px-16 py-6 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[11px] font-black uppercase tracking-[0.4em] rounded-[2rem] hover:bg-[var(--color-inverse-bg)] transition-all shadow-2xl shadow-[var(--color-accent)]/20">
                         Synchronize Preferences
                       </button>
                     </div>
@@ -246,7 +247,7 @@ export default function SettingsPage() {
                   ))}
 
                   <div className="pt-12">
-                     <button className="px-16 py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[11px] font-black uppercase tracking-[0.4em] rounded-[2rem] hover:bg-[var(--color-text-primary)] transition-all shadow-2xl shadow-[var(--color-accent)]/20">
+                     <button className="px-16 py-6 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[11px] font-black uppercase tracking-[0.4em] rounded-[2rem] hover:bg-[var(--color-inverse-bg)] transition-all shadow-2xl shadow-[var(--color-accent)]/20">
                         Commit Protocols
                      </button>
                   </div>
@@ -281,7 +282,7 @@ export default function SettingsPage() {
                         />
                     </div>
                     <div className="pt-8">
-                       <button className="px-16 py-6 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[11px] font-black uppercase tracking-[0.4em] rounded-[2rem] hover:bg-[var(--color-text-primary)] transition-all shadow-2xl shadow-[var(--color-accent)]/20">
+                       <button className="px-16 py-6 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[11px] font-black uppercase tracking-[0.4em] rounded-[2rem] hover:bg-[var(--color-inverse-bg)] transition-all shadow-2xl shadow-[var(--color-accent)]/20">
                           Update Vault
                        </button>
                     </div>
@@ -313,6 +314,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+      <BottomNav />
     </div>
   )
 }

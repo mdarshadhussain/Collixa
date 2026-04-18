@@ -81,8 +81,8 @@ export default function AdminUsers() {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-white/10 rounded w-1/4" />
-          <div className="h-64 bg-white/10 rounded" />
+          <div className="h-12 bg-[var(--color-bg-secondary)]/10 rounded w-1/4" />
+          <div className="h-64 bg-[var(--color-bg-secondary)]/10 rounded" />
         </div>
       </AdminLayout>
     )
@@ -123,7 +123,7 @@ export default function AdminUsers() {
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-white/5">
+                <tr key={user.id} className="hover:bg-[var(--color-bg-secondary)]/5">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white font-bold">
@@ -187,7 +187,7 @@ export default function AdminUsers() {
                 <button
                   disabled={isDeleting}
                   onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-white/5 rounded-lg transition-all disabled:opacity-50"
+                  className="px-4 py-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]/5 rounded-lg transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>

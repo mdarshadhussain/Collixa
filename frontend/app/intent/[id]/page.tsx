@@ -4,10 +4,12 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import BottomNav from '@/components/BottomNav'
 import { Intent, intentService, conversationService, userService, storageService } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 import { 
   MessageSquare, 
+  MessageCircle,
   Users, 
   MapPin, 
   Calendar, 
@@ -17,6 +19,7 @@ import {
   CheckCircle2,
   Clock,
   Briefcase,
+  Settings,
   Avatar as AvatarIcon
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
@@ -25,13 +28,24 @@ import Badge from '@/components/Badge'
 import Button from '@/components/Button'
 import { notify } from '@/lib/utils'
 
+const getLevelLabel = (level: number) => {
+  const labels: Record<number, string> = {
+    1: 'Novice',
+    2: 'Contributor',
+    3: 'Collaborator',
+    4: 'Professional',
+    5: 'Master'
+  }
+  return labels[level] || 'Novice'
+}
+
 export default function IntentDetailPage() {
   const { id } = useParams()
   const router = useRouter()
   const { user } = useAuth()
   const [intent, setIntent] = useState<Intent | null>(null)
   const [loading, setLoading] = useState(true)
-  const [requestSending, setRequestSending] = useState(false)
+  const [isJoining, setIsJoining] = useState(false)
   const [hasRequested, setHasRequested] = useState(false)
 
   useEffect(() => {
@@ -71,7 +85,7 @@ export default function IntentDetailPage() {
   const handleJoinProject = async () => {
     if (!user || !intent) return
     try {
-      setRequestSending(true)
+      setIsJoining(true)
       await intentService.joinProject(intent.id as any, user.id)
       setHasRequested(true)
       notify.success("Joined successfully! You can now access the intent chat.")
@@ -79,7 +93,7 @@ export default function IntentDetailPage() {
     } catch (err: any) {
       notify.error(err.message || "Failed to join intent")
     } finally {
-      setRequestSending(false)
+      setIsJoining(false)
     }
   }
 
@@ -245,7 +259,7 @@ export default function IntentDetailPage() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="p-4 sm:p-6 md:p-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-2xl md:rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 overflow-hidden relative"
+                  className="p-4 sm:p-6 md:p-10 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-2xl md:rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 overflow-hidden relative"
                 >
                    <div className="relative z-10 space-y-5 md:space-y-8">
                       <div className="space-y-2">
@@ -287,7 +301,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="outline" 
                               fullWidth 
-                              className="py-4 md:py-6 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/10"
+                              className="py-4 md:py-6 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-[var(--color-bg-secondary)]/10"
                               onClick={handleChatWithOwner}
                             >
                               <span className="flex items-center gap-2"><MessageSquare size={16} /> Chat with Owner</span>
@@ -302,7 +316,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="accent" 
                               fullWidth 
-                              className="py-4 md:py-6 rounded-xl md:rounded-2xl bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
+                              className="py-4 md:py-6 rounded-xl md:rounded-2xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white"
                               onClick={() => router.push('/chat')}
                             >
                                <MessageCircle size={16} />
@@ -311,7 +325,7 @@ export default function IntentDetailPage() {
                             <Button 
                               variant="outline" 
                               fullWidth 
-                              className="py-3 md:py-4 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-white/10 text-[9px] md:text-[10px] font-bold uppercase tracking-widest"
+                              className="py-3 md:py-4 rounded-xl md:rounded-2xl border-white/20 text-white hover:bg-[var(--color-bg-secondary)]/10 text-[9px] md:text-[10px] font-bold uppercase tracking-widest"
                               onClick={() => router.push(`/create?id=${intent.id}`)}
                             >
                                <Settings size={16} />
@@ -342,8 +356,12 @@ export default function IntentDetailPage() {
                         className="rounded-2xl shrink-0" 
                      />
                      <div>
-                        <p className="text-lg md:text-xl font-serif font-bold">{owner?.name}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">{owner?.email}</p>
+                        <p className="text-lg md:text-xl font-serif font-black tracking-tight">{owner?.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                           <div className="px-2 py-0.5 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-full">
+                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)]">Level {owner?.level || 1} • {getLevelLabel(owner?.level || 1)}</span>
+                           </div>
+                        </div>
                      </div>
                   </div>
                </motion.div>
@@ -373,6 +391,7 @@ export default function IntentDetailPage() {
           </div>
         </div>
       </main>
+      <BottomNav />
     </div>
   )
 }

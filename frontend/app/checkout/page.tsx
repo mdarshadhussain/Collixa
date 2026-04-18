@@ -241,7 +241,7 @@ export default function CheckoutPage() {
                   <button 
                     disabled={processing}
                     type="submit"
-                    className="w-full py-3.5 md:py-4 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-[0.4em] rounded-xl hover:bg-[var(--color-accent)] transition-all shadow-lg shadow-black/5 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 group"
+                    className="w-full py-3.5 md:py-4 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-[0.4em] rounded-xl hover:bg-[var(--color-accent)] transition-all shadow-lg shadow-black/5 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 group"
                   >
                     {processing ? (
                       <Loader2 size={14} className="animate-spin" />

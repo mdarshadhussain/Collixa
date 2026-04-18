@@ -11,6 +11,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { storageService } from '@/lib/supabase'
 import CreditPurchaseModal from './CreditPurchaseModal'
 import { Shield } from 'lucide-react'
+import ThemeToggle from './ThemeToggle'
 
 export default function Header() {
   const router = useRouter()
@@ -194,6 +195,10 @@ export default function Header() {
 
                       <div className="h-[1px] bg-black/5 my-2" />
 
+                      <div className="flex items-center justify-between px-4 py-2 hover:bg-black/5 rounded-xl transition-colors">
+                        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">Dark Mode</span>
+                        <ThemeToggle />
+                      </div>
 
                       <button 
                         onClick={handleLogout}
@@ -212,7 +217,7 @@ export default function Header() {
               <button className={`px-10 py-3.5 text-[12px] font-bold tracking-tight rounded-full transition-all active:scale-95 ${
                 isLandingPage 
                   ? 'bg-[var(--lp-primary)] text-white hover:opacity-90 shadow-lg shadow-[var(--lp-primary)]/20' 
-                  : 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] hover:bg-[var(--color-accent)] shadow-xl shadow-[var(--color-text-primary)]/5'
+                  : 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] hover:bg-[var(--color-accent)] shadow-xl shadow-[var(--color-text-primary)]/5'
               }`}>
                 {isLandingPage ? 'Sign in' : 'Sign In'}
               </button>
@@ -241,7 +246,7 @@ export default function Header() {
             </button>
           )}
           {isAuthenticated && <NotificationDropdown />}
-          <button className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full flex items-center justify-center" onClick={() => setIsOpen(!isOpen)}>
+          <button className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
             {isOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
@@ -262,7 +267,7 @@ export default function Header() {
           <div className="absolute right-3 top-16 sm:right-6 sm:top-20 w-[min(86vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-3 shadow-2xl animate-fade-in">
            <div className="flex justify-between items-center mb-3 px-1">
               <span className="font-serif font-black text-xl text-[var(--color-text-primary)]">Navigation</span>
-              <button onClick={() => setIsOpen(false)} className="w-8 h-8 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-full flex items-center justify-center">
+              <button onClick={() => setIsOpen(false)} className="w-8 h-8 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center">
                 <X size={16} />
               </button>
            </div>
@@ -289,13 +294,17 @@ export default function Header() {
            </nav>
 
            <div className="pt-3 mt-3 border-t border-[var(--color-border)] space-y-2">
+              <div className="flex items-center justify-between px-3 py-2 mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)]">Dark Mode</span>
+                <ThemeToggle />
+              </div>
               {isAuthenticated && (
                 <button
                   onClick={() => {
                     setIsOpen(false)
                     setShowCreditModal(true)
                   }}
-                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                 >
                   <Plus size={12} />
                   Get More Credits
@@ -311,7 +320,7 @@ export default function Header() {
               ) : (
                 <button 
                   onClick={() => router.push('/auth')}
-                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity"
+                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity"
                 >
                   Sign In
                 </button>

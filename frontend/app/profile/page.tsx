@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus } from 'lucide-react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
+import BottomNav from '@/components/BottomNav'
 import Button from '@/components/Button'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
@@ -21,6 +22,17 @@ const AVATAR_PRESETS = [
   'Abby', 'Angel', 'Bailey', 'Caleb', 'Daisy', 
   'Ethan', 'Faith', 'Gabe', 'Hazel', 'Issac'
 ].map(seed => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`)
+
+const getLevelLabel = (level: number = 1) => {
+  const labels: Record<number, string> = {
+    1: 'Novice',
+    2: 'Contributor',
+    3: 'Collaborator',
+    4: 'Professional',
+    5: 'Master'
+  }
+  return labels[level] || 'Novice'
+}
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -326,7 +338,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 gap-8">
           {/* Profile Sidebar/Header Area */}
           <div className="space-y-6">
-            <div className="bg-white border border-[var(--color-border)] p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-xl shadow-[var(--color-accent)]/5 relative overflow-hidden">
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-xl shadow-[var(--color-accent)]/5 relative overflow-hidden">
               
               {isEditing && isOwnProfile ? (
                 <div className="space-y-6">
@@ -433,7 +445,7 @@ export default function ProfilePage() {
                      <button 
                         onClick={handleSaveProfile}
                         disabled={isSaving}
-                        className="flex-1 py-4 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-text-primary)] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                        className="flex-1 py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-inverse-bg)] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                       >
                         {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Record
                      </button>
@@ -453,10 +465,28 @@ export default function ProfilePage() {
                            <Edit2 size={14} />
                         </button>
                         <div>
-                          <h1 className="text-3xl md:text-5xl font-serif font-black text-[var(--color-text-primary)] mb-1 tracking-tighter">
-                            <Typewriter text={profileUser?.name || 'User'} speed={0.05} delay={0.2} />
-                          </h1>
-                          <div className="flex items-center gap-3">
+                     <div className="space-y-4">
+                    <div className="space-y-2">
+                       <h1 className="text-3xl md:text-5xl font-serif font-black tracking-tight leading-none">
+                          {profileUser?.name}
+                       </h1>
+                       <div className="flex flex-wrap items-center gap-2">
+                          <div className="px-3 py-1 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-full">
+                             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                               Level {profileUser?.level || 1} • {getLevelLabel(profileUser?.level)}
+                             </span>
+                          </div>
+                          {profileUser?.role === 'ADMIN' && (
+                             <Badge variant="accent" className="text-[9px] font-black">Admin</Badge>
+                          )}
+                       </div>
+                    </div>
+                    {profileUser?.bio && (
+                       <p className="text-xs md:text-sm text-[var(--color-text-secondary)] font-medium max-w-lg leading-relaxed">
+                          {profileUser.bio}
+                       </p>
+                    )}
+                  </div>         <div className="flex items-center gap-3">
                             <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] md:tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
                             {profileUser?.age && (
                               <span className="text-[10px] font-bold text-[var(--color-text-secondary)] opacity-60">• {profileUser.age}y</span>
@@ -519,7 +549,7 @@ export default function ProfilePage() {
                        <div className="col-span-2 mt-2">
                          <button
                            onClick={handleStartChat}
-                           className="w-full py-3.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] md:text-[10px] font-black uppercase tracking-[0.16em] md:tracking-[0.3em] hover:bg-[var(--color-text-primary)] transition-all rounded-xl flex items-center justify-center gap-2 border border-transparent shadow-xl"
+                           className="w-full py-3.5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] md:text-[10px] font-black uppercase tracking-[0.16em] md:tracking-[0.3em] hover:bg-[var(--color-inverse-bg)] transition-all rounded-xl flex items-center justify-center gap-2 border border-transparent shadow-xl"
                          >
                            <MessageCircle size={14} /> Message to Collaborate
                          </button>
@@ -537,7 +567,7 @@ export default function ProfilePage() {
                      {isOwnProfile && (
                      <button 
                         onClick={() => setIsEditing(true)}
-                        className="w-full py-3.5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[9px] md:text-[10px] font-black uppercase tracking-[0.16em] md:tracking-[0.3em] hover:bg-[var(--color-text-primary)] transition-all rounded-xl"
+                        className="w-full py-3.5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] md:text-[10px] font-black uppercase tracking-[0.16em] md:tracking-[0.3em] hover:bg-[var(--color-inverse-bg)] transition-all rounded-xl"
                       >
                         Edit Statistics & Identity
                      </button>
@@ -559,7 +589,7 @@ export default function ProfilePage() {
           <div className="flex flex-col space-y-10">
             {/* Tabs */}
             <div className="flex gap-3 sm:gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-3 sm:px-4 flex-wrap">
-              {['intents', 'skills', 'reviews', 'achievements', ...(isOwnProfile ? ['audit'] : [])].map((tab) => (
+              {['intents', 'skills', 'reviews', 'achievements', ...(isOwnProfile ? ['history'] : [])].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
@@ -616,7 +646,7 @@ export default function ProfilePage() {
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-12">Initialize your first collaboration intent.</p>
                       <button 
                         onClick={() => router.push('/create')}
-                        className="px-10 py-5 bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-text-primary)] transition-all"
+                        className="px-10 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-inverse-bg)] transition-all"
                       >
                          Initiate BroadCast
                       </button>
@@ -704,15 +734,23 @@ export default function ProfilePage() {
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Achievement Gallery</h3>
+                    {isOwnProfile && (
+                      <button
+                        onClick={() => router.push('/rewards')}
+                        className="group flex items-center gap-2 px-4 py-2 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[9px] font-black uppercase tracking-widest rounded-full hover:bg-[var(--color-accent)] hover:text-[var(--color-inverse-text)] transition-all"
+                      >
+                        View Platform Rewards
+                      </button>
+                    )}
                   </div>
                   <AchievementsSection userId={profileUser?.id} />
                 </div>
               )}
 
-              {activeTab === 'audit' && isOwnProfile && (
+              {activeTab === 'history' && isOwnProfile && (
                 <div className="space-y-6 animate-in fade-in duration-700">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Credit Audit Ledger</h3>
+                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Credit History</h3>
                     <div className="px-3 py-1 bg-[var(--color-accent-soft)]/20 rounded-full border border-[var(--color-accent-soft)]">
                       <span className="text-[10px] font-black text-[var(--color-accent)]">{transactions.length} Records</span>
                     </div>
@@ -733,13 +771,13 @@ export default function ProfilePage() {
                             [1, 2, 3].map((i) => (
                               <tr key={i} className="animate-pulse">
                                 <td colSpan={3} className="px-6 py-8">
-                                  <div className="h-4 bg-white/5 rounded w-full" />
+                                  <div className="h-4 bg-[var(--color-bg-secondary)]/5 rounded w-full" />
                                 </td>
                               </tr>
                             ))
                           ) : transactions.length > 0 ? (
                             transactions.map((tx) => (
-                              <tr key={tx.id} className="hover:bg-white/5 transition-colors">
+                              <tr key={tx.id} className="hover:bg-[var(--color-bg-secondary)]/5 transition-colors">
                                 <td className="px-6 py-5 text-[10px] font-bold text-[var(--color-text-secondary)] uppercase">
                                   {new Date(tx.created_at).toLocaleDateString()}
                                 </td>
@@ -795,7 +833,7 @@ export default function ProfilePage() {
                   navigator.clipboard.writeText(profileShareUrl)
                   notify.success('Profile link copied to clipboard!')
                 }}
-                className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-primary)] text-[10px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-2 shadow-sm"
+                className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-2 shadow-sm"
               >
                 <Copy size={12} /> Copy Profile Link
               </button>
@@ -814,6 +852,7 @@ export default function ProfilePage() {
           refreshUser()
         }}
       />
+      <BottomNav />
     </div>
   )
 }

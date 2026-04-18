@@ -1,5 +1,6 @@
 import IntentModel from '../models/Intent.js';
 import { supabase } from '../config/database.js';
+import LevelService from './LevelService.js';
 
 export class IntentService {
   /**
@@ -13,7 +14,7 @@ export class IntentService {
     const intentData = {
       ...data,
       created_by: userId,
-      status: 'looking',
+      status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -46,6 +47,9 @@ export class IntentService {
       console.error('Failed to auto-create group chat:', err);
       // We don't throw here to avoid failing intent creation if chat fails
     }
+
+    // AWARD XP: User gets 50 XP for starting a new Intent
+    LevelService.awardXP(userId, 50).catch(err => console.error('XP Award failure:', err));
 
     return intent;
   }
