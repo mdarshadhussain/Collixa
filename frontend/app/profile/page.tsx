@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus } from 'lucide-react'
+import { Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus, Sparkles } from 'lucide-react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import BottomNav from '@/components/BottomNav'
@@ -13,7 +13,9 @@ import Typewriter from '@/components/Typewriter'
 import CreditPurchaseModal from '@/components/CreditPurchaseModal'
 import ShareCreditsModal from '@/components/ShareCreditsModal'
 import AchievementsSection from '@/components/AchievementsSection'
+import LearningPathRoadmap from '@/components/LearningPathRoadmap'
 import { useAuth } from '@/app/context/AuthContext'
+import { useToast } from '@/app/context/ToastContext'
 import { Intent, storageService, conversationService } from '@/lib/supabase'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -39,7 +41,9 @@ export default function ProfilePage() {
   const searchParams = useSearchParams()
   const profileUid = searchParams.get('uid')
   const { user, isAuthenticated, loading: authLoading, token, refreshUser, updateUser } = useAuth()
-  const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews' | 'achievements'>('intents')
+  const { showToast: notify } = useToast()
+  const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews' | 'achievements' | 'history'>('intents')
+  const [interestsInput, setInterestsInput] = useState('')
   const [myIntents, setMyIntents] = useState<Intent[]>([])
   const [loadingIntents, setLoadingIntents] = useState(true)
   const [userSkills, setUserSkills] = useState<any[]>([])
@@ -55,7 +59,9 @@ export default function ProfilePage() {
     bio: '',
     location: '',
     age: '',
-    gender: ''
+    gender: '',
+    interests: [] as string[],
+    target_goal: ''
   })
   const [transactions, setTransactions] = useState<any[]>([])
   const [loadingTransactions, setLoadingTransactions] = useState(false)
@@ -66,6 +72,39 @@ export default function ProfilePage() {
   const [showQrModal, setShowQrModal] = useState(false)
   const [showCreditModal, setShowCreditModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [roadmap, setRoadmap] = useState<any[] | null>(null)
+  const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false)
+
+  const handleGenerateRoadmap = async () => {
+    if (!token || !user?.target_goal) {
+       notify.error('Please set a Collaborative Goal in your profile first.')
+       return
+    }
+    
+    setIsGeneratingRoadmap(true)
+    try {
+      const response = await fetch(`${API_URL}/api/ai/learning-path`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ goal: user.target_goal })
+      })
+      const data = await response.json()
+      if (response.ok && data.roadmap) {
+        setRoadmap(data.roadmap)
+        notify.success('AI Roadmap generated successfully!')
+      } else {
+        notify.error(data.error || 'Failed to generate roadmap')
+      }
+    } catch (err) {
+      console.error('Roadmap error:', err)
+      notify.error('Connection error while generating AI roadmap')
+    } finally {
+      setIsGeneratingRoadmap(false)
+    }
+  }
 
   // Derived state for the user being displayed
   const profileUser = profileUid && profileUid !== user?.id ? externalUser : user
@@ -103,8 +142,11 @@ export default function ProfilePage() {
         bio: user.bio || '',
         location: user.location || '',
         age: user.age || '',
-        gender: user.gender || ''
+        gender: user.gender || '',
+        interests: Array.isArray(user.interests) ? user.interests : [],
+        target_goal: user.target_goal || ''
       })
+      setInterestsInput(Array.isArray(user.interests) ? user.interests.join(', ') : '')
       const userAvatar = user.avatar_url ? (user.avatar_url.startsWith('http') ? user.avatar_url : storageService.getPublicUrl(user.avatar_url)) : null
       setAvatarPreview(userAvatar)
     }
@@ -270,6 +312,7 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           ...editForm,
+          interests: interestsInput.split(',').map(s => s.trim()).filter(Boolean),
           avatar_url: finalAvatarUrl
         })
       })
@@ -433,6 +476,39 @@ export default function ProfilePage() {
                         placeholder="Tell the community about your goals..."
                       />
                     </div>
+
+                    <div className="text-left">
+                      <label className="editorial-label flex items-center gap-2">
+                        Interests <span className="text-[7px] text-[var(--color-accent)] font-medium uppercase tracking-widest">(Separated by commas)</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        value={interestsInput} 
+                        onChange={(e) => setInterestsInput(e.target.value)}
+                        className="editorial-input" 
+                        placeholder="e.g. AI, Fintech, Design, Music"
+                      />
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {interestsInput.split(',').map(s => s.trim()).filter(Boolean).map((interest, idx) => (
+                           <span key={idx} className="px-2 py-0.5 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[8px] font-black uppercase rounded-md">
+                             # {interest}
+                           </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="text-left border-t border-[var(--color-border)] pt-4">
+                      <label className="editorial-label flex items-center justify-between">
+                        Next Collaborative Goal
+                        <Badge variant="accent" className="text-[7px]">AI Powered</Badge>
+                      </label>
+                      <textarea 
+                        value={editForm.target_goal} 
+                        onChange={(e) => setEditForm({...editForm, target_goal: e.target.value})}
+                        className="editorial-textarea min-h-[80px]" 
+                        placeholder="What specific project or skill are you looking to master next? Our AI will use this to match you."
+                      />
+                    </div>
                   </div>
 
                   <div className="flex gap-4 pt-6">
@@ -514,7 +590,106 @@ export default function ProfilePage() {
                           "{profileUser.bio}"
                         </p>
                       )}
+
+                      {/* AI Enhanced Profile Fields */}
+                      <div className="space-y-4 mb-6">
+                        {profileUser?.interests?.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                             {profileUser.interests.map((interest: string, idx: number) => (
+                               <span key={idx} className="px-3 py-1 bg-[var(--color-accent-soft)]/10 text-[var(--color-accent)] text-[8px] font-black uppercase tracking-widest rounded-full border border-[var(--color-accent)]/10">
+                                 # {interest}
+                               </span>
+                             ))}
+                          </div>
+                        ) : isOwnProfile && (
+                          <div className="bg-[var(--color-bg-secondary)] border border-dashed border-[var(--color-border)] p-4 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[var(--color-accent)] transition-all" onClick={() => setIsEditing(true)}>
+                             <Plus size={16} className="text-[var(--color-accent)]" />
+                             <p className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Broaden your reach — Add Interests</p>
+                          </div>
+                        )}
+                                       {/* Unified Roadmap Section */}
+                        {(profileUser?.target_goal || isOwnProfile) && (
+                          <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] p-6 rounded-[2rem] relative group/goal overflow-hidden">
+                             {/* Background accent */}
+                             <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-[var(--color-accent)]/5 rounded-full blur-3xl transition-all group-hover/goal:bg-[var(--color-accent)]/10" />
+                             
+                             <div className="flex items-center justify-between mb-4 relative z-10">
+                                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)]">Mission Focus</p>
+                                {isOwnProfile && !profileUser?.target_goal && (
+                                   <Badge variant="accent" className="text-[7px] animate-pulse">Update Required</Badge>
+                                )}
+                             </div>
+                             
+                             {profileUser?.target_goal ? (
+                                <div className="relative z-10 space-y-6">
+                                   <div className="border-l-2 border-[var(--color-accent)]/30 pl-4 py-1">
+                                      <p className="text-sm md:text-base text-[var(--color-text-primary)] font-serif font-black italic leading-relaxed">
+                                         "{profileUser.target_goal}"
+                                      </p>
+                                   </div>
+                                   {isOwnProfile && (
+                                     <div className="flex flex-col sm:flex-row gap-3">
+                                        <button 
+                                          onClick={handleGenerateRoadmap}
+                                          disabled={isGeneratingRoadmap}
+                                          className="flex-[2] py-4 bg-[var(--color-accent)] text-black rounded-2xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] active:translate-y-0 transition-all flex items-center justify-center gap-3 group"
+                                        >
+                                          {isGeneratingRoadmap ? (
+                                            <Loader2 size={16} className="animate-spin" />
+                                          ) : (
+                                            <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
+                                          )}
+                                          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Generate AI Roadmap</span>
+                                        </button>
+                                        <button 
+                                          onClick={() => setIsEditing(true)}
+                                          className="flex-1 py-4 border border-[var(--color-border)] text-[var(--color-text-secondary)] text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-[var(--color-bg-secondary)] transition-all"
+                                        >
+                                          Update Goal
+                                        </button>
+                                     </div>
+                                   )}
+                                </div>
+                             ) : isOwnProfile && (
+                                <div className="relative z-10 py-6 text-center space-y-5">
+                                   <p className="text-xs text-[var(--color-text-secondary)] font-medium leading-relaxed italic max-w-sm mx-auto">
+                                      Define your current focus or skill goal to unlock your personalized AI Learning Roadmap.
+                                   </p>
+                                   <button 
+                                      onClick={() => setIsEditing(true)}
+                                      className="inline-flex items-center gap-3 px-8 py-4 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[var(--color-accent)] hover:text-black transition-all shadow-sm"
+                                    >
+                                      <Plus size={16} /> Define Mission Goal
+                                   </button>
+                                </div>
+                             )}
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                  {/* AI Roadmap Display */}
+                  {roadmap && (
+                    <div className="mt-12 mb-16 p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/20 rounded-[3rem] shadow-2xl relative overflow-hidden">
+                       <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                          <Sparkles size={120} className="text-[var(--color-accent)]" />
+                       </div>
+                       <div className="relative z-10">
+                          <div className="flex items-center justify-between mb-12">
+                             <div>
+                                <h3 className="text-3xl font-serif font-black tracking-tight">AI Generated Roadmap</h3>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mt-1">Goal: {profileUser?.target_goal}</p>
+                             </div>
+                             <button onClick={() => setRoadmap(null)} className="p-2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors">
+                                <X size={20} />
+                             </button>
+                          </div>
+                          
+                          <LearningPathRoadmap steps={roadmap} />
+                       </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-4 pt-2 lg:pt-0 lg:min-w-[260px]">
                      <div className="text-center">
                         <p className="text-[8px] font-black uppercase tracking-[0.18em] md:tracking-[0.4em] text-[var(--color-text-secondary)] mb-1.5">Reputation</p>

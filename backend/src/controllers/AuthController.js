@@ -110,13 +110,15 @@ export class AuthController {
   static async updateProfile(req, res, next) {
     try {
       const userId = req.user.id;
-      const { name, bio, location, avatar_url } = req.body;
+      const { name, bio, location, avatar_url, interests, target_goal } = req.body;
 
       const user = await AuthService.updateProfile(userId, {
         name,
         bio,
         location,
         avatar_url,
+        interests,
+        target_goal,
       });
 
       res.status(200).json({

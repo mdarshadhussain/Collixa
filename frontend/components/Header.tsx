@@ -5,12 +5,12 @@ import { Menu, X, ChevronDown, Zap, MessageSquare, Plus, LayoutDashboard, FileTe
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import Avatar from './Avatar'
-import NotificationDropdown from './NotificationDropdown'
+import NotificationDrawer from './NotificationDrawer'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter, usePathname } from 'next/navigation'
-import { storageService } from '@/lib/supabase'
+import { storageService, supabase } from '@/lib/supabase'
 import CreditPurchaseModal from './CreditPurchaseModal'
-import { Shield } from 'lucide-react'
+import { Shield, Bell } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 
 export default function Header() {
@@ -24,7 +24,37 @@ export default function Header() {
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
   const [showCreditModal, setShowCreditModal] = useState(false)
-  const { user, logout, isAuthenticated, isAdmin, viewMode, toggleViewMode } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const { user, logout, isAuthenticated, isAdmin, viewMode, toggleViewMode, token } = useAuth()
+
+  const fetchUnreadCount = async () => {
+    try {
+      if (!token) return
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/notifications`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setUnreadCount(data.data.length)
+      }
+    } catch (err) {}
+  }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUnreadCount()
+      
+      const channel = supabase
+        .channel('header-notifications')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+          fetchUnreadCount()
+        })
+        .subscribe()
+      
+      return () => { supabase.removeChannel(channel) }
+    }
+  }, [isAuthenticated, token])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -115,19 +145,30 @@ export default function Header() {
             </button>
           )}
 
-          {isAuthenticated && <NotificationDropdown />}
+          {/* Removed notification dropdown */}
 
           {isAuthenticated && user ? (
             <div className="relative">
               <button 
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className={`flex items-center gap-4 p-1.5 pr-5 rounded-full border transition-all ${isLandingPage ? 'bg-transparent border-[var(--lp-text)]/20 text-[var(--lp-text)]' : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)]'}`}
+                className={`flex items-center gap-4 p-1.5 pr-5 rounded-full border transition-all relative ${isLandingPage ? 'bg-transparent border-[var(--lp-text)]/20 text-[var(--lp-text)]' : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)]'}`}
               >
-                <Avatar 
-                  name={user.name} 
-                  src={user.avatar_url ? storageService.getPublicUrl(user.avatar_url) : undefined} 
-                  size="sm" 
-                />
+                <div className="relative">
+                  <Avatar 
+                    name={user.name} 
+                    src={user.avatar_url ? storageService.getPublicUrl(user.avatar_url) : undefined} 
+                    size="sm" 
+                  />
+                  {unreadCount > 0 && (
+                     <motion.div 
+                       initial={{ scale: 0 }}
+                       animate={{ scale: 1 }}
+                       className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black flex items-center justify-center rounded-full border-2 border-[var(--color-bg-primary)] shadow-lg"
+                     >
+                        {unreadCount}
+                     </motion.div>
+                  )}
+                </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider">{user.name.split(' ')[0]}</span>
               </button>
 
@@ -165,6 +206,24 @@ export default function Header() {
                         <User size={16} />
                         <span className="text-[13px] font-semibold">View Profile</span>
                       </Link>
+
+                      <button 
+                        onClick={() => {
+                          setShowProfileMenu(false)
+                          setIsDrawerOpen(true)
+                        }}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Bell size={16} />
+                          <span className="text-[13px] font-semibold">Notifications</span>
+                        </div>
+                        {unreadCount > 0 && (
+                          <span className="bg-red-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </button>
 
                       <Link 
                         href="/dashboard" 
@@ -228,13 +287,18 @@ export default function Header() {
         {/* ─── MOBILE CONTROLS ─── */}
         <div className="flex lg:hidden items-center gap-2 sm:gap-3">
           {isAuthenticated && user && (
-            <Link href="/profile" className="mr-1">
+            <Link href="/profile" className="mr-1 relative">
               <Avatar 
                 name={user.name} 
                 src={user.avatar_url ? storageService.getPublicUrl(user.avatar_url) : undefined} 
                 size="sm" 
                 className="w-9 h-9 sm:w-10 sm:h-10 border border-[var(--color-border)]" 
               />
+              {unreadCount > 0 && (
+                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black flex items-center justify-center rounded-full border-2 border-[var(--color-bg-primary)] shadow-lg">
+                    {unreadCount}
+                 </div>
+              )}
             </Link>
           )}
           {isAuthenticated && (
@@ -245,7 +309,7 @@ export default function Header() {
               {user?.credits ?? 0}
             </button>
           )}
-          {isAuthenticated && <NotificationDropdown />}
+          {/* Removed notification dropdown from mobile */}
           <button className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
             {isOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -337,6 +401,10 @@ export default function Header() {
         }
         .animate-fade-in { animation: fade-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
       `}</style>
+      <NotificationDrawer 
+        isOpen={isDrawerOpen} 
+        onClose={() => setIsDrawerOpen(false)} 
+      />
     </motion.header>
   )
 }

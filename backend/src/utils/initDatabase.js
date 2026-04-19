@@ -14,10 +14,11 @@ export const initializeDatabase = async () => {
     console.log('🔄 Initializing database...');
 
     const bootstrapSQL = `
-      ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS credits INTEGER NOT NULL DEFAULT 100;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER NOT NULL DEFAULT 100;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS age INTEGER;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(50);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS interests JSONB DEFAULT '[]';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS target_goal TEXT;
 
       CREATE TABLE IF NOT EXISTS sessions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

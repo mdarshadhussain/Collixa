@@ -9,6 +9,7 @@
     "dev": "nodemon src/server.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@sendgrid/mail": "^8.1.6",
     "@supabase/supabase-js": "^2.38.1",
     "bcryptjs": "^2.4.3",

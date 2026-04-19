@@ -28,7 +28,7 @@ const getLevelInfo = (xp: number = 0) => {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user: authUser } = useAuth()
+  const { user: authUser, token } = useAuth()
   
   const [sections, setSections] = useState<HubSections | null>(null)
   
@@ -36,13 +36,31 @@ export default function DashboardPage() {
   const [pendingConversations, setPendingConversations] = useState<any[]>([])
   const [pendingExchanges, setPendingExchanges] = useState<any[]>([])
   const [activeSessionsCount, setActiveSessionsCount] = useState(0)
+  const [recommendations, setRecommendations] = useState<{ intents: any[], partners: any[] } | null>(null)
   
   const [loading, setLoading] = useState(true)
+  const [loadingAI, setLoadingAI] = useState(false)
 
   const fetchData = async () => {
     if (!authUser) return
 
     try {
+      // Fetch AI Recommendations in background if token exists
+      if (token) {
+        setLoadingAI(true)
+        fetch(`${API_URL}/api/ai/recommendations`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.error) setRecommendations(data)
+          setLoadingAI(false)
+        })
+        .catch(err => {
+          console.error('AI Recommendations fetch failed:', err)
+          setLoadingAI(false)
+        })
+      }
       // Fetch platform hub data
       const hubRes = await fetch(`${API_URL}/api/intents/hub/sections`)
       if (hubRes.ok) {
@@ -276,6 +294,95 @@ export default function DashboardPage() {
                  </div>
            </section>
         </div>
+        
+        {/* ─── AI PERSONALIZED RECOMMENDATIONS ─── */}
+        <section className="pt-4 px-2 lg:px-0">
+           <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-[var(--color-accent-soft)]/20 rounded-xl">
+                  <Sparkles size={24} className="text-[var(--color-accent)]" />
+                </div>
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-serif font-black tracking-tighter">Personalized for You</h2>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mt-1">AI-Powered matching based on your interests</p>
+                </div>
+              </div>
+           </div>
+
+           {loadingAI && !recommendations ? (
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-48 bg-[var(--color-bg-secondary)]/50 rounded-3xl animate-pulse" />
+                ))}
+             </div>
+           ) : recommendations && (recommendations.intents.length > 0 || recommendations.partners.length > 0) ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Recommended Intents */}
+                {recommendations.intents.map((intent: any, i: number) => (
+                  <motion.div 
+                    key={`rec-intent-${intent.id}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    onClick={() => router.push(`/intent/${intent.id}`)}
+                    className="group bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/10 p-6 rounded-[2.5rem] hover:border-[var(--color-accent)]/40 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5 transition-all cursor-pointer relative overflow-hidden"
+                  >
+                     <div className="absolute top-0 right-0 p-4">
+                        <div className="bg-[var(--color-accent)] text-black text-[8px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
+                           <Sparkles size={10} /> 95% Match
+                        </div>
+                     </div>
+                     <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] mb-3 block">{intent.category || 'Potential Fit'}</span>
+                     <h3 className="text-xl font-serif font-black leading-tight mb-4 group-hover:text-[var(--color-accent)] transition-colors line-clamp-2">{intent.title}</h3>
+                     <div className="flex items-center gap-3">
+                        <Avatar size="sm" src={storageService.getPublicUrl(intent.creator_avatar)} name={intent.creator_name} />
+                        <div className="text-[9px] font-bold uppercase tracking-widest opacity-60">Created by {intent.creator_name}</div>
+                     </div>
+                  </motion.div>
+                ))}
+
+                {/* Recommended Partners */}
+                {recommendations.partners.map((partner: any, i: number) => (
+                  <motion.div 
+                    key={`rec-partner-${partner.id}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: (i + 3) * 0.1 }}
+                    onClick={() => router.push(`/profile?uid=${partner.user_id}`)}
+                    className="group bg-[var(--color-inverse-bg)] border border-white/5 p-6 rounded-[2.5rem] hover:border-[var(--color-accent)]/40 transition-all cursor-pointer relative overflow-hidden flex items-center gap-4"
+                  >
+                     <div className="absolute top-2 right-4">
+                        <span className="text-[6px] font-black uppercase tracking-widest text-[var(--color-accent)]">Suggested Partner</span>
+                     </div>
+                     <Avatar size="lg" src={partner.user?.avatar_url} name={partner.user?.name} className="ring-2 ring-[var(--color-accent)]/30 group-hover:ring-[var(--color-accent)] transition-all" />
+                     <div>
+                        <h3 className="text-lg font-serif font-black text-white leading-tight">{partner.user?.name}</h3>
+                        <p className="text-[9px] font-bold text-[var(--color-accent)] uppercase tracking-widest mt-1">Specialist in {partner.name}</p>
+                        <div className="flex gap-1 mt-2">
+                           {[1, 2, 3].map(s => <Star key={s} size={8} className="text-yellow-500 fill-yellow-500" />)}
+                        </div>
+                     </div>
+                  </motion.div>
+                ))}
+             </div>
+           ) : (
+             <div className="bg-[var(--color-bg-secondary)] border border-dashed border-[var(--color-border)] p-12 rounded-[3rem] text-center max-w-2xl mx-auto">
+                <div className="w-16 h-16 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] rounded-full flex items-center justify-center mx-auto mb-6">
+                   <Users size={24} />
+                </div>
+                <h3 className="text-2xl font-serif font-black italic mb-3 text-[var(--color-text-primary)]">Unlock Your Potential.</h3>
+                <p className="text-xs text-[var(--color-text-secondary)] font-medium leading-relaxed mb-8 px-4">
+                   Our AI matches you with the best collaborators and projects based on your interests. Currently, your profile is thin on details!
+                </p>
+                <button 
+                  onClick={() => router.push('/profile')}
+                  className="px-8 py-4 bg-[var(--color-accent)] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-xl hover:scale-105 transition-all shadow-xl"
+                >
+                   Complete Your Profile
+                </button>
+             </div>
+           )}
+        </section>
 
         {/* ─── DISCOVERY SECTION (Explore Hub) ─── */}
         <section className="pt-12">

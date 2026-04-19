@@ -135,7 +135,7 @@ export class AuthService {
   static async updateProfile(userId, updates) {
     console.log(`[AuthService] Updating profile for user ${userId}:`, updates);
     // Don't allow updating sensitive fields
-    const allowedFields = ['name', 'avatar_url', 'bio', 'location', 'age', 'gender'];
+    const allowedFields = ['name', 'avatar_url', 'bio', 'location', 'age', 'gender', 'interests', 'target_goal'];
     const safeUpdates = {};
 
     allowedFields.forEach((field) => {
@@ -148,7 +148,6 @@ export class AuthService {
     safeUpdates.updated_at = new Date().toISOString();
 
     const user = await UserModel.update(userId, safeUpdates);
-    console.log(`[AuthService] Update successful. New user state:`, user);
     
     const { password_hash, ...userWithoutPassword } = user;
     return userWithoutPassword;

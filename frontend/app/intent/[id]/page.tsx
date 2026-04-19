@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import AIMatchInsight from '@/components/AIMatchInsight'
 import BottomNav from '@/components/BottomNav'
 import { Intent, intentService, conversationService, userService, storageService } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
@@ -21,7 +22,9 @@ import {
   Briefcase,
   Avatar as AvatarIcon,
   FileX2,
-  Settings
+  Settings,
+  Sparkles,
+  Loader2
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import { motion } from 'framer-motion'
@@ -55,6 +58,7 @@ export default function IntentDetailPage() {
   const [isAccepting, setIsAccepting] = useState<string | null>(null)
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [hasReviewed, setHasReviewed] = useState(false)
+  // AI Match states removed as they are now in AIMatchInsight component
 
   useEffect(() => {
     if (id) {
@@ -65,6 +69,7 @@ export default function IntentDetailPage() {
   useEffect(() => {
     if (intent && user) {
        checkExistingRequest()
+       // fetchMatchInsight removed as it is now in AIMatchInsight component
        if (intent.collaborator_id) {
           fetchCollaborator(intent.collaborator_id)
        }
@@ -78,6 +83,8 @@ export default function IntentDetailPage() {
         }
     }
   }, [intent, user])
+
+  // fetchMatchInsight removed as it is now in AIMatchInsight component
 
   const checkIfReviewed = async () => {
     if (!user || !intent) return
@@ -380,6 +387,17 @@ export default function IntentDetailPage() {
 
              {/* Right Column: Interaction & Social */}
              <div className="space-y-4 md:space-y-8">
+                
+                {/* AI Match Insight Card */}
+                 {/* AI Match Insight Card using shared component */}
+                 {user && !isOwner && intent.status === 'looking' && (
+                    <AIMatchInsight 
+                       type="intent" 
+                       itemId={intent.id} 
+                       itemTitle={intent.title} 
+                       itemDescription={intent.description || ''} 
+                    />
+                 )}
                 
                 {/* Actions Card */}
                 <motion.div 
