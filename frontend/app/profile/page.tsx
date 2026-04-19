@@ -692,37 +692,51 @@ export default function ProfilePage() {
                   {loadingReviews ? (
                     <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-[var(--color-accent)]" /></div>
                   ) : reviews.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 text-left">
+                    <div className="grid grid-cols-1 gap-6 text-left">
                       {reviews.map((review) => (
-                        <div key={review.id} className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 rounded-2xl md:rounded-[2rem]">
-                          <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar name={review.reviewer_name} src={review.reviewer_avatar ? (review.reviewer_avatar.startsWith('http') ? review.reviewer_avatar : storageService.getPublicUrl(review.reviewer_avatar)) : undefined} size="sm" />
+                        <div key={review.id} className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                          {/* Aesthetic background accent */}
+                          <div className="absolute -right-4 -top-4 w-24 h-24 bg-[var(--color-accent)]/5 rounded-full blur-2xl group-hover:bg-[var(--color-accent)]/10 transition-colors" />
+
+                          <div className="flex justify-between items-start mb-6 relative z-10">
+                            <div className="flex items-center gap-4">
+                              <Avatar 
+                                name={review.reviewer_name} 
+                                src={review.reviewer_avatar ? (review.reviewer_avatar.startsWith('http') ? review.reviewer_avatar : storageService.getPublicUrl(review.reviewer_avatar)) : undefined} 
+                                size="sm" 
+                                className="ring-2 ring-[var(--color-accent-soft)]/30 group-hover:ring-[var(--color-accent)]/50 transition-all"
+                              />
                               <div>
-                                 <p className="text-[10px] font-black uppercase tracking-widest">{review.reviewer_name}</p>
-                                 <p className="text-[8px] text-[var(--color-text-secondary)]">{new Date(review.created_at).toLocaleDateString()}</p>
+                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-primary)]">{review.reviewer_name}</p>
+                                 <p className="text-[8px] font-bold text-[var(--color-text-secondary)] opacity-40 uppercase tracking-widest">{new Date(review.created_at).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                               </div>
                             </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <div className="flex gap-0.5">
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="flex gap-1 bg-[var(--color-bg-primary)] px-2.5 py-1 rounded-full border border-[var(--color-border)]">
                                 {[...Array(5)].map((_, i) => (
-                                  <Star key={i} size={10} className={i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'} />
+                                  <Star key={i} size={10} className={i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-[var(--color-border)]'} />
                                 ))}
                               </div>
-                              <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${review.type === 'INTENT' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                              <span className={`text-[7px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${review.type === 'INTENT' ? 'bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'}`}>
                                 {review.type || 'Review'}
                               </span>
                             </div>
                           </div>
-                          <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed bg-[var(--color-bg-primary)]/40 p-4 rounded-xl border border-[var(--color-border)]/30">
-                            {review.comment || "Endorsed with a 5-star rating."}
-                          </p>
+                          
+                          <div className="relative">
+                            <div className="absolute -left-2 top-0 text-4xl font-serif text-[var(--color-accent)] opacity-10 pointer-events-none">"</div>
+                            <p className="text-xs md:text-sm text-[var(--color-text-primary)] font-medium leading-[1.6] bg-[var(--color-bg-primary)]/30 p-5 rounded-2xl border border-[var(--color-border)]/50 italic">
+                              {review.comment || "Endorsed with a flawless rating."}
+                            </p>
+                          </div>
+
                           {(review.skill_name || review.intent_title) && (
-                            <div className="mt-3 flex items-center gap-2">
-                               <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">
-                                 {review.type === 'INTENT' ? 'Project:' : 'Skill:'}
+                            <div className="mt-6 flex items-center gap-3 border-t border-[var(--color-border)]/50 pt-4">
+                               <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
+                               <span className="text-[8px] font-black uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
+                                 {review.type === 'INTENT' ? 'Connection:' : 'Proficiency:'}
                                </span>
-                               <span className="text-[8px] font-black uppercase text-[var(--color-accent)]">
+                               <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-primary)]">
                                  {review.intent_title || review.skill_name}
                                </span>
                             </div>

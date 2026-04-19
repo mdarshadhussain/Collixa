@@ -44,7 +44,7 @@ const getLevelLabel = (level: number) => {
 export default function IntentDetailPage() {
   const { id } = useParams()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const [intent, setIntent] = useState<Intent | null>(null)
   const [loading, setLoading] = useState(true)
   const [isJoining, setIsJoining] = useState(false)
@@ -191,16 +191,27 @@ export default function IntentDetailPage() {
           comment
         })
       })
-      const data = await response.json()
+
+      let data;
+      try {
+        data = await response.json()
+      } catch (e) {
+        // Fallback for non-JSON response
+        if (!response.ok) {
+          throw new Error(`Server returned error ${response.status}: ${response.statusText}`)
+        }
+        throw new Error("Invalid response format from server")
+      }
+
       if (response.ok) {
         notify.success("Testimonial recorded successfully!")
         setHasReviewed(true)
       } else {
         notify.error(data.error || "Failed to submit feedback")
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      notify.error("Connection error while submitting feedback")
+      notify.error(err.message || "Connection error while submitting feedback")
     }
   }
 

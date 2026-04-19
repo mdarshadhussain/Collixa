@@ -60,6 +60,10 @@ export class ReviewService {
 
        const revieweeId = ownerId === userId ? collaboratorId : ownerId;
 
+       if (!revieweeId) {
+         throw new Error('This project does not have a verified collaborator to review.');
+       }
+
        return await ReviewModel.create({
          intent_id: intentId,
          reviewer_id: userId,
