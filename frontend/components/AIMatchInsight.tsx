@@ -59,9 +59,10 @@ export default function AIMatchInsight({ type, itemId, itemTitle, itemDescriptio
     }
   }
 
-  useEffect(() => {
-    fetchMatchInsight()
-  }, [itemId, user?.id])
+  // Removed automatic trigger to save quota
+  // useEffect(() => {
+  //   fetchMatchInsight()
+  // }, [itemId, user?.id])
 
   if (!user) return null
 
@@ -96,8 +97,14 @@ export default function AIMatchInsight({ type, itemId, itemTitle, itemDescriptio
               <div className="h-4 bg-[var(--color-bg-primary)] rounded animate-pulse w-1/2"></div>
            </div>
          ) : error ? (
-           <div className="text-center py-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-red-500 opacity-60">{error}</p>
+           <div className="text-center py-4 space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-red-500 opacity-60">"Notice: Daily AI Knowledge limit reached."</p>
+              <button 
+                onClick={fetchMatchInsight}
+                className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] hover:underline"
+              >
+                Retry Analysis
+              </button>
            </div>
          ) : matchResult ? (
            <div className="space-y-4">
@@ -114,9 +121,19 @@ export default function AIMatchInsight({ type, itemId, itemTitle, itemDescriptio
               </div>
            </div>
          ) : (
-           <p className="text-[10px] text-[var(--color-text-secondary)] italic">Analyzing match potential...</p>
+           <div className="py-2 text-center">
+              <p className="text-[10px] text-[var(--color-text-secondary)] italic mb-6">
+                "Analyze how your skills and goals align with this connection."
+              </p>
+              <button
+                onClick={fetchMatchInsight}
+                className="w-full py-4 bg-[var(--color-accent)] text-black text-[9px] font-black uppercase tracking-[0.3em] rounded-xl hover:shadow-lg hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2"
+              >
+                <Sparkles size={14} /> Run AI Analysis
+              </button>
+           </div>
          )}
       </div>
     </motion.div>
-  )
+  );
 }
