@@ -15,19 +15,9 @@ services:
       - key: FRONTEND_URL
         value: https://collixa.space
       - key: SUPABASE_URL
-        fromContext: env
       - key: SUPABASE_ANON_KEY
-        fromContext: env
       - key: SUPABASE_SERVICE_ROLE_KEY
-        fromContext: env
-      - key: JWT_SECRET
-        fromContext: env
-      - key: EMAIL_PROVIDER
-        value: sendgrid
-      - key: SENDGRID_API_KEY
-        fromContext: env
       - key: GEMINI_API_KEY
-        fromContext: env
 
   # ─── FRONTEND SERVICE (Next.js) ───
   - type: web
@@ -45,6 +35,4 @@ services:
       - key: NEXT_PUBLIC_API_URL
         value: https://api.collixa.space
       - key: NEXT_PUBLIC_SUPABASE_URL
-        fromContext: env
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        fromContext: env
