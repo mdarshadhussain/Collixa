@@ -16,7 +16,7 @@ export async function GET(
       )
     }
 
-    const intent = await intentService.getIntent(id)
+    const intent = await intentService.getIntentById(id)
 
     if (!intent) {
       return NextResponse.json(

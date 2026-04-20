@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, CreditCard, Lock, ShieldCheck, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
-import Link from 'next/link'
+import { ArrowLeft, CreditCard, Lock, ShieldCheck, Loader2, Sparkles } from 'lucide-react'
 import Header from '@/components/Header'
 
 const PACKAGES = {
@@ -14,7 +13,7 @@ const PACKAGES = {
   'ultimate': { name: 'The Editorial', credits: 2000, price: '$50', color: 'from-rose-400 to-purple-600' }
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const packageId = searchParams.get('package') || 'starter'
@@ -263,5 +262,17 @@ export default function CheckoutPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+       <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
+          <Loader2 className="animate-spin text-[var(--color-accent)]" size={48} />
+       </div>
+    }>
+       <CheckoutContent />
+    </Suspense>
   )
 }

@@ -38,5 +38,7 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
       - key: NEXT_PUBLIC_API_URL
         value: https://api.collixa.space

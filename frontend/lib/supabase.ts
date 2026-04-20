@@ -47,11 +47,13 @@ export interface Intent {
   collaborator_id?: string
   creator_confirmed_at?: string
   collaborator_confirmed_at?: string
-  created_by: string | { id: string; name: string; email: string; avatar_url?: string }
+  created_by: string | { id: string; name: string; email: string; avatar_url?: string; level?: number }
   created_at?: string
   updated_at?: string
   attachment_name?: string
   rejection_reason?: string
+  accepted_count?: number
+  request_count?: number
 }
 
 export interface Message {
@@ -188,6 +190,29 @@ export const intentService = {
 
     return data as Intent[]
   },
+
+  // Filter intents
+  async filterIntents(status?: string, category?: string): Promise<Intent[]> {
+    let query = supabase.from('intents').select().order('created_at', { ascending: false })
+    
+    if (status && status !== 'All') {
+      query = query.eq('status', status.toLowerCase())
+    }
+    
+    if (category && category !== 'All') {
+      query = query.eq('category', category)
+    }
+    
+    const { data, error } = await query
+    
+    if (error) {
+      console.error('Error filtering intents:', error)
+      return []
+    }
+    
+    return data as Intent[]
+  },
+
 
   // Get intent by ID using Backend API
   async getIntentById(id: string | number): Promise<Intent | null> {

@@ -142,7 +142,7 @@ export default function ProfilePage() {
         name: user.name || '',
         bio: user.bio || '',
         location: user.location || '',
-        age: user.age || '',
+        age: String(user.age || ''),
         gender: user.gender || '',
         interests: Array.isArray(user.interests) ? user.interests : [],
         target_goal: user.target_goal || ''

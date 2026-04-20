@@ -168,11 +168,11 @@ export default function BenefitCardsSection() {
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) {
-      el.addEventListener('scroll', checkScroll);
-      checkScroll();
-      return () => el.removeEventListener('scroll', checkScroll);
-    }
+    if (!el) return
+
+    el.addEventListener('scroll', checkScroll);
+    checkScroll();
+    return () => el.removeEventListener('scroll', checkScroll);
   }, []);
 
   const scroll = (direction: 'left' | 'right') => {

@@ -15,8 +15,8 @@ interface AuthContextType {
   isAdmin: boolean
   viewMode: 'admin' | 'user'
   pendingEmail: string | null
-  login: (email: string, password: string) => Promise<{ error: string | null }>
-  register: (email: string, password: string, name: string) => Promise<{ error: string | null; pendingVerification?: boolean }>
+  login: (email: string, password: string) => Promise<{ error: string | null; pendingVerification?: boolean; otp?: string }>
+  register: (email: string, password: string, name: string) => Promise<{ error: string | null; pendingVerification?: boolean; otp?: string }>
   logout: () => Promise<void>
   loginWithGoogle: () => Promise<{ error: string | null }>
   loginWithFacebook: () => Promise<{ error: string | null }>
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<{ error: string | null; pendingVerification?: boolean; otp?: string }> => {
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (email: string, password: string, name: string): Promise<{ error: string | null; pendingVerification?: boolean; otp?: string }> => {
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({

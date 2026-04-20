@@ -42,18 +42,18 @@ export default function Header() {
   }
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchUnreadCount()
-      
-      const channel = supabase
-        .channel('header-notifications')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-          fetchUnreadCount()
-        })
-        .subscribe()
-      
-      return () => { supabase.removeChannel(channel) }
-    }
+    if (!isAuthenticated) return
+
+    fetchUnreadCount()
+    
+    const channel = supabase
+      .channel('header-notifications')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+        fetchUnreadCount()
+      })
+      .subscribe()
+    
+    return () => { supabase.removeChannel(channel) }
   }, [isAuthenticated, token])
 
   useEffect(() => {

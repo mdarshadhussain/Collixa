@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AIMatchInsight from '@/components/AIMatchInsight'
-import { Intent, intentService, conversationService, userService, storageService } from '@/lib/supabase'
+import { Intent, User, intentService, conversationService, userService, storageService } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 import { 
   MessageSquare, 
@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   Clock,
   Briefcase,
-  Avatar as AvatarIcon,
   FileX2,
   Settings,
   Sparkles,
@@ -380,7 +379,7 @@ export default function IntentDetailPage() {
                  {user && !isOwner && intent.status === 'looking' && (
                     <AIMatchInsight 
                        type="intent" 
-                       itemId={intent.id} 
+                       itemId={String(intent.id)} 
                        itemTitle={intent.title} 
                        itemDescription={intent.description || ''} 
                     />

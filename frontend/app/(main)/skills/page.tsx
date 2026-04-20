@@ -14,6 +14,7 @@ import Typewriter from '@/components/Typewriter'
 import { useAuth } from '@/app/context/AuthContext'
 
 export default function SkillsPage() {
+  const router = useRouter()
   const { user, refreshUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
@@ -136,7 +137,7 @@ export default function SkillsPage() {
       const res = await sessionService.scheduleSession({
         requestId: scheduleTarget.id,
         scheduledTime: isoDateTime,
-        meeting_link: scheduleForm.meetingLink || undefined,
+        meetingLink: scheduleForm.meetingLink || undefined,
       })
       if (res.success) {
         setFeedback({ type: 'success', text: 'Session scheduled successfully.' })

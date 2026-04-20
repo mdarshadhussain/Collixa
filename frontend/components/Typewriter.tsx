@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 
 interface TypewriterProps {
   text: string
@@ -18,7 +18,7 @@ export default function Typewriter({
   align = 'left'
 }: TypewriterProps) {
   // Use a staggered container effect
-  const container = {
+  const container: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -29,7 +29,7 @@ export default function Typewriter({
     },
   }
 
-  const child = {
+  const child: Variants = {
     visible: {
       opacity: 1,
       y: 0,
