@@ -2,30 +2,10 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, User } from '@/lib/supabase'
 
 // Admin emails configuration
 const ADMIN_EMAILS = ['admin@collixa.space']
-
-export interface User {
-  id: string
-  email: string
-  name: string
-  role: 'USER' | 'VERIFIED_USER' | 'ADMIN'
-  avatar_url?: string
-  bio?: string
-  location?: string
-  credits?: number
-  is_verified?: boolean
-  xp?: number
-  level?: number
-  interests?: string[]
-  target_goal?: string
-  cached_roadmap?: any
-  roadmap_updated_at?: string
-  created_at: string
-  updated_at: string
-}
 
 interface AuthContextType {
   user: User | null

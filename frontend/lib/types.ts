@@ -145,7 +145,7 @@ export const ROUTES = {
   SETTINGS: '/settings',
 } as const
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 export const PAGINATION_LIMITS = {
   INTENTS: 10,

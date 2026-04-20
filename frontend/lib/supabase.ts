@@ -13,7 +13,7 @@ export interface User {
   id: string
   name: string
   email: string
-  role?: string
+  role?: 'USER' | 'VERIFIED_USER' | 'ADMIN' | string
   title?: string
   location?: string
   bio?: string
@@ -23,6 +23,13 @@ export interface User {
   xp?: number
   level?: number
   is_verified?: boolean
+  age?: string | number
+  gender?: string
+  interests?: string[]
+  target_goal?: string
+  cached_roadmap?: any
+  avg_rating?: number
+  total_reviews?: number
   created_at?: string
   updated_at?: string
 }
@@ -33,7 +40,7 @@ export interface Intent {
   description?: string
   category?: string
   location?: string
-  status: 'looking' | 'in_progress' | 'completed'
+  status: 'looking' | 'in_progress' | 'completed' | 'rejected' | 'pending'
   budget?: string
   timeline?: string
   goal?: string
@@ -44,6 +51,7 @@ export interface Intent {
   created_at?: string
   updated_at?: string
   attachment_name?: string
+  rejection_reason?: string
 }
 
 export interface Message {

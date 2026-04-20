@@ -26,19 +26,23 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS — allow multiple local origins in development
+// CORS — allow multiple origins in development and production
 const allowedOrigins = [
   config.FRONTEND_URL,
+  'https://collixa.space',
+  'https://api.collixa.space',
   'http://localhost:3000',
   'http://localhost:3001',
 ];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (curl, Postman, etc.)
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (curl, mobile apps, etc.)
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.onrender.com')) {
         callback(null, true);
       } else {
+        console.warn(`[CORS] Rejected origin: ${origin}`);
         callback(new Error(`CORS blocked: ${origin}`));
       }
     },

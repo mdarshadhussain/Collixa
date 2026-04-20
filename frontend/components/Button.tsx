@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost'
@@ -9,6 +10,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean
   children: ReactNode
   href?: string
+  loading?: boolean
 }
 
 export default function Button({
@@ -18,9 +20,11 @@ export default function Button({
   className = '',
   children,
   href,
+  loading = false,
+  disabled,
   ...props
 }: ButtonProps) {
-  const baseStyles = 'font-bold uppercase tracking-[0.2em] rounded-2xl transition-all duration-500 flex items-center justify-center gap-2 transform active:scale-95'
+  const baseStyles = 'font-bold uppercase tracking-[0.2em] rounded-2xl transition-all duration-500 flex items-center justify-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100'
 
   const variants = {
     primary: 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/10',
@@ -41,6 +45,7 @@ export default function Button({
         fullWidth ? 'w-full' : ''
       } ${className}`}
     >
+      {loading && <Loader2 size={16} className="animate-spin" />}
       {children}
     </span>
   )
@@ -58,8 +63,10 @@ export default function Button({
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${
         fullWidth ? 'w-full' : ''
       } ${className}`}
+      disabled={disabled || loading}
       {...props}
     >
+      {loading && <Loader2 size={16} className="animate-spin" />}
       {children}
     </button>
   )

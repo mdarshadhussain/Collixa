@@ -174,10 +174,10 @@ export default function MyIntentsPage() {
                       </Badge>
                    </div>
                    
-                   {intent.status === 'rejected' && (intent as any).rejection_reason && (
+                   {intent.status === 'rejected' && intent.rejection_reason && (
                      <div className="mt-3 p-3 rounded-xl bg-red-500/5 border border-red-500/10 text-red-600 dark:text-red-400 text-xs">
                        <strong className="block mb-1 text-[9px] uppercase tracking-widest text-red-500">Rejection Reason</strong>
-                       {(intent as any).rejection_reason}
+                       {intent.rejection_reason}
                      </div>
                    )}
 
