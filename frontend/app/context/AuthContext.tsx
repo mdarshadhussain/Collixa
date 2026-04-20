@@ -17,6 +17,12 @@ export interface User {
   location?: string
   credits?: number
   is_verified?: boolean
+  xp?: number
+  level?: number
+  interests?: string[]
+  target_goal?: string
+  cached_roadmap?: any
+  roadmap_updated_at?: string
   created_at: string
   updated_at: string
 }

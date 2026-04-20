@@ -120,17 +120,42 @@ export class AIController {
       const userId = req.user.id;
       const { goal } = req.body;
       
-      console.log(`[AIController] Generating roadmap for user ${userId} and goal: "${goal}"`);
-
       if (!goal) {
         return res.status(400).json({ error: 'Goal is required' });
       }
 
+      console.log(`[AIController] Roadmap requested for user ${userId} and goal: "${goal}"`);
+
+      // 1. Fetch user profile to check cache
       const user = await AuthService.getProfile(userId);
-      const roadmap = await AIService.generateLearningPath(user, goal);
       
-      console.log(`[AIController] Successfully generated roadmap for user ${userId}`);
-      res.status(200).json({ success: true, roadmap });
+      // 2. Check Cache Validity
+      // We check if cached_roadmap exists AND if it was generated for the SAME goal
+      const cached = user.cached_roadmap ? (typeof user.cached_roadmap === 'string' ? JSON.parse(user.cached_roadmap) : user.cached_roadmap) : null;
+      
+      if (cached && cached.goal === goal) {
+        console.log(`[AIController] Serving cached roadmap for goal: "${goal}"`);
+        return res.status(200).json({ success: true, roadmap: cached.steps });
+      }
+
+      console.log(`[AIController] Cache invalid or missing. Generating fresh dynamic roadmap...`);
+
+      // 3. Generate fresh roadmap
+      const roadmapSteps = await AIService.generateLearningPath(user, goal);
+      
+      const roadmapOutput = {
+        goal: goal,
+        steps: roadmapSteps,
+        generated_at: new Date().toISOString()
+      };
+
+      // 4. Update Cache in Database (Non-blocking)
+      AuthService.updateProfile(userId, {
+        cached_roadmap: roadmapOutput,
+        roadmap_updated_at: roadmapOutput.generated_at
+      }).catch(err => console.warn('[AIController] Roadmap cache save failed:', err.message));
+
+      res.status(200).json({ success: true, roadmap: roadmapSteps });
     } catch (error) {
       console.error('[AIController] Learning Path Error:', error.message);
       next(error);

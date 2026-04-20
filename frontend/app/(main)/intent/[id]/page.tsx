@@ -2,10 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Sidebar from '@/components/Sidebar'
-import Header from '@/components/Header'
 import AIMatchInsight from '@/components/AIMatchInsight'
-import BottomNav from '@/components/BottomNav'
 import { Intent, intentService, conversationService, userService, storageService } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 import { 
@@ -246,24 +243,18 @@ export default function IntentDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-[var(--color-bg-primary)]">
-        <Sidebar activePage="dashboard" />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin"></div>
-        </div>
+      <div className="flex-1 flex items-center justify-center py-20">
+        <div className="w-12 h-12 border-4 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
 
   if (!intent) {
     return (
-      <div className="flex h-screen bg-[var(--color-bg-primary)]">
-        <Sidebar activePage="dashboard" />
-        <div className="flex-1 flex items-center justify-center flex-col gap-4">
-          <FileX2 size={64} className="mx-auto text-[var(--color-text-secondary)] opacity-20" />
-          <h2 className="text-2xl font-serif">Intent not found</h2>
-          <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
-        </div>
+      <div className="flex-1 flex items-center justify-center flex-col gap-4 py-20">
+        <FileX2 size={64} className="mx-auto text-[var(--color-text-secondary)] opacity-20" />
+        <h2 className="text-2xl font-serif">Intent not found</h2>
+        <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
       </div>
     )
   }
@@ -278,11 +269,7 @@ export default function IntentDetailPage() {
   const partnerConfirmed = isOwner ? !!intent.collaborator_confirmed_at : !!intent.creator_confirmed_at
 
   return (
-    <div className="flex h-screen bg-[var(--color-bg-primary)] overflow-hidden">
-      <Sidebar activePage="dashboard" />
-      
-      <main className="flex-1 overflow-y-auto custom-scrollbar">
-        <Header />
+    <div className="space-y-6 md:space-y-12">
         
         <div className="max-w-6xl mx-auto px-3 sm:px-6 py-6 md:py-12 md:px-12">
           {/* Back Button */}
@@ -681,8 +668,6 @@ export default function IntentDetailPage() {
 
           </div>
         </div>
-      </main>
-      <BottomNav />
     </div>
   )
 }

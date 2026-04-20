@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Users, MapPin, Calendar, Zap, Heart, Share2, MessageCircle, ArrowUpRight } from 'lucide-react'
-import Header from '@/components/Header'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
+import { 
+  DollarSign, ChevronLeft, Calendar, MapPin, Globe, 
+  ArrowUpRight, Zap, MessageCircle, Heart, Share2 
+} from 'lucide-react'
 import type { Intent } from '@/lib/supabase'
 import { storageService } from '@/lib/supabase'
 
@@ -39,47 +41,38 @@ export default function IntentDetailPage({ params }: { params: { id: string } })
 
   if (loading) {
     return (
-      <div className="bg-[var(--color-bg-primary)] min-h-screen transition-colors duration-700">
-        <Header />
-        <main className="max-w-6xl mx-auto px-6 md:px-12 py-12">
-          <div className="animate-pulse space-y-10">
-            <div className="h-4 w-32 bg-[var(--color-border)] rounded-full" />
-            <div className="h-64 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-               <div className="lg:col-span-2 h-96 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
-               <div className="h-96 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
-            </div>
+      <main className="max-w-6xl mx-auto px-6 md:px-12 py-12">
+        <div className="animate-pulse space-y-10">
+          <div className="h-4 w-32 bg-[var(--color-border)] rounded-full" />
+          <div className="h-64 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+             <div className="lg:col-span-2 h-96 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
+             <div className="h-96 bg-[var(--color-bg-secondary)] rounded-[3rem] border border-[var(--color-border)]" />
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     )
   }
 
   if (error || !intent) {
     return (
-      <div className="bg-[var(--color-bg-primary)] min-h-screen transition-colors duration-700">
-        <Header />
-        <main className="max-w-4xl mx-auto px-6 py-20 text-center">
-            <h2 className="text-5xl font-serif font-black text-[var(--color-text-primary)] mb-6 italic">Fragmented Vision.</h2>
-            <p className="text-[var(--color-text-secondary)] text-lg mb-12 uppercase tracking-[0.2em] font-bold">{error || 'This intent has dissolved into the binary.'}</p>
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="px-12 py-6 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-inverse-bg)] transition-all"
-            >
-              Back to Marketplace
-            </button>
-        </main>
-      </div>
+      <main className="max-w-4xl mx-auto px-6 py-20 text-center">
+          <h2 className="text-5xl font-serif font-black text-[var(--color-text-primary)] mb-6 italic">Fragmented Vision.</h2>
+          <p className="text-[var(--color-text-secondary)] text-lg mb-12 uppercase tracking-[0.2em] font-bold">{error || 'This intent has dissolved into the binary.'}</p>
+          <button 
+            onClick={() => router.push('/dashboard')}
+            className="px-12 py-6 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-inverse-bg)] transition-all"
+          >
+            Back to Marketplace
+          </button>
+      </main>
     )
   }
 
   const creatorName = typeof intent.created_by === 'object' ? (intent.created_by as any)?.name || 'Anonymous' : 'Anonymous'
 
   return (
-    <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen transition-colors duration-700 font-sans">
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-6 md:px-12 py-12">
+    <div className="space-y-12">
         {/* Back Button */}
         <button 
           onClick={() => router.back()}
@@ -237,10 +230,7 @@ export default function IntentDetailPage({ params }: { params: { id: string } })
             </div>
           </div>
         </div>
-      </main>
     </div>
   )
 }
 
-// Icon fallbacks if DollarSign not imported correctly from lulicide
-import { DollarSign } from 'lucide-react'

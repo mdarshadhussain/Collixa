@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, Zap, ArrowUpRight, TrendingUp, Sparkles, Clock, MapPin, Globe, Activity, Rocket, Bell, Award, Star, Trophy, MessageSquare } from 'lucide-react'
-import Layout from '@/components/Layout'
+import { 
+  LayoutDashboard, Users, Zap, ArrowUpRight, TrendingUp, Sparkles, Clock, MapPin, Globe, 
+  Activity, Rocket, Bell, Award, Star, Trophy, MessageSquare 
+} from 'lucide-react'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
 import { storageService, intentService, sessionService, conversationService, skillService } from '@/lib/supabase'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/app/context/AuthContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -31,7 +33,6 @@ export default function DashboardPage() {
   const { user: authUser, token } = useAuth()
   
   const [sections, setSections] = useState<HubSections | null>(null)
-  
   const [myIntents, setMyIntents] = useState<any[]>([])
   const [pendingConversations, setPendingConversations] = useState<any[]>([])
   const [pendingExchanges, setPendingExchanges] = useState<any[]>([])
@@ -45,7 +46,6 @@ export default function DashboardPage() {
     if (!authUser) return
 
     try {
-      // Fetch AI Recommendations in background if token exists
       if (token) {
         setLoadingAI(true)
         fetch(`${API_URL}/api/ai/recommendations`, {
@@ -61,14 +61,12 @@ export default function DashboardPage() {
           setLoadingAI(false)
         })
       }
-      // Fetch platform hub data
       const hubRes = await fetch(`${API_URL}/api/intents/hub/sections`)
       if (hubRes.ok) {
         const hubData = await hubRes.json()
         setSections(hubData.data)
       }
 
-      // Fetch User Specific Data
       const [intents, convos, exchangesRes, sessionsRes] = await Promise.all([
         intentService.getUserIntents(authUser.id),
         conversationService.getConversations(authUser.id),
@@ -79,12 +77,10 @@ export default function DashboardPage() {
       if (intents) setMyIntents(intents)
       
       if (convos) {
-        // Filter conversations to only show PENDING requests where the user is NOT the sender
         const pending = convos.filter((c: any) => {
           const isP1 = typeof c.participant_1 === 'object' ? c.participant_1.id === authUser.id : c.participant_1 === authUser.id;
-          return c.status === 'PENDING' && !isP1; // authUser is recipient
+          return c.status === 'PENDING' && !isP1;
         }).map((c: any) => {
-          // Map to UI friendly
           const p1 = typeof c.participant_1 === 'object' ? c.participant_1 : null
           const p2 = typeof c.participant_2 === 'object' ? c.participant_2 : null
           const other = p1?.id === authUser.id ? p2 : p1
@@ -98,13 +94,11 @@ export default function DashboardPage() {
       }
 
       if (exchangesRes && exchangesRes.success) {
-        // Filter for incoming PENDING requests where user is provider
         const incoming = exchangesRes.data.filter((ex: any) => ex.status === 'PENDING' && ex.provider_id === authUser.id)
         setPendingExchanges(incoming)
       }
 
       if (sessionsRes && sessionsRes.success) {
-        // Filter for active/upcoming sessions
         const active = sessionsRes.data.filter((s: any) => s.status !== 'COMPLETED' && s.status !== 'CANCELLED')
         setActiveSessionsCount(active.length)
       }
@@ -122,24 +116,12 @@ export default function DashboardPage() {
     }
   }, [authUser])
 
-  if (loading || !authUser) {
-    return (
-      <Layout showSidebar={false}>
-        <div className="max-w-[1400px] mx-auto space-y-8 py-6 animate-pulse">
-           <div className="h-40 bg-[var(--color-bg-secondary)]/10 rounded-[3rem] border border-white/10" />
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-             <div className="h-64 bg-[var(--color-bg-secondary)]/5 rounded-3xl" />
-             <div className="h-64 col-span-2 bg-[var(--color-bg-secondary)]/5 rounded-3xl" />
-           </div>
-        </div>
-      </Layout>
-    )
-  }
+  if (!authUser) return null
 
   const totalPendingActionItems = pendingConversations.length + pendingExchanges.length
 
   return (
-    <Layout showSidebar={false}>
+    <>
       <div className="max-w-[1500px] mx-auto space-y-12 pb-20 mt-4 px-2 md:px-0">
         
         {/* ─── PERSONAL HUB HERO ─── */}
@@ -193,7 +175,7 @@ export default function DashboardPage() {
                     <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1">Active Sessions</p>
                  </div>
               </div>
-           </div>
+            </div>
         </section>
 
         {/* ─── BENTO BOX ACTION GRID ─── */}
@@ -212,7 +194,6 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex-1 space-y-4">
-                  {/* render pending message requests */}
                   {pendingConversations.map(conv => (
                     <div key={conv.id} className="flex items-center gap-4 bg-[var(--color-bg-primary)] p-4 rounded-2xl border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 transition-colors group">
                        <Avatar src={conv.avatar} name={conv.name} size="sm" />
@@ -223,7 +204,6 @@ export default function DashboardPage() {
                        <button onClick={() => router.push(`/chat`)} className="bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-3 rounded-xl group-hover:bg-[var(--color-accent)] transition-colors"><ArrowUpRight size={16}/></button>
                     </div>
                   ))}
-                  {/* render pending skill exchanges */}
                   {pendingExchanges.map(ex => (
                     <div key={ex.id} className="flex items-center gap-4 bg-[var(--color-bg-primary)] p-4 rounded-2xl border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 transition-colors group">
                        <div className="w-10 h-10 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] rounded-full flex items-center justify-center shrink-0">
@@ -317,7 +297,6 @@ export default function DashboardPage() {
              </div>
            ) : recommendations && (recommendations.intents.length > 0 || recommendations.partners.length > 0) ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Recommended Intents */}
                 {recommendations.intents.map((intent: any, i: number) => (
                   <motion.div 
                     key={`rec-intent-${intent.id}`}
@@ -341,7 +320,6 @@ export default function DashboardPage() {
                   </motion.div>
                 ))}
 
-                {/* Recommended Partners */}
                 {recommendations.partners.map((partner: any, i: number) => (
                   <motion.div 
                     key={`rec-partner-${partner.id}`}
@@ -406,7 +384,7 @@ export default function DashboardPage() {
                 >
                   <div className="aspect-[4/3] bg-[var(--color-bg-primary)] overflow-hidden relative">
                     {intent.attachment_name ? (
-                      <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
+                      <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" alt={intent.title} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[var(--color-text-secondary)]/20 font-serif text-3xl font-black italic bg-[var(--color-bg-secondary)]">C X</div>
                     )}
@@ -434,7 +412,7 @@ export default function DashboardPage() {
         </section>
 
       </div>
-    </Layout>
+    </>
   )
 }
 

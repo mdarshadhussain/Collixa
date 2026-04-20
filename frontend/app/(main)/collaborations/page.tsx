@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Intent, intentService, storageService } from '@/lib/supabase'
 import Typewriter from '@/components/Typewriter'
-import Layout from '@/components/Layout'
 
 const CATEGORIES = ['All', 'Intents', 'Study', 'Fitness', 'Travel', 'Events', 'Startup', 'Networking', 'Creative', 'Social', 'Other']
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -61,7 +60,7 @@ export default function IntentsPage() {
   })
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6 md:space-y-10">
         
         {/* Search & Actions Mobile */}
@@ -192,6 +191,6 @@ export default function IntentsPage() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   )
 }

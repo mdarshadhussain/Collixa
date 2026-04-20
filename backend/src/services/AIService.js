@@ -110,16 +110,27 @@ export class AIService {
     }
 
     const prompt = `
-      Create a step-by-step learning roadmap for ${user.name} to achieve this goal: "${goal}".
-      Current Skills: ${JSON.stringify(user.skills || [])}
+      You are an expert technical mentor and project architect.
+      Create a highly personalized, concrete, and actionable 5-step learning roadmap for ${user.name} to achieve their specific goal: "${goal}".
       
-      Return a JSON array of objects, where each object has:
-      - step: Title of the step
-      - description: What to learn
-      - duration: Estimated time (e.g., 1 week, 2 days)
-      - resources: Array of suggested topics to research.
+      USER CONTEXT:
+      - Current Skills: ${JSON.stringify(user.skills || [])}
+      - Target Goal: "${goal}"
 
-      Return exactly 5 logical steps. ONLY return the JSON array.
+      INSTRUCTIONS:
+      1. Tailor every step specifically to achieving "${goal}".
+      2. Each step must be a logical progression from the previous one.
+      3. The "description" should explain exactly what specific tools, concepts, or sub-tasks are involved for this goal.
+      4. "resources" should be a list of 3-4 specific technical topics or libraries relevant to this roadmap.
+      5. Do NOT be generic. Be opinionated and technical.
+
+      Return a JSON array of 5 objects:
+      - step: Descriptive title
+      - description: Detailed "how-to" for this step
+      - duration: Practical time estimate
+      - resources: Array of strings
+      
+      ONLY return the JSON array.
     `;
 
     try {

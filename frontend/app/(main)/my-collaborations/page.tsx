@@ -7,7 +7,6 @@ import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import Typewriter from '@/components/Typewriter'
 import Link from 'next/link'
-import Layout from '@/components/Layout'
 import { storageService } from '@/lib/supabase'
 import type { Intent } from '@/lib/supabase'
 import { notify } from '@/lib/utils'
@@ -86,7 +85,7 @@ export default function MyIntentsPage() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6 md:space-y-12">
         
         {/* Header Area */}
@@ -220,6 +219,6 @@ export default function MyIntentsPage() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   )
 }

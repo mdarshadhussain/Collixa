@@ -3,9 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Send, Plus, MoreVertical, Search, ArrowLeft, MessageCircle, X, Loader2 } from 'lucide-react'
-import Header from '@/components/Header'
-import Sidebar from '@/components/Sidebar'
-import BottomNav from '@/components/BottomNav'
 import Badge from '@/components/Badge'
 import { useAuth } from '@/app/context/AuthContext'
 import { conversationService, messageService, supabase, userService } from '@/lib/supabase'
@@ -87,8 +84,8 @@ export default function ChatPage() {
           }
 
           // Because getConversations has a join, participant_1 is an object at runtime
-          const p1 = typeof conv.participant_1 === 'object' ? conv.participant_1 : null
-          const p2 = typeof conv.participant_2 === 'object' ? conv.participant_2 : null
+          const p1 = (typeof conv.participant_1 === 'object' ? conv.participant_1 : null) as any
+          const p2 = (typeof conv.participant_2 === 'object' ? conv.participant_2 : null) as any
           
           const isUserP1 = p1?.id === user.id
           const other = isUserP1 ? p2 : p1
@@ -311,6 +308,7 @@ export default function ChatPage() {
     setIsChatMenuOpen(false)
     const mode = selectedConversation.chatType === 'GROUP' ? 'leave this group' : 'delete this user'
     if (!window.confirm(`Are you sure you want to permanently ${mode} from your list?`)) return
+    if (!user) return
     const success = await conversationService.leaveConversation(selectedConversation.id, user.id)
     if (success) {
       setConversations(prev => prev.filter(c => c.id !== selectedConversation.id))
@@ -321,15 +319,8 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] h-screen overflow-hidden transition-colors duration-700 font-sans flex flex-col">
-      <Header />
-
-      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-4 md:px-8 pb-8 gap-8 overflow-hidden">
-        
-        <Sidebar />
-
-        {/* Messaging Container */}
-        <div className="flex-1 flex gap-4 overflow-hidden">
+    <>
+      <div className="h-[calc(100vh-160px)] flex gap-4 overflow-hidden">
             
             <div
               className={`w-full md:w-80 lg:w-96 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] flex flex-col overflow-hidden shadow-sm transition-all ${
@@ -516,10 +507,7 @@ export default function ChatPage() {
                 </div>
               )}
             </div>
-        </div>
-      </div>
-      <BottomNav />
-
+        
       {isNewChatModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsNewChatModalOpen(false)} />
@@ -585,6 +573,7 @@ export default function ChatPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }

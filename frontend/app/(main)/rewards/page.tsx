@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Award, ArrowLeft, Trophy, Sparkles, Zap, Star, Shield, Target, Users, MapPin, Globe, CreditCard } from 'lucide-react'
-import Layout from '@/components/Layout'
 import AchievementsSection from '@/components/AchievementsSection'
 import { useAuth } from '@/app/context/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -48,14 +47,11 @@ export default function RewardsPage() {
     }
   }
 
-  if (!user) {
-    if (typeof window !== 'undefined') router.push('/auth')
-    return null
-  }
+  if (!user) return null
 
   return (
-    <Layout showSidebar={true} showBottomNav={true}>
-      <div className="max-w-[1400px] mx-auto space-y-24 pb-32">
+    <>
+      <div className="space-y-24 pb-32">
         
         {/* ─── PREMIUM HERO ─── */}
         <section className="relative rounded-[3rem] overflow-hidden group border border-[var(--color-border)] shadow-md shadow-black/5 bg-[var(--color-bg-secondary)] flex flex-col justify-center p-12 md:p-16 xl:p-20 space-y-8">
@@ -204,6 +200,6 @@ export default function RewardsPage() {
         </section>
 
       </div>
-    </Layout>
+    </>
   )
 }

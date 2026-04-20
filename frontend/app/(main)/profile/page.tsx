@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus, Sparkles } from 'lucide-react'
-import Header from '@/components/Header'
-import Sidebar from '@/components/Sidebar'
-import BottomNav from '@/components/BottomNav'
+import { 
+  Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, 
+  ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus, Sparkles 
+} from 'lucide-react'
 import Button from '@/components/Button'
 import Badge from '@/components/Badge'
 import Avatar from '@/components/Avatar'
@@ -153,11 +153,15 @@ export default function ProfilePage() {
     }
   }, [user])
 
+  // 1. Load cached roadmap if it matches current goal
   useEffect(() => {
-    if (!authLoading && !isAuthenticated && !profileUid) {
-      router.push('/')
+    if (user?.cached_roadmap && user?.target_goal) {
+       const cached = typeof user.cached_roadmap === 'string' ? JSON.parse(user.cached_roadmap) : user.cached_roadmap;
+       if (cached.goal === user.target_goal) {
+          setRoadmap(cached.steps);
+       }
     }
-  }, [isAuthenticated, authLoading, router, profileUid])
+  }, [user?.cached_roadmap, user?.target_goal]);
 
   useEffect(() => {
     if (token) {
@@ -284,9 +288,7 @@ export default function ProfilePage() {
     try {
       let finalAvatarUrl = avatarPreview || user?.avatar_url || ''
 
-      // 1. Upload new avatar if changed
       if (avatarFile) {
-        console.log('Uploading avatar...', avatarFile.name)
         const fileExt = avatarFile.name.split('.').pop()
         const fileName = `avatar-${user?.id}-${Date.now()}.${fileExt}`
         const storagePath = `profiles/${fileName}`
@@ -294,17 +296,13 @@ export default function ProfilePage() {
 
         if (uploadedPath) {
           finalAvatarUrl = uploadedPath
-          console.log('Avatar uploaded successfully:', finalAvatarUrl)
         } else {
-          console.error('Avatar upload failed')
-          notify.error('Failed to upload the image. Please ensure you have a "attachments" bucket in your Supabase storage.')
-          // We shouldn't proceed if they intended to change the image but it failed
+          notify.error('Failed to upload image.')
           setIsSaving(false)
           return
         }
       }
 
-      // 2. Update profile via API
       const response = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
@@ -325,24 +323,12 @@ export default function ProfilePage() {
         }
         setIsEditing(false)
       } else {
-        const errorText = await response.text()
-        let errorMessage = 'Server returned an error'
-        try {
-          const errorData = JSON.parse(errorText)
-          if (errorData.error === 'Validation failed' && errorData.details) {
-            errorMessage = `Validation Error: ${errorData.details.map((d: any) => d.msg).join(', ')}`
-          } else {
-            errorMessage = errorData.error || errorData.message || errorMessage
-          }
-        } catch (e) {
-          errorMessage = errorText || errorMessage
-        }
-        console.error('Profile update failed:', errorMessage)
-        notify.error(errorMessage)
+        const errorData = await response.json();
+        notify.error(errorData.error || 'Failed to update profile');
       }
     } catch (err: any) {
       console.error('Error updating profile:', err)
-      notify.error(`Connection Error: ${err.message || 'The server is not responding'}`)
+      notify.error(`Connection Error: ${err.message}`)
     } finally {
       setIsSaving(false)
     }
@@ -368,10 +354,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen transition-colors duration-700 font-sans">
-      <Header />
-      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-8 py-5 md:py-8 gap-4 md:gap-8">
-        <Sidebar />
+    <>
+      <div className="space-y-12">
         <main className="flex-1">
           <button
             onClick={() => router.push('/dashboard')}
@@ -382,7 +366,6 @@ export default function ProfilePage() {
           </button>
 
           <div className="grid grid-cols-1 gap-8">
-            {/* Profile Sidebar/Header Area */}
             <div className="space-y-6">
               <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-xl shadow-[var(--color-accent)]/5 relative overflow-hidden">
 
@@ -412,8 +395,6 @@ export default function ProfilePage() {
                           onClick={() => {
                             setAvatarPreview(url)
                             setAvatarFile(null)
-                            // Extract seed/identity from preset if needed, 
-                            // or just reset customization to defaults for this preset
                           }}
                           className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 overflow-hidden ${avatarPreview === url ? 'border-[var(--color-accent)]' : 'border-transparent'}`}
                         >
@@ -491,25 +472,15 @@ export default function ProfilePage() {
                           className="editorial-input"
                           placeholder="e.g. AI, Fintech, Design, Music"
                         />
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {interestsInput.split(',').map(s => s.trim()).filter(Boolean).map((interest, idx) => (
-                            <span key={idx} className="px-2 py-0.5 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[8px] font-black uppercase rounded-md">
-                              # {interest}
-                            </span>
-                          ))}
-                        </div>
                       </div>
 
                       <div className="text-left border-t border-[var(--color-border)] pt-4">
-                        <label className="editorial-label flex items-center justify-between">
-                          Next Collaborative Goal
-                          <Badge variant="accent" className="text-[7px]">AI Powered</Badge>
-                        </label>
+                        <label className="editorial-label">Next Collaborative Goal</label>
                         <textarea
                           value={editForm.target_goal}
                           onChange={(e) => setEditForm({ ...editForm, target_goal: e.target.value })}
                           className="editorial-textarea min-h-[80px]"
-                          placeholder="What specific project or skill are you looking to master next? Our AI will use this to match you."
+                          placeholder="What specific project or skill are you looking to master next?"
                         />
                       </div>
                     </div>
@@ -533,7 +504,6 @@ export default function ProfilePage() {
                 ) : (
                   <>
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
-                      {/* Left Column: Profile Info & Mission */}
                       <div className="flex-1 space-y-8">
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                           <div className="relative group shrink-0">
@@ -564,31 +534,19 @@ export default function ProfilePage() {
                                     Level {profileUser?.level || 1} • {getLevelLabel(profileUser?.level)}
                                   </span>
                                 </div>
-                                {profileUser?.role === 'ADMIN' && (
-                                  <Badge variant="accent" className="text-[9px] font-black">Admin</Badge>
-                                )}
                               </div>
                             </div>
 
                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                               <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
-                              <div className="flex items-center gap-3">
-                                {profileUser?.age && (
-                                  <span className="text-[10px] font-bold text-[var(--color-text-secondary)] opacity-60">{profileUser.age}y</span>
-                                )}
-                                {profileUser?.gender && (
-                                  <span className="text-[10px] font-bold text-[var(--color-text-secondary)] opacity-60">• {profileUser.gender}</span>
-                                )}
-                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm">
-                                  <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                                  <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
-                                </div>
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm">
+                                <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                                <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Secondary Info */}
                         <div className="space-y-4">
                           {profileUser?.location && (
                             <div className="flex items-center justify-center md:justify-start gap-2 text-[var(--color-text-secondary)] text-[10px] font-bold uppercase tracking-widest">
@@ -596,7 +554,6 @@ export default function ProfilePage() {
                               {profileUser.location}
                             </div>
                           )}
-
                           {profileUser?.bio && (
                             <p className="text-sm md:text-base text-[var(--color-text-secondary)] font-medium leading-relaxed italic border-l-2 border-[var(--color-border)] pl-6 py-2">
                               "{profileUser.bio}"
@@ -604,9 +561,8 @@ export default function ProfilePage() {
                           )}
                         </div>
 
-                        {/* Interests */}
                         <div className="py-2">
-                          {profileUser?.interests?.length > 0 ? (
+                          {profileUser?.interests?.length > 0 && (
                             <div className="flex flex-wrap justify-center md:justify-start gap-2">
                               {profileUser.interests.map((interest: string, idx: number) => (
                                 <span key={idx} className="px-3 py-1 bg-[var(--color-accent-soft)]/10 text-[var(--color-accent)] text-[8px] font-black uppercase tracking-widest rounded-full border border-[var(--color-accent)]/10">
@@ -614,24 +570,13 @@ export default function ProfilePage() {
                                 </span>
                               ))}
                             </div>
-                          ) : isOwnProfile && (
-                            <button onClick={() => setIsEditing(true)} className="w-full bg-[var(--color-bg-secondary)] border border-dashed border-[var(--color-border)] p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-[var(--color-accent)] transition-all">
-                              <Plus size={16} className="text-[var(--color-accent)]" />
-                              <p className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Broaden your reach — Add Interests</p>
-                            </button>
                           )}
                         </div>
 
-                        {/* Mission Focus / Roadmap Activation */}
                         {(profileUser?.target_goal || isOwnProfile) && (
                           <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] p-6 md:p-8 rounded-[2.5rem] relative group/goal overflow-hidden">
-                            <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-[var(--color-accent)]/5 rounded-full blur-3xl transition-all group-hover/goal:bg-[var(--color-accent)]/10" />
-
                             <div className="flex items-center justify-between mb-6 relative z-10">
                               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)]">Mission Focus</p>
-                              {isOwnProfile && !profileUser?.target_goal && (
-                                <Badge variant="accent" className="text-[8px] animate-pulse">Action Required</Badge>
-                              )}
                             </div>
 
                             {profileUser?.target_goal ? (
@@ -646,32 +591,19 @@ export default function ProfilePage() {
                                     <button
                                       onClick={handleGenerateRoadmap}
                                       disabled={isGeneratingRoadmap}
-                                      className="flex-[2] py-4 bg-[var(--color-accent)] text-black rounded-2xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] active:translate-y-0 transition-all flex items-center justify-center gap-3 group"
+                                      className="flex-[2] py-4 bg-[var(--color-accent)] text-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 group"
                                     >
-                                      {isGeneratingRoadmap ? (
-                                        <Loader2 size={18} className="animate-spin" />
-                                      ) : (
-                                        <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
-                                      )}
+                                      {isGeneratingRoadmap ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
                                       <span className="text-[11px] font-black uppercase tracking-[0.2em]">Generate AI Roadmap</span>
-                                    </button>
-                                    <button
-                                      onClick={() => setIsEditing(true)}
-                                      className="flex-1 py-4 border border-[var(--color-border)] text-[var(--color-text-secondary)] text-[11px] font-black uppercase tracking-widest rounded-2xl hover:bg-[var(--color-bg-secondary)] transition-all"
-                                    >
-                                      Update Goal
                                     </button>
                                   </div>
                                 )}
                               </div>
                             ) : isOwnProfile && (
-                              <div className="relative z-10 py-8 text-center space-y-6">
-                                <p className="text-sm text-[var(--color-text-secondary)] font-medium leading-relaxed italic max-w-sm mx-auto">
-                                  "Define your next major milestone to unlock personalized AI roadmaps and better collaborations."
-                                </p>
+                              <div className="relative z-10 py-8 text-center">
                                 <button
                                   onClick={() => setIsEditing(true)}
-                                  className="inline-flex items-center gap-3 px-8 py-4 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[var(--color-accent)] hover:text-black transition-all shadow-sm"
+                                  className="inline-flex items-center gap-3 px-8 py-4 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[var(--color-accent)] hover:text-black transition-all"
                                 >
                                   <Plus size={16} /> Define Mission Goal
                                 </button>
@@ -681,29 +613,15 @@ export default function ProfilePage() {
                         )}
                       </div>
 
-                      {/* Right Column: Statistics */}
                       <div className="lg:w-[320px] space-y-6 shrink-0">
                         <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
                           <div className="bg-[var(--color-bg-primary)] p-6 rounded-3xl border border-[var(--color-border)] text-center">
                             <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-2">Reputation</p>
                             <p className="text-2xl font-serif font-black">{profileUser?.total_reviews ?? 0} <span className="text-[10px] font-sans opacity-40 italic">Reviews</span></p>
                           </div>
-                          <div className="bg-[var(--color-bg-primary)] p-6 rounded-3xl border border-[var(--color-border)] text-center relative group">
+                          <div className="bg-[var(--color-bg-primary)] p-6 rounded-3xl border border-[var(--color-border)] text-center">
                             <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-2">Credits</p>
-                            <p className="text-2xl font-serif font-black inline-flex items-center gap-2">
-                              {profileUser?.credits ?? 0}
-                              <button onClick={() => setShowCreditModal(true)} className="p-1 hover:text-[var(--color-accent)] transition-colors">
-                                <Plus size={14} />
-                              </button>
-                            </p>
-                            {isOwnProfile && (
-                              <button
-                                onClick={() => setShowShareModal(true)}
-                                className="absolute top-2 right-2 p-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <Share2 size={12} />
-                              </button>
-                            )}
+                            <p className="text-2xl font-serif font-black">{profileUser?.credits ?? 0}</p>
                           </div>
                         </div>
 
@@ -717,7 +635,7 @@ export default function ProfilePage() {
                             </button>
                             <button
                               onClick={() => setIsEditing(true)}
-                              className="w-full py-4 bg-[var(--color-accent)] text-black text-[9px] font-black uppercase tracking-[0.3em] rounded-2xl shadow-lg hover:shadow-xl hover:translate-y-[-1px] transition-all flex items-center justify-center gap-3"
+                              className="w-full py-4 bg-[var(--color-accent)] text-black text-[9px] font-black uppercase tracking-[0.3em] rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3"
                             >
                               <Edit2 size={14} /> Edit Identity
                             </button>
@@ -729,44 +647,33 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* AI Roadmap Display */}
               {roadmap && (
-                <div className="mt-8 p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/20 rounded-[3rem] shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                    <Sparkles size={120} className="text-[var(--color-accent)]" />
-                  </div>
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-12">
-                      <div>
-                        <h3 className="text-3xl font-serif font-black tracking-tight">AI Generated Roadmap</h3>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mt-1">Goal: {profileUser?.target_goal}</p>
-                      </div>
-                      <button onClick={() => setRoadmap(null)} className="p-2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors">
-                        <X size={20} />
-                      </button>
+                <div className="mt-8 p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/20 rounded-[3rem] shadow-2xl relative">
+                  <div className="flex items-center justify-between mb-12">
+                    <div>
+                      <h3 className="text-3xl font-serif font-black tracking-tight">AI Generated Roadmap</h3>
                     </div>
-
-                    <LearningPathRoadmap steps={roadmap} />
+                    <button onClick={() => setRoadmap(null)} className="p-2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors">
+                      <X size={20} />
+                    </button>
                   </div>
+                  <LearningPathRoadmap steps={roadmap} />
                 </div>
               )}
 
-
-              <div className="bg-[var(--color-accent-soft)]/10 border border-[var(--color-accent-soft)] p-5 md:p-6 rounded-2xl md:rounded-[2rem]">
+              <div className="bg-[var(--color-accent-soft)]/10 border border-[var(--color-accent-soft)] p-6 rounded-[2rem]">
                 <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-4">Membership Archive</p>
                 <p className="text-sm font-serif italic text-[var(--color-text-primary)]">{joinDate}</p>
               </div>
             </div>
 
-            {/* Activity Area */}
             <div className="flex flex-col space-y-10">
-              {/* Tabs */}
-              <div className="flex gap-3 sm:gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-3 sm:px-4 flex-wrap">
+              <div className="flex gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-4 flex-wrap">
                 {['intents', 'skills', 'reviews', 'achievements', ...(isOwnProfile ? ['history'] : [])].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab as any)}
-                    className={`py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.32em] border-b-2 transition-all ${activeTab === tab
+                    className={`py-3 text-[10px] font-black uppercase tracking-[0.32em] border-b-2 transition-all ${activeTab === tab
                         ? 'text-[var(--color-accent)] border-[var(--color-accent)]'
                         : 'text-[var(--color-text-secondary)] border-transparent hover:text-[var(--color-text-primary)]'
                       }`}
@@ -776,52 +683,30 @@ export default function ProfilePage() {
                 ))}
               </div>
 
-              {/* Content Pane */}
               <div className="space-y-8 min-h-[500px]">
                 {activeTab === 'intents' && (
                   <div className="grid grid-cols-1 gap-8">
                     {loadingIntents ? (
-                      [1, 2, 3].map((i) => (
-                        <div key={i} className="h-32 bg-[var(--color-bg-secondary)] rounded-2xl md:rounded-[2rem] border border-[var(--color-border)] animate-pulse" />
-                      ))
+                      [1, 2, 3].map((i) => <div key={i} className="h-32 bg-[var(--color-bg-secondary)] rounded-[2rem] border animate-pulse" />)
                     ) : myIntents.length > 0 ? (
                       myIntents.map((intent) => (
                         <div
                           key={intent.id}
-                          className="group bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent-soft)] p-5 md:p-8 rounded-2xl md:rounded-[2rem] hover:shadow-2xl transition-all duration-700 cursor-pointer relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-8"
+                          className="group bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 rounded-[2rem] hover:shadow-2xl transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-8"
                           onClick={() => router.push(`/intent/${intent.id}`)}
                         >
                           <div className="space-y-4 flex-1">
                             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)]">{intent.category || 'General'}</span>
                             <h3 className="text-2xl font-serif font-black text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{intent.title}</h3>
-                            <div className="flex items-center gap-6">
-                              <Badge variant={intent.status === 'completed' ? 'gray' : 'green'} className="text-[8px] tracking-[0.2em]">
-                                {intent.status === 'completed' ? 'Fulfilled' : 'Active'}
-                              </Badge>
-                              {intent.created_at && (
-                                <div className="flex items-center gap-2 text-[var(--color-text-secondary)] text-[10px] font-bold uppercase tracking-widest">
-                                  <Calendar size={14} />
-                                  <span>{new Date(intent.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-                                </div>
-                              )}
-                            </div>
                           </div>
-                          <div className="opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-700">
-                            <ArrowUpRight size={28} className="text-[var(--color-accent)]" />
-                          </div>
+                          <ArrowUpRight size={28} className="text-[var(--color-accent)]" />
                         </div>
                       ))
                     ) : (
-                      <div className="bg-[var(--color-bg-secondary)] border-2 border-dashed border-[var(--color-border)] p-10 md:p-16 rounded-2xl md:rounded-[2rem] text-center">
+                      <div className="bg-[var(--color-bg-secondary)] border-2 border-dashed p-16 rounded-[2rem] text-center">
                         <Briefcase size={56} className="mx-auto text-[var(--color-border)] mb-8" />
-                        <h3 className="text-3xl font-serif italic text-[var(--color-text-primary)] mb-4">No active broadcasts.</h3>
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mb-12">Initialize your first collaboration intent.</p>
-                        <button
-                          onClick={() => router.push('/create')}
-                          className="px-10 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[var(--color-inverse-bg)] transition-all"
-                        >
-                          Initiate BroadCast
-                        </button>
+                        <h3 className="text-3xl font-serif italic mb-4">No active broadcasts.</h3>
+                        <button onClick={() => router.push('/create')} className="px-10 py-5 bg-[var(--color-accent)] text-white text-[10px] font-black uppercase tracking-[0.4em]">Initiate BroadCast</button>
                       </div>
                     )}
                   </div>
@@ -829,176 +714,73 @@ export default function ProfilePage() {
 
                 {activeTab === 'skills' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {loadingSkills ? (
-                      <div className="col-span-full py-20 flex justify-center"><Loader2 className="animate-spin text-[var(--color-accent)]" /></div>
-                    ) : userSkills.length > 0 ? (
+                    {userSkills.length > 0 ? (
                       userSkills.map((skill) => (
-                        <div key={skill.id} className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 rounded-2xl md:rounded-[2rem] hover:shadow-xl transition-all">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)]">{skill.category}</span>
-                              <h4 className="text-lg font-serif font-black">{skill.name}</h4>
-                            </div>
-                            <div className="bg-[var(--color-bg-primary)] px-2.5 py-1 rounded-full border border-[var(--color-border)] flex items-center gap-1.5">
-                              <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                              <span className="text-[10px] font-bold">{skill.avg_rating > 0 ? skill.avg_rating.toFixed(1) : 'New'}</span>
-                            </div>
-                          </div>
-                          <p className="text-[11px] text-[var(--color-text-secondary)] italic leading-relaxed mb-4 line-clamp-3">"{skill.description}"</p>
-                          <div className="flex items-center justify-between pt-4 border-t border-[var(--color-border)]/50">
-                            <span className="px-3 py-1 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[8px] font-black uppercase rounded-lg">{skill.level}</span>
-                            <span className="text-[9px] font-bold text-[var(--color-text-secondary)]">Since {new Date(skill.created_at).toLocaleDateString()}</span>
-                          </div>
+                        <div key={skill.id} className="bg-[var(--color-bg-secondary)] border p-6 rounded-[2rem]">
+                          <h4 className="text-lg font-serif font-black">{skill.name}</h4>
+                          <p className="text-[11px] text-[var(--color-text-secondary)] italic mt-2 line-clamp-3">"{skill.description}"</p>
                         </div>
                       ))
                     ) : (
-                      <div className="col-span-full bg-[var(--color-bg-secondary)] border-2 border-dashed border-[var(--color-border)] p-12 rounded-2xl text-center italic text-[var(--color-text-secondary)]">
-                        No proficiency records published yet.
-                      </div>
+                      <div className="col-span-full py-20 text-center italic opacity-40">No proficiency records.</div>
                     )}
                   </div>
                 )}
 
                 {activeTab === 'reviews' && (
                   <div className="space-y-6">
-                    {loadingReviews ? (
-                      <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-[var(--color-accent)]" /></div>
-                    ) : reviews.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-6 text-left">
-                        {reviews.map((review) => (
-                          <div key={review.id} className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
-                            {/* Aesthetic background accent */}
-                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-[var(--color-accent)]/5 rounded-full blur-2xl group-hover:bg-[var(--color-accent)]/10 transition-colors" />
-
-                            <div className="flex justify-between items-start mb-6 relative z-10">
-                              <div className="flex items-center gap-4">
-                                <Avatar
-                                  name={review.reviewer_name}
-                                  src={review.reviewer_avatar ? (review.reviewer_avatar.startsWith('http') ? review.reviewer_avatar : storageService.getPublicUrl(review.reviewer_avatar)) : undefined}
-                                  size="sm"
-                                  className="ring-2 ring-[var(--color-accent-soft)]/30 group-hover:ring-[var(--color-accent)]/50 transition-all"
-                                />
-                                <div>
-                                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-primary)]">{review.reviewer_name}</p>
-                                  <p className="text-[8px] font-bold text-[var(--color-text-secondary)] opacity-40 uppercase tracking-widest">{new Date(review.created_at).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                                </div>
-                              </div>
-                              <div className="flex flex-col items-end gap-2">
-                                <div className="flex gap-1 bg-[var(--color-bg-primary)] px-2.5 py-1 rounded-full border border-[var(--color-border)]">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star key={i} size={10} className={i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-[var(--color-border)]'} />
-                                  ))}
-                                </div>
-                                <span className={`text-[7px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${review.type === 'INTENT' ? 'bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'}`}>
-                                  {review.type || 'Review'}
-                                </span>
-                              </div>
+                    {reviews.length > 0 ? (
+                      reviews.map((review) => (
+                        <div key={review.id} className="bg-[var(--color-bg-secondary)] border p-8 rounded-[2.5rem]">
+                          <div className="flex items-center gap-4 mb-4">
+                            <Avatar name={review.reviewer_name} size="sm" />
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em]">{review.reviewer_name}</p>
+                              <p className="text-[8px] opacity-40 uppercase">{new Date(review.created_at).toLocaleDateString()}</p>
                             </div>
-
-                            <div className="relative">
-                              <div className="absolute -left-2 top-0 text-4xl font-serif text-[var(--color-accent)] opacity-10 pointer-events-none">"</div>
-                              <p className="text-xs md:text-sm text-[var(--color-text-primary)] font-medium leading-[1.6] bg-[var(--color-bg-primary)]/30 p-5 rounded-2xl border border-[var(--color-border)]/50 italic">
-                                {review.comment || "Endorsed with a flawless rating."}
-                              </p>
-                            </div>
-
-                            {(review.skill_name || review.intent_title) && (
-                              <div className="mt-6 flex items-center gap-3 border-t border-[var(--color-border)]/50 pt-4">
-                                <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
-                                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
-                                  {review.type === 'INTENT' ? 'Connection:' : 'Proficiency:'}
-                                </span>
-                                <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-primary)]">
-                                  {review.intent_title || review.skill_name}
-                                </span>
-                              </div>
-                            )}
                           </div>
-                        ))}
-                      </div>
+                          <p className="text-sm italic font-medium">"{review.comment}"</p>
+                        </div>
+                      ))
                     ) : (
-                      <div className="bg-[var(--color-bg-secondary)] border-2 border-dashed border-[var(--color-border)] p-12 rounded-2xl text-center italic text-[var(--color-text-secondary)]">
-                        Reputation Ledger is currently empty.
-                      </div>
+                      <div className="py-20 text-center italic opacity-40">Reputation ledger empty.</div>
                     )}
                   </div>
                 )}
 
-                {/* Achievements Tab */}
                 {activeTab === 'achievements' && (
-                  <div>
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Achievement Gallery</h3>
-                      {isOwnProfile && (
-                        <button
-                          onClick={() => router.push('/rewards')}
-                          className="group flex items-center gap-2 px-4 py-2 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[9px] font-black uppercase tracking-widest rounded-full hover:bg-[var(--color-accent)] hover:text-[var(--color-inverse-text)] transition-all"
-                        >
-                          View Platform Rewards
-                        </button>
-                      )}
-                    </div>
-                    <AchievementsSection userId={profileUser?.id} />
-                  </div>
+                  <AchievementsSection userId={profileUser?.id} />
                 )}
 
                 {activeTab === 'history' && isOwnProfile && (
-                  <div className="space-y-6 animate-in fade-in duration-700">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--color-text-primary)]">Credit History</h3>
-                      <div className="px-3 py-1 bg-[var(--color-accent-soft)]/20 rounded-full border border-[var(--color-accent-soft)]">
-                        <span className="text-[10px] font-black text-[var(--color-accent)]">{transactions.length} Records</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="bg-black/5 border-b border-[var(--color-border)]">
-                              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Date</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Activity</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] text-right">Adjustment</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[var(--color-border)]">
-                            {loadingTransactions ? (
-                              [1, 2, 3].map((i) => (
-                                <tr key={i} className="animate-pulse">
-                                  <td colSpan={3} className="px-6 py-8">
-                                    <div className="h-4 bg-[var(--color-bg-secondary)]/5 rounded w-full" />
-                                  </td>
-                                </tr>
-                              ))
-                            ) : transactions.length > 0 ? (
-                              transactions.map((tx) => (
-                                <tr key={tx.id} className="hover:bg-[var(--color-bg-secondary)]/5 transition-colors">
-                                  <td className="px-6 py-5 text-[10px] font-bold text-[var(--color-text-secondary)] uppercase">
-                                    {new Date(tx.created_at).toLocaleDateString()}
-                                  </td>
-                                  <td className="px-6 py-5">
-                                    <div className="flex items-center gap-2">
-                                      <div className={`w-1.5 h-1.5 rounded-full ${tx.amount > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                                      <span className="text-[11px] font-black uppercase tracking-tighter text-[var(--color-text-primary)]">
-                                        {tx.type.replace('_', ' ')}
-                                      </span>
-                                    </div>
-                                  </td>
-                                  <td className={`px-6 py-5 text-right font-black tabular-nums ${tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                    {tx.amount > 0 ? `+${tx.amount.toLocaleString()}` : tx.amount.toLocaleString()}
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan={3} className="px-6 py-12 text-center text-[var(--color-text-secondary)] italic text-sm">
-                                  No transitions recorded in the credit ledger.
+                  <div className="space-y-6">
+                    <div className="bg-[var(--color-bg-secondary)] border rounded-2xl overflow-hidden">
+                      <table className="w-full text-left">
+                        <thead className="bg-black/5">
+                          <tr>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase">Date</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase">Activity</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase text-right">Adjustment</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {transactions.length > 0 ? (
+                            transactions.map((tx) => (
+                              <tr key={tx.id}>
+                                <td className="px-6 py-5 text-[10px] font-bold opacity-60">{new Date(tx.created_at).toLocaleDateString()}</td>
+                                <td className="px-6 py-5">
+                                  <span className="text-[11px] font-black uppercase">{tx.type.replace('_', ' ')}</span>
+                                </td>
+                                <td className={`px-6 py-5 text-right font-black ${tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                  {tx.amount > 0 ? `+${tx.amount}` : tx.amount}
                                 </td>
                               </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
+                            ))
+                          ) : (
+                            <tr><td colSpan={3} className="px-6 py-12 text-center italic opacity-40">Empty.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
@@ -1011,43 +793,30 @@ export default function ProfilePage() {
       {showQrModal && profileShareUrl && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowQrModal(false)} />
-          <div className="relative w-full max-w-sm bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-5 text-center space-y-4">
+          <div className="relative w-full max-w-sm bg-[var(--color-bg-secondary)] border rounded-2xl p-5 text-center space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-serif font-bold">Profile QR</h3>
               <button onClick={() => setShowQrModal(false)}><X size={16} /></button>
             </div>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(profileShareUrl)}`}
-              alt="Profile QR Code"
-              className="w-44 h-44 mx-auto rounded-lg border border-[var(--color-border)]"
+              alt="QR Code"
+              className="w-44 h-44 mx-auto"
             />
-            <div className="space-y-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(profileShareUrl)
-                  notify.success('Profile link copied to clipboard!')
-                }}
-                className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-2 shadow-sm"
-              >
-                <Copy size={12} /> Copy Profile Link
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(profileShareUrl)
+                notify.success('Copied!')
+              }}
+              className="w-full py-2.5 rounded-lg bg-[var(--color-accent)] text-white text-[10px] font-black uppercase"
+            >
+              Copy Link
+            </button>
           </div>
         </div>
       )}
-      <CreditPurchaseModal
-        isOpen={showCreditModal}
-        onClose={() => setShowCreditModal(false)}
-      />
-      <ShareCreditsModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        onSuccess={() => {
-          refreshUser()
-        }}
-      />
-      <BottomNav />
-    </div>
+      <CreditPurchaseModal isOpen={showCreditModal} onClose={() => setShowCreditModal(false)} />
+      <ShareCreditsModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} onSuccess={() => refreshUser()} />
+    </>
   )
 }

@@ -19,6 +19,10 @@ export const initializeDatabase = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(50);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS interests JSONB DEFAULT '[]';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS target_goal TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS cached_recommendations JSONB;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS recommendations_updated_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS cached_roadmap JSONB;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS roadmap_updated_at TIMESTAMP WITH TIME ZONE;
 
       CREATE TABLE IF NOT EXISTS sessions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

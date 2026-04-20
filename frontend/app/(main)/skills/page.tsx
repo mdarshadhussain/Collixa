@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import CustomDateTimePicker from '@/components/CustomDateTimePicker'
-import Layout from '@/components/Layout'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'
 import { skillService, sessionService, reviewService, conversationService } from '@/lib/supabase'
@@ -244,8 +243,7 @@ export default function SkillsPage() {
   }
 
   return (
-    <Layout>
-      <div className="space-y-6 md:space-y-12">
+    <div className="space-y-6 md:space-y-12">
         {feedback && (
           <div className={`border rounded-xl px-4 py-3 text-[10px] font-semibold ${
               feedback.type === 'success'
@@ -755,6 +753,5 @@ export default function SkillsPage() {
         </div>
       )}
       </div>
-    </Layout>
   )
 }

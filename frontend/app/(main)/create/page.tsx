@@ -33,9 +33,6 @@ import {
 } from 'lucide-react'
 import CustomDatePicker from '@/components/CustomDatePicker'
 import { useAuth } from '@/app/context/AuthContext'
-import Header from '@/components/Header'
-import Sidebar from '@/components/Sidebar'
-import BottomNav from '@/components/BottomNav'
 import { storageService } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import Badge from '@/components/Badge'
@@ -235,13 +232,7 @@ function CreateIntentContent() {
   if (authLoading) return null
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex flex-col font-sans">
-      <Header />
-
-      <div className="flex flex-1 max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-8 py-5 md:py-8 gap-4 md:gap-8">
-        <Sidebar />
-        
-        {/* Unified Project Form */}
+    <div className="space-y-8">
         <main className="flex-1 max-w-4xl">
           
           <div className="mb-6 md:mb-8 space-y-3 md:space-y-4 bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-8">
@@ -464,8 +455,6 @@ function CreateIntentContent() {
             </AnimatePresence>
           </div>
         </main>
-      </div>
-      <BottomNav />
     </div>
   )
 }
