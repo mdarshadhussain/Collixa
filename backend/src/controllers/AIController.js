@@ -13,26 +13,51 @@ export class AIController {
       const userId = req.user.id;
       const user = await AuthService.getProfile(userId);
       
-      // 1. Fetch available pool of intents and skills
+      const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+      const now = new Date();
+      const lastUpdated = user.recommendations_updated_at ? new Date(user.recommendations_updated_at) : null;
+
+      // 1. Check Cache Validity
+      if (user.cached_recommendations && lastUpdated && (now - lastUpdated < CACHE_TTL)) {
+        console.log(`[AIController] Serving cached recommendations for user ${userId}`);
+        const cached = typeof user.cached_recommendations === 'string' 
+          ? JSON.parse(user.cached_recommendations) 
+          : user.cached_recommendations;
+          
+        return res.status(200).json(cached);
+      }
+
+      console.log(`[AIController] Cache stale/missing for user ${userId}. Fetching fresh AI recommendations...`);
+
+      // 2. Fetch available pool of intents and skills
       const [allIntents, allSkills] = await Promise.all([
         IntentService.getAllIntents(),
         SkillService.searchSkills({})
       ]);
 
-      // 2. Filter out own intents and skills for recommendations
+      // 3. Filter out own intents and skills for recommendations
       const otherIntents = allIntents.filter(i => i.created_by !== userId && i.status === 'looking');
       const otherSkills = allSkills.filter(s => s.user_id !== userId);
 
-      // 3. Use AI to rank top 3 intents
-      const intentRecommendations = await AIService.getRecommendations(user, otherIntents.slice(0, 10)); // Limit pool for performance
+      // 4. Use Unified AI Call (Consolidated to save quota)
+      const freshRecommendations = await AIService.getUnifiedRecommendations(
+        user, 
+        otherIntents.slice(0, 10), 
+        otherSkills.slice(0, 10)
+      );
 
-      // 4. Use AI to rank top 3 potential partners
-      const partnerRecommendations = await AIService.getRecommendations(user, otherSkills.slice(0, 10));
+      // 5. Update Cache in Database (Non-blocking or gracefully handled)
+      try {
+        await AuthService.updateProfile(userId, {
+          cached_recommendations: freshRecommendations,
+          recommendations_updated_at: now.toISOString()
+        });
+      } catch (dbError) {
+        // If columns don't exist yet, we just log and skip caching
+        console.warn('[AIController] Cache persistence failed (columns may be missing):', dbError.message);
+      }
 
-      res.status(200).json({
-        intents: intentRecommendations,
-        partners: partnerRecommendations
-      });
+      res.status(200).json(freshRecommendations);
     } catch (error) {
       next(error);
     }

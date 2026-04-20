@@ -174,8 +174,71 @@ export class AIService {
         .map(idx => items[idx - 1])
         .filter(Boolean);
     } catch (error) {
-      console.error('AI Recommendation Error:', error);
+      if (error.message?.includes('429') || error.status === 429) {
+        console.warn('[AIService] Rate limit reached (429). Returning heuristic fallback.');
+      } else {
+        console.error('AI Recommendation Error:', error);
+      }
       return items.slice(0, 3); // Fallback to first 3 items
+    }
+  }
+
+  /**
+   * Consolidate Intent and Partner recommendations into a single AI call
+   * @param {Object} user 
+   * @param {Array} intents 
+   * @param {Array} partners 
+   * @returns {Promise<Object>} { intents: [], partners: [] }
+   */
+  async getUnifiedRecommendations(user, intents, partners) {
+    if (!this.isConfigured()) {
+      return { intents: intents.slice(0, 3), partners: partners.slice(0, 3) };
+    }
+
+    const prompt = `
+      You are a specialized recommendation engine for the Collixa Collaboration Platform.
+      Analyze the user's profile and provide the top 3 recommendations for INTENTS and top 3 for PARTNERS.
+
+      USER PROFILE:
+      Skills: ${JSON.stringify(user.skills || [])}
+      Interests: ${JSON.stringify(user.interests || [])}
+      Goal: ${user.target_goal || 'Any experience'}
+
+      AVAILABLE INTENTS:
+      ${intents.map((item, index) => `I${index + 1}: ${item.title} - ${item.category}`).join('\n')}
+
+      AVAILABLE PARTNERS:
+      ${partners.map((item, index) => `P${index + 1}: ${item.user?.name || item.name} - Specialist in ${item.name}`).join('\n')}
+
+      Return a JSON object with two arrays of indexes:
+      {
+        "intentIndexes": [1, 2, 3], 
+        "partnerIndexes": [1, 2, 3]
+      }
+      ONLY return the JSON object.
+    `;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] || text;
+      const data = JSON.parse(jsonStr);
+
+      return {
+        intents: (data.intentIndexes || []).map(idx => intents[idx - 1]).filter(Boolean).slice(0, 3),
+        partners: (data.partnerIndexes || []).map(idx => partners[idx - 1]).filter(Boolean).slice(0, 3)
+      };
+    } catch (error) {
+      if (error.message?.includes('429') || error.status === 429) {
+        console.warn('[AIService] Unified Rate limit reached (429). Falling back to heuristics.');
+      } else {
+        console.error('[AIService] Unified Recommendation Error:', error);
+      }
+      return { 
+        intents: intents.slice(0, 3), 
+        partners: partners.slice(0, 3) 
+      };
     }
   }
 }

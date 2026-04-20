@@ -17,6 +17,7 @@ import LearningPathRoadmap from '@/components/LearningPathRoadmap'
 import { useAuth } from '@/app/context/AuthContext'
 import { useToast } from '@/app/context/ToastContext'
 import { Intent, storageService, conversationService } from '@/lib/supabase'
+import { notify } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -41,7 +42,7 @@ export default function ProfilePage() {
   const searchParams = useSearchParams()
   const profileUid = searchParams.get('uid')
   const { user, isAuthenticated, loading: authLoading, token, refreshUser, updateUser } = useAuth()
-  const { notify } = useToast()
+  const { showToast } = useToast()
   const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews' | 'achievements' | 'history'>('intents')
   const [interestsInput, setInterestsInput] = useState('')
   const [myIntents, setMyIntents] = useState<Intent[]>([])
