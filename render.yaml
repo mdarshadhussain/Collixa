@@ -1,13 +1,3 @@
-envVarGroups:
-  - name: collixa-secrets
-    envVars:
-      - key: SUPABASE_URL
-      - key: SUPABASE_ANON_KEY
-      - key: SUPABASE_SERVICE_ROLE_KEY
-      - key: GEMINI_API_KEY
-      - key: NEXT_PUBLIC_SUPABASE_URL
-      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-
 services:
   # ─── BACKEND SERVICE (Node.js/Express) ───
   - type: web
@@ -18,7 +8,18 @@ services:
     startCommand: npm start
     rootDir: backend
     envVars:
-      - fromGroup: collixa-secrets
+      - key: SUPABASE_URL
+        value: ""
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        value: ""
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: ""
+        sync: false
+      - key: GEMINI_API_KEY
+        value: ""
+        sync: false
       - key: NODE_ENV
         value: production
       - key: PORT
@@ -35,7 +36,12 @@ services:
     startCommand: npm start
     rootDir: frontend
     envVars:
-      - fromGroup: collixa-secrets
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: ""
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        value: ""
+        sync: false
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
