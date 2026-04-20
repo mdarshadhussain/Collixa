@@ -20,7 +20,8 @@ import {
   FileX2,
   Settings,
   Sparkles,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import { motion } from 'framer-motion'
@@ -111,7 +112,8 @@ export default function IntentDetailPage() {
       const data = await intentService.getIntentById(id as string)
       setIntent(data)
     } catch (err) {
-      console.error(err)
+      console.error('Error fetching intent:', err)
+      setIntent(null)
     } finally {
       setLoading(false)
     }
@@ -250,13 +252,28 @@ export default function IntentDetailPage() {
 
   if (!intent) {
     return (
-      <div className="flex-1 flex items-center justify-center flex-col gap-4 py-20">
-        <FileX2 size={64} className="mx-auto text-[var(--color-text-secondary)] opacity-20" />
-        <h2 className="text-2xl font-serif">Intent not found</h2>
-        <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8 bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)] rounded-[2.5rem] p-12 text-center max-w-2xl mx-auto my-12">
+        <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center text-red-500 mx-auto">
+          <AlertCircle size={40} />
+        </div>
+        <div className="space-y-4">
+          <h2 className="text-3xl font-serif font-black tracking-tight">Project Abandoned</h2>
+          <p className="text-sm text-[var(--color-text-secondary)] font-medium leading-relaxed">
+            The project you're attempting to access has dissolved into the digital ether. 
+            Check your coordinates or return to the marketplace.
+          </p>
+        </div>
+        <Button 
+          variant="accent" 
+          onClick={() => router.push('/dashboard')}
+          className="px-10 py-4 rounded-2xl mx-auto"
+        >
+          Back to Marketplace
+        </Button>
       </div>
     )
   }
+
 
   const owner = typeof intent.created_by === 'object' ? intent.created_by : null
   const ownerId = owner?.id || (typeof intent.created_by === 'string' ? intent.created_by : null)

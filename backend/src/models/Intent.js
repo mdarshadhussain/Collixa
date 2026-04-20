@@ -78,6 +78,11 @@ export class IntentModel {
    * @returns {Promise<Object>} Intent object or null
    */
   static async getById(id) {
+    // Robustness: If ID is not a number and the DB expects bigint, return null instead of crashing
+    if (isNaN(Number(id))) {
+      return null;
+    }
+
     const { data, error } = await getClient()
       .from('intents')
       .select(`*`)
@@ -155,6 +160,9 @@ export class IntentModel {
    * @returns {Promise<Object>} Updated intent
    */
   static async update(id, updates) {
+    if (isNaN(Number(id))) {
+      throw new Error('Invalid intent ID format');
+    }
     const { data, error } = await getClient()
       .from('intents')
       .update(updates)
@@ -175,6 +183,9 @@ export class IntentModel {
    * @returns {Promise<boolean>} True if deleted
    */
   static async delete(id) {
+    if (isNaN(Number(id))) {
+       throw new Error('Invalid intent ID format');
+    }
     const { error } = await getClient()
       .from('intents')
       .delete()
@@ -212,6 +223,9 @@ export class IntentModel {
    * @returns {Promise<Array>} Collaboration requests
    */
   static async getRequestsForIntent(intentId) {
+    if (isNaN(Number(intentId))) {
+      return [];
+    }
     const { data, error } = await getClient()
       .from('collaboration_requests')
       .select(`
@@ -259,6 +273,9 @@ export class IntentModel {
    * @returns {Promise<Object|null>} Existing request or null
    */
   static async getExistingRequest(userId, intentId) {
+    if (isNaN(Number(intentId))) {
+       return null;
+    }
     const { data, error } = await getClient()
       .from('collaboration_requests')
       .select('*')

@@ -182,7 +182,7 @@ export const initializeDatabase = async () => {
     console.log(`
       CREATE TABLE IF NOT EXISTS collaboration_requests (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        intent_id UUID NOT NULL REFERENCES intents(id) ON DELETE CASCADE,
+        intent_id INTEGER NOT NULL REFERENCES intents(id) ON DELETE CASCADE,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         status VARCHAR(20) DEFAULT 'PENDING',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
