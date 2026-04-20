@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Express backend for Intent Marketplace authentication & API",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
