@@ -3,7 +3,7 @@ services:
   - type: web
     name: collixa-backend
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     rootDir: backend
@@ -27,7 +27,7 @@ services:
   - type: web
     name: collixa-frontend
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
     rootDir: frontend
