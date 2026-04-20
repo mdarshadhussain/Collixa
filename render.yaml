@@ -43,6 +43,6 @@ services:
       - key: NEXT_PUBLIC_API_URL
         value: https://api.collixa.space
       - key: NODE_OPTIONS
-        value: "--max-old-space-size=450"
+        value: "--max-old-space-size=400"
       - key: NODE_VERSION
         value: "20"
