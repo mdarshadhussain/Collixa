@@ -1,3 +1,13 @@
+envVarGroups:
+  - name: collixa-secrets
+    envVars:
+      - key: SUPABASE_URL
+      - key: SUPABASE_ANON_KEY
+      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: GEMINI_API_KEY
+      - key: NEXT_PUBLIC_SUPABASE_URL
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 services:
   # ─── BACKEND SERVICE (Node.js/Express) ───
   - type: web
@@ -8,16 +18,13 @@ services:
     startCommand: npm start
     rootDir: backend
     envVars:
+      - fromGroup: collixa-secrets
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       - key: FRONTEND_URL
         value: https://collixa.space
-      - key: SUPABASE_URL
-      - key: SUPABASE_ANON_KEY
-      - key: SUPABASE_SERVICE_ROLE_KEY
-      - key: GEMINI_API_KEY
 
   # ─── FRONTEND SERVICE (Next.js) ───
   - type: web
@@ -28,11 +35,8 @@ services:
     startCommand: npm start
     rootDir: frontend
     envVars:
+      - fromGroup: collixa-secrets
       - key: NODE_ENV
         value: production
-    # Use sync to make sure the build has access to these keys
-    # Note: For Next.js client-side variables, we need them at build time
       - key: NEXT_PUBLIC_API_URL
         value: https://api.collixa.space
-      - key: NEXT_PUBLIC_SUPABASE_URL
-      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
