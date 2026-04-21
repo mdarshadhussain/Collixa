@@ -102,7 +102,7 @@ export class AIController {
       // In the future, we could fetch full objects if itemId is provided
       // but passing them from frontend is faster for initial display.
 
-      const match = await AIService.calculateMatch(user, targetData);
+      const match = await AIService.calculateMatch(user, targetData, type);
       
       res.status(200).json({ success: true, data: match });
     } catch (error) {
@@ -140,8 +140,12 @@ export class AIController {
 
       console.log(`[AIController] Cache invalid or missing. Generating fresh dynamic roadmap...`);
 
+      // 2.5 Fetch user skills to enrich context
+      const userSkills = await SkillService.getUserSkills(userId);
+      const userWithSkills = { ...user, skills: userSkills.map(s => s.name) };
+
       // 3. Generate fresh roadmap
-      const roadmapSteps = await AIService.generateLearningPath(user, goal);
+      const roadmapSteps = await AIService.generateLearningPath(userWithSkills, goal);
       
       const roadmapOutput = {
         goal: goal,

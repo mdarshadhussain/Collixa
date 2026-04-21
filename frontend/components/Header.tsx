@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Menu, X, ChevronDown, Zap, MessageSquare, Plus, LayoutDashboard, FileText, Users, User, Award } from 'lucide-react'
+import { Menu, X, ChevronDown, Zap, MessageSquare, Plus, LayoutDashboard, FileText, Users, User, Award, Shield, Bell } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import Avatar from './Avatar'
@@ -10,7 +10,6 @@ import { useAuth } from '@/app/context/AuthContext'
 import { useRouter, usePathname } from 'next/navigation'
 import { storageService, supabase } from '@/lib/supabase'
 import CreditPurchaseModal from './CreditPurchaseModal'
-import { Shield, Bell } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 
 export default function Header() {
@@ -92,16 +91,20 @@ export default function Header() {
 
   const navItems = isLandingPage ? landingNavItems : mainNavItems
 
+  // Style helpers
+  const headerBackground = scrolled 
+    ? (isLandingPage ? 'bg-[var(--lp-bg)] border-b border-[var(--lp-text)]/10 shadow-sm' : 'bg-[var(--color-bg-primary)] backdrop-blur-2xl bg-opacity-80 border-b border-[var(--color-border)] shadow-sm')
+    : (isLandingPage ? 'bg-[var(--lp-bg)] border-b border-transparent' : 'bg-[var(--color-bg-primary)] border-b border-transparent')
+
+  const headerTextColor = isLandingPage ? 'text-[var(--lp-text)]' : 'text-[var(--color-text-primary)]'
+
   return (
     <motion.header 
       initial={{ y: 0 }}
       animate={{ y: isVisible ? 0 : -100 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className={`sticky top-0 z-[100] w-full transition-all duration-500 ${
-      scrolled 
-        ? isLandingPage ? 'bg-[var(--lp-bg)] border-b border-[var(--lp-text)]/10 shadow-sm' : 'bg-[var(--color-bg-primary)] backdrop-blur-2xl bg-opacity-80 border-b border-[var(--color-border)] shadow-sm' 
-        : isLandingPage ? 'bg-[var(--lp-bg)] border-b border-transparent' : 'bg-[var(--color-bg-primary)] border-b border-transparent'
-    } ${isLandingPage ? 'text-[var(--lp-text)]' : 'text-[var(--color-text-primary)]'}`}>
+      className={`sticky top-0 z-[100] w-full transition-all duration-500 ${headerBackground} ${headerTextColor}`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 w-full flex justify-between items-center py-3 md:py-6">
         
         {/* ─── LOGO ─── */}
@@ -110,7 +113,7 @@ export default function Header() {
         </Link>
 
         {/* ─── RIGHT ACTION CLUSTER (Nav + Button) ─── */}
-        <div className="hidden lg:flex items-center gap-10">
+        <div className="hidden lg:flex items-center gap-2 lg:gap-10">
           <nav className="flex items-center gap-8">
             {navItems.map((item) => (
               <Link 
@@ -144,8 +147,6 @@ export default function Header() {
               {isAdminPage ? 'View as User' : 'View as Admin'}
             </button>
           )}
-
-          {/* Removed notification dropdown */}
 
           {isAuthenticated && user ? (
             <div className="relative">
@@ -201,7 +202,7 @@ export default function Header() {
                       <Link 
                         href="/profile" 
                         onClick={() => setShowProfileMenu(false)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5"
                       >
                         <User size={16} />
                         <span className="text-[13px] font-semibold">View Profile</span>
@@ -212,7 +213,7 @@ export default function Header() {
                           setShowProfileMenu(false)
                           setIsDrawerOpen(true)
                         }}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors hover:bg-black/5"
                       >
                         <div className="flex items-center gap-3">
                           <Bell size={16} />
@@ -228,7 +229,7 @@ export default function Header() {
                       <Link 
                         href="/dashboard" 
                         onClick={() => setShowProfileMenu(false)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5"
                       >
                         <LayoutDashboard size={16} />
                         <span className="text-[13px] font-semibold">Platform Dashboard</span>
@@ -237,7 +238,7 @@ export default function Header() {
                       <Link 
                         href="/rewards" 
                         onClick={() => setShowProfileMenu(false)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5"
                       >
                         <Award size={16} />
                         <span className="text-[13px] font-semibold">Rewards & Achievements</span>
@@ -246,7 +247,7 @@ export default function Header() {
                       <Link 
                         href="/my-collaborations" 
                         onClick={() => setShowProfileMenu(false)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5`}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5"
                       >
                         <Zap size={16} />
                         <span className="text-[13px] font-semibold">My Intents</span>
@@ -309,10 +310,31 @@ export default function Header() {
               {user?.credits ?? 0}
             </button>
           )}
-          {/* Removed notification dropdown from mobile */}
-          <button className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
+          <div className="flex items-center gap-2">
+            {isAuthenticated && isAdmin && (
+              <button
+                onClick={() => {
+                   toggleViewMode()
+                   if (viewMode === 'user') {
+                     router.push('/admin')
+                   } else {
+                     router.push('/dashboard')
+                   }
+                }}
+                className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border transition-all active:scale-95 ${
+                  viewMode === 'admin'
+                    ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-white shadow-lg'
+                    : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-accent)]'
+                } text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em]`}
+              >
+                <Shield size={12} className="sm:w-3 sm:h-3" />
+                <span>{viewMode === 'admin' ? 'User' : 'Admin'}</span>
+              </button>
+            )}
+            <button className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+              {isOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -321,86 +343,102 @@ export default function Header() {
       )}
 
       {/* ─── MOBILE MENU ─── */}
-      {isOpen && (
-        <div className="fixed inset-0 top-0 h-[100dvh] z-[1000] lg:hidden">
-          <button
-            aria-label="Close mobile menu"
-            onClick={() => setIsOpen(false)}
-            className="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
-          />
-          <div className="absolute right-3 top-16 sm:right-6 sm:top-20 w-[min(86vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-3 shadow-2xl animate-fade-in">
-           <div className="flex justify-between items-center mb-3 px-1">
-              <span className="font-serif font-black text-xl text-[var(--color-text-primary)]">Navigation</span>
-              <button onClick={() => setIsOpen(false)} className="w-8 h-8 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center">
-                <X size={16} />
-              </button>
-           </div>
-
-           <nav className="flex flex-col gap-1.5">
-              {[
-                ...(isLandingPage ? landingNavItems : mainNavItems),
-                { label: 'Rewards', href: '/rewards', icon: Award },
-                { label: 'Profile Settings', href: '/profile', icon: User },
-              ].map((item) => {
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Icon size={15} className="text-[var(--color-accent)]" />
-                    {item.label}
-                  </Link>
-                )
-              })}
-           </nav>
-
-           <div className="pt-3 mt-3 border-t border-[var(--color-border)] space-y-2">
-              <div className="flex items-center justify-between px-3 py-2 mb-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)]">Dark Mode</span>
-                <ThemeToggle />
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 top-0 h-[100dvh] z-[1000] lg:hidden">
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              aria-label="Close mobile menu"
+              onClick={() => setIsOpen(false)}
+              className="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
+            />
+            <motion.div 
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="absolute right-3 top-16 sm:right-6 sm:top-20 w-[min(86vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-3 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-3 px-1">
+                <span className="font-serif font-black text-xl text-[var(--color-text-primary)]">Navigation</span>
+                <button onClick={() => setIsOpen(false)} className="w-8 h-8 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center">
+                  <X size={16} />
+                </button>
               </div>
-              {isAuthenticated && (
-                <button
-                  onClick={() => {
-                    setIsOpen(false)
-                    setShowCreditModal(true)
-                  }}
-                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                >
-                  <Plus size={12} />
-                  Get More Credits
-                </button>
-              )}
-              {isAuthenticated ? (
-                <button 
-                  onClick={handleLogout}
-                  className="w-full py-2.5 border border-red-500 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-                >
-                  Log Out
-                </button>
-              ) : (
-                <button 
-                  onClick={() => router.push('/auth')}
-                  className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  Sign In
-                </button>
-              )}
-           </div>
-          </div>
-        </div>
-      )}
 
-      <style jsx global>{`
-        @keyframes fade-in {
-          0% { opacity: 0; transform: translateY(20px); filter: blur(5px); }
-          100% { opacity: 1; transform: translateY(0); filter: blur(0); }
-        }
-        .animate-fade-in { animation: fade-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-      `}</style>
+              <nav className="flex flex-col gap-1.5">
+                {[
+                  ...(isLandingPage ? landingNavItems : mainNavItems),
+                  { label: 'Rewards', href: '/rewards', icon: Award },
+                  { label: 'Profile Settings', href: '/profile', icon: User },
+                ].map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Icon size={15} className="text-[var(--color-accent)]" />
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </nav>
+
+              <div className="pt-3 mt-3 border-t border-[var(--color-border)] space-y-2">
+                <div className="flex items-center justify-between px-3 py-2 mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)]">Dark Mode</span>
+                  <ThemeToggle />
+                </div>
+                {isAuthenticated && (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false)
+                      setShowCreditModal(true)
+                    }}
+                    className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  >
+                    <Plus size={12} />
+                    Get More Credits
+                  </button>
+                )}
+                {isAuthenticated && isAdmin && (
+                  <button
+                    onClick={() => {
+                      toggleViewMode()
+                      setIsOpen(false)
+                    }}
+                    className="w-full py-2.5 border border-[var(--color-accent)] text-[var(--color-accent)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-[var(--color-accent-soft)] transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Shield size={12} />
+                    {viewMode === 'admin' ? 'View as User' : 'View as Admin'}
+                  </button>
+                )}
+                {isAuthenticated ? (
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full py-2.5 border border-red-500 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                  >
+                    Log Out
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => router.push('/auth')}
+                    className="w-full py-2.5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    Sign In
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <NotificationDrawer 
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 

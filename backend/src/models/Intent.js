@@ -54,14 +54,14 @@ export class IntentModel {
   }
 
   /**
-   * Get all intents
-   * @returns {Promise<Array>} All intents
+   * Get all intents for marketplace
+   * @returns {Promise<Array>} Approved intents
    */
   static async getAll() {
     const { data, error } = await getClient()
       .from('intents')
       .select(`*`)
-      .neq('status', 'pending')
+      .in('status', ['looking', 'active', 'completed']) // Show approved and active ones
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -100,7 +100,7 @@ export class IntentModel {
   }
 
   /**
-   * Get intents by userId
+   * Get intents by userId (for My Intents page - shows all statuses)
    * @param {string} userId - User ID
    * @returns {Promise<Array>} User's intents
    */
@@ -139,9 +139,12 @@ export class IntentModel {
 
     if (filters.status) {
       query = query.eq('status', filters.status);
+    } else {
+      // Default marketplace view: only looking/active
+      query = query.in('status', ['looking', 'active', 'completed']);
     }
 
-    query = query.neq('status', 'pending').order('created_at', { ascending: false });
+    query = query.order('created_at', { ascending: false });
 
     const { data, error } = await query;
 

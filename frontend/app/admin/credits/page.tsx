@@ -189,55 +189,60 @@ export default function AdminCredits() {
             </div>
           </div>
 
-          <table className="w-full">
-            <thead className="border-b border-[var(--color-border)]">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">User</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Type</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Description</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {filteredTransactions.slice(0, 50).map((transaction) => (
-                <tr key={transaction.id} className="hover:bg-[var(--color-bg-secondary)]/5">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white text-sm font-bold">
-                        {transaction.user?.name?.charAt(0).toUpperCase() || '?'}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-[var(--color-text-primary)]">{transaction.user?.name || 'Unknown'}</p>
-                        <p className="text-xs text-[var(--color-text-secondary)]">{transaction.user?.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      transaction.type === 'ADMIN_ADD' ? 'bg-green-500/20 text-green-500' :
-                      transaction.type === 'ADMIN_DEDUCT' ? 'bg-red-500/20 text-red-500' :
-                      transaction.type === 'PURCHASE' ? 'bg-blue-500/20 text-blue-500' :
-                      'bg-gray-500/20 text-gray-500'
-                    }`}>
-                      {transaction.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`font-bold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {transaction.amount > 0 ? '+' : ''}{transaction.amount}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-[var(--color-text-secondary)]">
-                    {transaction.description}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-[var(--color-text-secondary)]">
-                    {new Date(transaction.created_at).toLocaleString()}
-                  </td>
+          <div className="overflow-hidden w-full">
+            <table className="w-full text-left border-collapse">
+              <thead className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]/50">
+                <tr>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">User</th>
+                  <th className="hidden md:table-cell px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)] text-center">Type</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)] text-center">Amount</th>
+                  <th className="hidden lg:table-cell px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Description</th>
+                  <th className="hidden sm:table-cell px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)] text-right">Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {filteredTransactions.slice(0, 50).map((transaction) => (
+                  <tr key={transaction.id} className="hover:bg-[var(--color-bg-secondary)]/10 transition-colors">
+                    <td className="px-4 sm:px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white text-[10px] font-bold">
+                          {transaction.user?.name?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{transaction.user?.name || 'Unknown'}</p>
+                          <div className="flex items-center gap-2 md:hidden">
+                            <span className="text-[9px] text-[var(--color-text-secondary)] truncate">{transaction.type}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-tight ${
+                        transaction.type === 'ADMIN_ADD' ? 'bg-green-500/10 text-green-500' :
+                        transaction.type === 'ADMIN_DEDUCT' ? 'bg-red-500/10 text-red-500' :
+                        'bg-blue-500/10 text-blue-500'
+                      } border border-current opacity-80 uppercase`}>
+                        {transaction.type}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 text-center">
+                      <span className={`text-sm font-black ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                      </span>
+                    </td>
+                    <td className="hidden lg:table-cell px-6 py-4 text-xs text-[var(--color-text-secondary)] italic">
+                      {transaction.description}
+                    </td>
+                    <td className="hidden sm:table-cell px-6 py-4 text-right">
+                      <span className="text-[10px] text-[var(--color-text-secondary)] font-medium">
+                        {new Date(transaction.created_at).toLocaleDateString()}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {filteredTransactions.length === 0 && (
             <div className="text-center py-12">

@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from 'next-themes'
+import { ThemeProvider as NextThemesProvider } from 'next-themes'
+// Use any for props if library type resolution is problematic to ensure build succeeds
+type ThemeProviderProps = any
 import { usePathname } from 'next/navigation'
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {

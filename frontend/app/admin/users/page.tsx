@@ -111,62 +111,65 @@ export default function AdminUsers() {
 
         {/* Users Table */}
         <div className="bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)] overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-[var(--color-border)]">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">User</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Email</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Credits</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Role</th>
-                <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-[var(--color-bg-secondary)]/5">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white font-bold">
-                        {user.name.charAt(0).toUpperCase()}
+          <div className="overflow-hidden w-full">
+            <table className="w-full text-left border-collapse">
+              <thead className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]/50">
+                <tr>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">User</th>
+                  <th className="hidden lg:table-cell px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Email</th>
+                  <th className="hidden sm:table-cell px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)] text-center">Credits</th>
+                  <th className="hidden md:table-cell px-6 py-4 text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)] text-center">Role</th>
+                  <th className="px-4 sm:px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-[var(--color-text-secondary)]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-[var(--color-bg-secondary)]/10 transition-colors">
+                    <td className="px-4 sm:px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-xs sm:text-sm">
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-[var(--color-text-primary)] text-sm">{user.name}</span>
+                          <span className="lg:hidden text-[10px] text-[var(--color-text-secondary)] truncate max-w-[120px]">{user.email}</span>
+                        </div>
                       </div>
-                      <span className="font-medium text-[var(--color-text-primary)]">{user.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-[var(--color-text-secondary)] text-sm">{user.email}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full text-xs font-bold">
-                      {user.credits || 0}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      user.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-500' :
-                      user.role === 'VERIFIED_USER' ? 'bg-green-500/20 text-green-500' :
-                      user.role === 'BANNED' ? 'bg-red-500/20 text-red-500' :
-                      'bg-gray-500/20 text-gray-500'
-                    }`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      {user.role !== 'ADMIN' && (
-                        <>
+                    </td>
+                    <td className="hidden lg:table-cell px-6 py-4 text-[var(--color-text-secondary)] text-sm">{user.email}</td>
+                    <td className="hidden sm:table-cell px-6 py-4 text-center">
+                      <span className="px-3 py-1 bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full text-[10px] font-black tracking-tight border border-[var(--color-accent)]/20">
+                        {user.credits || 0}
+                      </span>
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-center">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black ${
+                        user.role === 'ADMIN' ? 'bg-purple-500/10 text-purple-500' :
+                        user.role === 'VERIFIED_USER' ? 'bg-green-500/10 text-green-500' :
+                        user.role === 'BANNED' ? 'bg-red-500/10 text-red-500' :
+                        'bg-gray-500/10 text-gray-500'
+                      } border border-current opacity-80`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 text-right">
+                      <div className="flex justify-end gap-1 sm:gap-2">
+                        {user.role !== 'ADMIN' && (
                           <button
                             onClick={() => setDeleteConfirm(user.id)}
-                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
                             title="Delete user"
                           >
                             <Trash2 size={16} />
                           </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {filteredUsers.length === 0 && (
             <div className="text-center py-12">

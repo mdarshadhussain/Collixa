@@ -43,7 +43,10 @@ export default function AdminIntents() {
 
       if (response.ok) {
         const data = await response.json()
-        setIntents(data.data)
+        setIntents(data.data || [])
+      } else {
+        const errData = await response.json().catch(() => ({}))
+        console.error('Failed to fetch intents:', errData.error || response.statusText)
       }
     } catch (error) {
       console.error('Error fetching intents:', error)

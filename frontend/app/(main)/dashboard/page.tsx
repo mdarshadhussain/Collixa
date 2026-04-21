@@ -240,10 +240,10 @@ export default function DashboardPage() {
                       </div>
                       {myIntents.length > 0 ? (
                         <div className="space-y-4">
-                           {myIntents.slice(0, 3).map(intent => (
+                           {myIntents.filter(i => ['looking', 'in_progress', 'pending'].includes(i.status)).slice(0, 3).map(intent => (
                              <div key={intent.id} className="flex justify-between items-center bg-[var(--color-bg-primary)] p-4 rounded-2xl cursor-pointer hover:border-[var(--color-accent)]/50 border border-transparent transition-colors" onClick={() => router.push(`/intent/${intent.id}`)}>
                                 <span className="font-bold text-sm truncate mr-4">{intent.title}</span>
-                                <Badge variant="sage" className="text-[9px] font-black uppercase tracking-widest bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] shrink-0 px-3 py-1.5">Open</Badge>
+                                <Badge variant="sage" className="text-[9px] font-black uppercase tracking-widest bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] shrink-0 px-3 py-1.5">{intent.status === 'in_progress' ? 'Active' : intent.status}</Badge>
                              </div>
                            ))}
                         </div>

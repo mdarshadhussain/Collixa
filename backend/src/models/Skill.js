@@ -11,14 +11,46 @@ export class SkillModel {
    * Create a new skill
    */
   static async create(skillData) {
-    const { data, error } = await getClient()
-      .from('skills')
-      .insert([skillData])
-      .select()
-      .single();
+    try {
+      const { data, error } = await getClient()
+        .from('skills')
+        .insert([skillData])
+        .select()
+        .single();
 
-    if (error) throw new Error(`Failed to create skill: ${error.message}`);
-    return data;
+      if (error) {
+        // Fallback: If 'status' column is missing in DB schema, retry without it
+        if (error.message && error.message.includes("column 'status' of relation 'skills' does not exist")) {
+           const { status, ...rest } = skillData;
+           const { data: retryData, error: retryError } = await getClient()
+             .from('skills')
+             .insert([rest])
+             .select()
+             .single();
+           
+           if (retryError) throw new Error(`Failed to create skill (fallback): ${retryError.message}`);
+           return retryData;
+        }
+        
+        // Handle Supabase/PostgREST schema cache issues specifically
+        if (error.message && error.message.includes("'status' column of 'skills' in the schema cache")) {
+           const { status, ...rest } = skillData;
+           const { data: retryData, error: retryError } = await getClient()
+             .from('skills')
+             .insert([rest])
+             .select()
+             .single();
+           
+           if (retryError) throw new Error(`Failed to create skill (cache retry): ${retryError.message}`);
+           return retryData;
+        }
+
+        throw new Error(`Failed to create skill: ${error.message}`);
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
   }
 
   /**

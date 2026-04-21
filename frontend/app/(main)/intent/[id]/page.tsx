@@ -393,7 +393,7 @@ export default function IntentDetailPage() {
                 
                 {/* AI Match Insight Card */}
                  {/* AI Match Insight Card using shared component */}
-                 {user && !isOwner && intent.status === 'looking' && (
+                 {user && (
                     <AIMatchInsight 
                        type="intent" 
                        itemId={String(intent.id)} 

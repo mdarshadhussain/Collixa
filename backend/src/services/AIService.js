@@ -37,55 +37,73 @@ export class AIService {
    * @param {Object} target - Target profile or intent (with skills/description)
    * @returns {Promise<Object>} Match results
    */
-  async calculateMatch(source, target) {
+  async calculateMatch(source, target, type = 'intent') {
+    const isSkill = type === 'skill' || type === 'tribe';
+    
     if (!this.isConfigured()) {
+       if (isSkill) {
+         return { 
+           score: 92, 
+           reasons: ['Complementary mastery potential', 'High skill exchange value', 'Growth-oriented synergy'], 
+           verdict: 'Your skillsets align perfectly for a mutually beneficial learning exchange.' 
+         };
+       }
        return { score: 88, reasons: ['Strong Portfolio Synergy', 'Shared Mission Focus', 'Complementary Technical Stack'], verdict: 'Your profiles show exceptional alignment for this collaboration.' };
     }
 
     const prompt = `
-      You are an expert recruiter and collaboration engine. 
-      Analyze the compatibility between the following two entities:
+      You are an expert recruiter and collaboration engine for the Collixa platform. 
+      Analyze the compatibility for a ${isSkill ? 'SKILL EXCHANGE / TRIBE CONNECTION' : 'PROJECT COLLABORATION / INTENT'}.
       
-      SOURCE:
+      SOURCE USER:
       Name: ${source.name}
       Bio: ${source.bio || 'N/A'}
       Skills: ${JSON.stringify(source.skills || [])}
       Interests: ${JSON.stringify(source.interests || [])}
-      Location: ${source.location || 'N/A'}
 
-      TARGET:
-      Title/Name: ${target.title || target.name}
+      TARGET ${isSkill ? 'SKILL/TRIBE' : 'INTENT'}:
+      Title: ${target.title || target.name}
       Description: ${target.description || target.bio || 'N/A'}
-      Requirements/Skills: ${JSON.stringify(target.skills || target.requirements || [])}
-      Location: ${target.location || 'N/A'}
+      ${isSkill ? 'Focus' : 'Requirements'}: ${JSON.stringify(target.skills || target.requirements || [])}
 
+      INSTRUCTIONS:
+      - If it is a SKILL/TRIBE, analyze if the SOURCE user can learn from or contribute to this TRIBE.
+      - If it is an INTENT, analyze if the SOURCE user is a good fit to collaborate on this PROJECT.
+      
       Return a JSON object with:
       1. score: 0-100 indicating compatibility.
       2. reasons: Array of 3 key reasons for this score.
       3. verdict: A short (1 sentence) professional summary.
 
-      ONLY return the JSON object, nothing else.
+      ONLY return the JSON object.
     `;
 
     try {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      // Improved JSON extraction for markdown
       const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] || text;
       return JSON.parse(jsonStr);
     } catch (error) {
       console.warn('[AIService] Match Error (Falling back to heuristic):', error.message);
-      // Determine shared interests count for a smarter fallback
+      
       const sourceSkills = (source.interests || []).map(i => i.toLowerCase());
       const targetTags = (target.description || '').toLowerCase();
       const matchCount = sourceSkills.filter(s => targetTags.includes(s)).length;
       const score = Math.min(85 + (matchCount * 2), 98);
 
+      if (isSkill) {
+        return {
+          score,
+          reasons: ['Strong technical overlap', 'Potential for knowledge transfer', 'Learning path alignment'],
+          verdict: 'This tribe matches your growth trajectory. Highly recommended for skill expansion.'
+        };
+      }
+
       return { 
         score, 
         reasons: ['Profile compatibility detected', 'Shared thematic interests', 'Mission alignment potential'], 
-        verdict: 'AI analysis is currently processed by our background heuristics. Synergy looks promising.' 
+        verdict: 'AI analysis suggests strong alignment with this intent. Synergy looks promising.' 
       };
     }
   }

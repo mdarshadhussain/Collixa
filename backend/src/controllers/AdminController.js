@@ -12,6 +12,13 @@ const ADMIN_EMAILS = ['admin@collixa.space'];
  */
 const isAdminEmail = (email) => ADMIN_EMAILS.includes(email);
 
+// Log initialization status
+if (!supabaseAdmin) {
+  console.warn('[AdminController] Warning: supabaseAdmin is not initialized (missing service role key). Admin operations will be subject to RLS policies via anon client.');
+} else {
+  console.log('[AdminController] Initialized with supabaseAdmin.');
+}
+
 export class AdminController {
   /**
    * Get admin dashboard stats
@@ -269,15 +276,43 @@ export class AdminController {
         .from('intents')
         .select(`
           *,
-          created_by:users(id, name, email, avatar_url)
+          users!intents_created_by_fkey(id, name, email, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Fallback if the named relationship fails
+        const { data: fallbackIntents, error: fallbackError } = await client
+          .from('intents')
+          .select(`
+            *,
+            created_by_user:users(id, name, email, avatar_url)
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (fallbackError) throw fallbackError;
+        
+        // Map created_by_user to created_by for frontend compatibility
+        const mappedIntents = (fallbackIntents || []).map(i => ({
+          ...i,
+          created_by: i.created_by_user || i.created_by
+        }));
+
+        return res.status(200).json({
+          success: true,
+          data: mappedIntents
+        });
+      }
+
+      // Map users to created_by for frontend compatibility if using the explicit join
+      const enrichedIntents = (intents || []).map(i => ({
+        ...i,
+        created_by: i.users || i.created_by
+      }));
 
       return res.status(200).json({
         success: true,
-        data: intents || []
+        data: enrichedIntents
       });
     } catch (error) {
       next(error);
@@ -296,12 +331,34 @@ export class AdminController {
         .from('intents')
         .select(`
           *,
-          created_by:users(id, name, email, avatar_url)
+          users!intents_created_by_fkey(id, name, email, avatar_url)
         `)
         .eq('id', id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+         // Fallback
+         const { data: fallbackIntent, error: fallbackError } = await client
+           .from('intents')
+           .select(`
+             *,
+             created_by_user:users(id, name, email, avatar_url)
+           `)
+           .eq('id', id)
+           .single();
+         
+         if (fallbackError) throw fallbackError;
+         
+         return res.status(200).json({
+           success: true,
+           data: { ...fallbackIntent, created_by: fallbackIntent.created_by_user || fallbackIntent.created_by }
+         });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: { ...intent, created_by: intent.users || intent.created_by }
+      });
 
       return res.status(200).json({
         success: true,

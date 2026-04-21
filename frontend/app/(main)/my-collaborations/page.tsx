@@ -20,6 +20,7 @@ export default function MyIntentsPage() {
   
   const [intents, setIntents] = useState<Intent[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'active' | 'past'>('active')
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [deletingId, setDeletingId] = useState<string | number | null>(null)
@@ -49,6 +50,14 @@ export default function MyIntentsPage() {
       setRefreshing(false)
     }
   }
+
+  const filteredIntents = intents.filter(intent => {
+    if (activeTab === 'active') {
+      return ['looking', 'in_progress', 'pending'].includes(intent.status)
+    } else {
+      return ['completed', 'cancelled', 'rejected'].includes(intent.status)
+    }
+  })
 
   useEffect(() => {
     if (token) {
@@ -86,7 +95,7 @@ export default function MyIntentsPage() {
 
   return (
     <>
-      <div className="space-y-6 md:space-y-12">
+      <div className="space-y-8 md:space-y-12">
         
         {/* Header Area */}
         <div className="flex flex-col md:flex-row justify-between md:items-end gap-5 md:gap-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5">
@@ -114,6 +123,28 @@ export default function MyIntentsPage() {
           </div>
         </div>
 
+        {/* Tabs Filter */}
+        <div className="flex gap-4 border-b border-[var(--color-border)] px-4">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`pb-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all relative ${
+              activeTab === 'active' ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] opacity-50 hover:opacity-100'
+            }`}
+          >
+            Active Roadmap
+            {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent)]" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('past')}
+            className={`pb-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all relative ${
+              activeTab === 'past' ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] opacity-50 hover:opacity-100'
+            }`}
+          >
+            Past History
+            {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent)]" />}
+          </button>
+        </div>
+
         {/* Error State */}
         {error && !loading && (
           <div className="p-12 bg-red-500/5 rounded-[2rem] border border-red-500/10 text-center space-y-6">
@@ -129,9 +160,9 @@ export default function MyIntentsPage() {
               <div key={i} className="h-[400px] bg-[var(--color-bg-secondary)] rounded-[2.5rem] animate-pulse border border-[var(--color-border)]" />
             ))}
           </div>
-        ) : intents.length > 0 ? (
+        ) : filteredIntents.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {intents.map((intent) => (
+            {filteredIntents.map((intent) => (
               <div
                 key={intent.id}
                 className="group bg-[var(--color-bg-secondary)] rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700"

@@ -50,8 +50,8 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
     setLoading(true)
     try {
       const res = skill 
-        ? await skillService.updateSkill(skill.id, formData)
-        : await skillService.addSkill(formData)
+        ? await skillService.updateSkill(skill.id, { ...formData, status: skill.status || 'active' })
+        : await skillService.addSkill({ ...formData, status: 'active' })
         
       if (res.success) {
         notify.success(`Skill ${skill ? 'updated' : 'added'} successfully!`)

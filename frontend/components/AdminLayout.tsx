@@ -6,19 +6,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
 import { useEffect } from 'react'
 import ThemeToggle from '@/components/ThemeToggle'
-import {
-  LayoutDashboard,
-  Users,
-  Briefcase,
-  Star,
-  Calendar,
-  Coins,
-  Flag,
-  LogOut,
-  Shield,
-  ArrowLeft,
-  Award
-} from 'lucide-react'
+import { Menu, X, LayoutDashboard, Users, Briefcase, Star, Calendar, Coins, Flag, LogOut, Shield, ArrowLeft, Award } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -39,6 +29,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { isAdmin, loading, isAuthenticated, viewMode, setViewMode } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Protect admin route
   useEffect(() => {
@@ -66,75 +57,123 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push('/dashboard')
   }
 
-  return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[var(--color-bg-secondary)] border-r border-[var(--color-border)] fixed h-full flex flex-col">
-        {/* Logo */}
-        <div className="p-6 border-b border-[var(--color-border)]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)] flex items-center justify-center">
-              <Shield size={20} className="text-white" />
-            </div>
-            <div>
-              <h1 className="font-serif font-black text-lg">Collixa</h1>
-              <p className="text-[10px] uppercase tracking-widest text-[var(--color-accent)] font-bold">Admin Panel</p>
-            </div>
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="p-6 border-b border-[var(--color-border)]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)] flex items-center justify-center">
+            <Shield size={20} className="text-white" />
+          </div>
+          <div>
+            <h1 className="font-serif font-black text-lg text-[var(--color-text-primary)]">Collixa</h1>
+            <p className="text-[10px] uppercase tracking-widest text-[var(--color-accent)] font-bold">Admin Panel</p>
           </div>
         </div>
+      </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {sidebarItems.map((item) => {
-            // Dashboard should only be active on exact /admin, not subpages
-            const isActive = item.href === '/admin'
-              ? pathname === '/admin'
-              : pathname === item.href || pathname.startsWith(item.href + '/')
-            const Icon = item.icon
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {sidebarItems.map((item) => {
+          const isActive = item.href === '/admin'
+            ? pathname === '/admin'
+            : pathname === item.href || pathname.startsWith(item.href + '/')
+          const Icon = item.icon
 
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-[var(--color-accent)] text-white'
-                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-text-primary)]'
-                }`}
-              >
-                <Icon size={18} />
-                {item.name}
-              </Link>
-            )
-          })}
-        </nav>
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-[var(--color-accent)] text-white shadow-lg'
+                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              <Icon size={18} />
+              {item.name}
+            </Link>
+          )
+        })}
+      </nav>
 
-        {/* Bottom Actions */}
-        <div className="p-4 border-t border-[var(--color-border)] space-y-2">
-          <button
-            onClick={switchToUserView}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-text-primary)] transition-all"
-          >
-            <ArrowLeft size={18} />
-            View as User
-          </button>
-        </div>
+      {/* Bottom Actions */}
+      <div className="p-4 border-t border-[var(--color-border)] space-y-2">
+        <button
+          onClick={switchToUserView}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-text-primary)] transition-all"
+        >
+          <ArrowLeft size={18} />
+          View as User
+        </button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex font-sans overflow-x-hidden">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-64 bg-[var(--color-bg-secondary)] border-r border-[var(--color-border)] fixed h-full flex-col z-40">
+        <SidebarContent />
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 ml-64 p-8 overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1 bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-xs font-black uppercase tracking-wider rounded-full">
-              Admin Mode
-            </span>
-          </div>
-          <ThemeToggle />
-        </div>
+      {/* Mobile Drawer Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-72 bg-[var(--color-bg-secondary)] z-[101] lg:hidden border-r border-[var(--color-border)]"
+            >
+              <SidebarContent />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
-        {children}
-      </main>
+      {/* Main Content Area */}
+      <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
+        {/* Responsive Header Bar */}
+        <header className="h-16 lg:h-20 bg-[var(--color-bg-primary)]/80 backdrop-blur-md sticky top-0 z-30 border-b border-[var(--color-border)] flex items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 -ml-2 lg:hidden text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="flex items-center gap-2 lg:hidden">
+               <Shield size={20} className="text-[var(--color-accent)]" />
+               <span className="font-serif font-black text-sm uppercase tracking-wider">Admin</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 lg:gap-6">
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="px-3 py-1 bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-[10px] font-black uppercase tracking-wider rounded-full border border-[var(--color-accent)]/20">
+                System Online
+              </span>
+            </div>
+            <ThemeToggle />
+          </div>
+        </header>
+
+        {/* Content Body */}
+        <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-full overflow-x-hidden">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

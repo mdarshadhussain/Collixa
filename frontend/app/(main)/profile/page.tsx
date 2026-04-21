@@ -579,36 +579,43 @@ export default function ProfilePage() {
                               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)]">Mission Focus</p>
                             </div>
 
-                            {profileUser?.target_goal ? (
-                              <div className="relative z-10 space-y-6">
+                            <div className="relative z-10 space-y-6">
+                              {profileUser?.target_goal ? (
                                 <div className="border-l-4 border-[var(--color-accent)]/30 pl-6 py-1">
                                   <p className="text-base md:text-lg text-[var(--color-text-primary)] font-serif font-black italic leading-relaxed">
                                     "{profileUser.target_goal}"
                                   </p>
                                 </div>
-                                {isOwnProfile && (
-                                  <div className="flex flex-col sm:flex-row gap-4">
-                                    <button
-                                      onClick={handleGenerateRoadmap}
-                                      disabled={isGeneratingRoadmap}
-                                      className="flex-[2] py-4 bg-[var(--color-accent)] text-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 group"
-                                    >
+                              ) : isOwnProfile && (
+                                <div className="py-4 text-center">
+                                  <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="inline-flex items-center gap-3 px-8 py-3 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-[var(--color-accent)] hover:text-black transition-all"
+                                  >
+                                    <Plus size={14} /> Define Mission Goal
+                                  </button>
+                                  <p className="mt-3 text-[8px] text-[var(--color-text-secondary)] uppercase tracking-[0.1em]">Setting a goal improves AI Roadmap accuracy</p>
+                                </div>
+                              )}
+
+                              {isOwnProfile && (
+                                <div className="pt-4 mt-4 border-t border-[var(--color-border)]/10">
+                                  <button
+                                    onClick={handleGenerateRoadmap}
+                                    disabled={isGeneratingRoadmap}
+                                    className="w-full py-4 bg-[var(--color-accent)] text-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
+                                  >
+                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                                    <div className="relative z-10 flex items-center gap-3">
                                       {isGeneratingRoadmap ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">Generate AI Roadmap</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ) : isOwnProfile && (
-                              <div className="relative z-10 py-8 text-center">
-                                <button
-                                  onClick={() => setIsEditing(true)}
-                                  className="inline-flex items-center gap-3 px-8 py-4 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[var(--color-accent)] hover:text-black transition-all"
-                                >
-                                  <Plus size={16} /> Define Mission Goal
-                                </button>
-                              </div>
-                            )}
+                                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">
+                                        {roadmap ? 'Regenerate AI Roadmap' : 'Generate AI Roadmap'}
+                                      </span>
+                                    </div>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

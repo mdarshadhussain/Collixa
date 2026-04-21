@@ -120,6 +120,13 @@ export class SkillService {
   }
 
   /**
+   * Get all skills for a specific user
+   */
+  static async getUserSkills(userId) {
+    return await SkillModel.getByUserId(userId);
+  }
+
+  /**
    * Delete a skill
    */
   static async deleteSkill(userId, skillId) {
