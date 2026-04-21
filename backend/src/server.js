@@ -70,28 +70,10 @@ if (config.NODE_ENV === 'development') {
 }
 
 /**
- * Health check & Audit
+ * Health check
  */
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-app.get('/api/health/audit', (req, res) => {
-  const fingerprint = (key) => {
-    if (!key) return 'MISSING';
-    if (key.length < 10) return `SHORT (${key.length})`;
-    return `${key.substring(0, 5)}...${key.substring(key.length - 5)} (Length: ${key.length})`;
-  };
-
-  res.status(200).json({
-    status: 'AUDIT_MODE',
-    fingerprints: {
-      url: fingerprint(config.SUPABASE_URL),
-      anon: fingerprint(config.SUPABASE_ANON_KEY),
-      service: fingerprint(config.SUPABASE_SERVICE_ROLE_KEY),
-      gemini: fingerprint(config.GEMINI_API_KEY)
-    }
-  });
 });
 
 /**
