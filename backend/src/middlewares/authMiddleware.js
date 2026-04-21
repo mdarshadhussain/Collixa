@@ -19,14 +19,20 @@ export const authMiddleware = async (req, res, next) => {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
       
       if (authError || !authUser) {
+        console.error('[AuthMiddleware] Supabase token verification failed:', authError?.message);
         return res.status(401).json({ error: authError?.message || 'Invalid session' });
       }
+      
+      console.log(`[AuthMiddleware] Supabase authenticated user: ${authUser.email} (${authUser.id})`);
       
       // Fetch fresh user profile from public.users
       const profile = await UserModel.findById(authUser.id);
       if (!profile) {
+        console.warn(`[AuthMiddleware] User profile for ID ${authUser.id} not found in database.`);
         return res.status(401).json({ error: 'User profile does not exist' });
       }
+
+      console.log(`[AuthMiddleware] Loaded profile for: ${profile.email}`);
 
       // Attach to req.user
       req.user = profile;

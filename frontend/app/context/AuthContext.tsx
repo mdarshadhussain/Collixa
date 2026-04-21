@@ -45,26 +45,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(session.access_token);
         localStorage.setItem('auth_token', session.access_token);
         
-        // Fetch profile from public.users
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-          // Check if user is admin
-          const adminStatus = ADMIN_EMAILS.includes(data.user.email);
-          setIsAdmin(adminStatus);
-          // Restore view mode from localStorage for admins
-          if (adminStatus) {
-            const savedViewMode = localStorage.getItem('collixa_view_mode') as 'admin' | 'user';
-            if (savedViewMode) {
-              setViewModeState(savedViewMode);
+        try {
+          console.log('[AuthContext] Fetching profile from:', `${API_URL}/api/auth/profile`);
+          const response = await fetch(`${API_URL}/api/auth/profile`, {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
             }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log('[AuthContext] Profile fetch successful:', data.user?.email);
+            setUser(data.user);
+            // Check if user is admin
+            const adminStatus = ADMIN_EMAILS.includes(data.user.email);
+            setIsAdmin(adminStatus);
+            // Restore view mode from localStorage for admins
+            if (adminStatus) {
+              const savedViewMode = localStorage.getItem('collixa_view_mode') as 'admin' | 'user';
+              if (savedViewMode) {
+                setViewModeState(savedViewMode);
+              }
+            }
+          } else {
+            const errorText = await response.text();
+            console.error(`[AuthContext] Profile fetch failed (${response.status}):`, errorText);
+            
+            // Fallback: If session exists but profile fetch fails, create a minimal user
+            // to prevent the redirection loop while we debug the backend/DB.
+            console.warn('[AuthContext] Using fallback user from session');
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+              role: 'USER',
+              xp: 0,
+              level: 1,
+              is_verified: true
+            } as any);
           }
+        } catch (err) {
+          console.error('[AuthContext] Fatal error during profile fetch:', err);
+          // Fallback also here
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: 'User',
+            role: 'USER'
+          } as any);
         }
       } else {
         setUser(null);

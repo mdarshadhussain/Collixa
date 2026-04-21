@@ -20,7 +20,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   // Centralized authentication check
   useEffect(() => {
+    console.log(`[MainLayout] Auth Check - Loading: ${loading}, Auth: ${isAuthenticated}`);
     if (!loading && !isAuthenticated) {
+      console.warn('[MainLayout] Unauthorized access detected, redirecting to /auth');
       router.push('/auth')
     }
   }, [loading, isAuthenticated, router])
