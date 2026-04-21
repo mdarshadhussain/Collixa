@@ -8,7 +8,7 @@ import Avatar from './Avatar'
 import NotificationDrawer from './NotificationDrawer'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter, usePathname } from 'next/navigation'
-import { storageService, supabase } from '@/lib/supabase'
+import { storageService, supabase, API_URL } from '@/lib/supabase'
 import CreditPurchaseModal from './CreditPurchaseModal'
 import ThemeToggle from './ThemeToggle'
 
@@ -30,7 +30,7 @@ export default function Header() {
   const fetchUnreadCount = async () => {
     try {
       if (!token) return
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/notifications`, {
+      const res = await fetch(`${API_URL}/api/notifications`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()

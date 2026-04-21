@@ -187,14 +187,14 @@ export default function BenefitCardsSection() {
 
   return (
     <section id="benefits" data-cursor-theme="light" className="py-24 md:py-32 bg-[var(--lp-bg)]">
-      <div className="max-w-[1550px] mx-auto px-[5%] md:px-[10%] mb-16">
+      <div className="max-w-[1550px] mx-auto px-[5%] md:px-[10%] mb-12 sm:mb-16 md:mb-20 text-left">
         <Typewriter 
           text="Proven Impact"
-          className="text-[13px] font-bold tracking-[0.2em] uppercase text-[#FF85BB] mb-4 font-sans"
+          className="text-[13px] font-bold tracking-[0.2em] uppercase text-[#FF85BB] mb-4 font-sans block"
         />
         <Typewriter 
           text="Designed for the detail-oriented team."
-          className="text-[40px] md:text-[56px] font-bold font-sans text-[#021A54] dark:text-white max-w-2xl leading-[1.05] tracking-tight"
+          className="text-[32px] sm:text-[40px] md:text-[56px] font-bold font-sans text-[#021A54] dark:text-white max-w-none leading-none tracking-tight block whitespace-nowrap"
         />
       </div>
 

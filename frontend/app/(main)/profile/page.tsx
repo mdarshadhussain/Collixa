@@ -357,13 +357,6 @@ export default function ProfilePage() {
     <>
       <div className="space-y-12">
         <main className="flex-1">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="group flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all mb-12"
-          >
-            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-            Back to Sanctuary
-          </button>
 
           <div className="grid grid-cols-1 gap-8">
             <div className="space-y-6">
@@ -528,38 +521,34 @@ export default function ProfilePage() {
                               <h1 className="text-3xl md:text-5xl font-serif font-black tracking-tight leading-none">
                                 {profileUser?.name}
                               </h1>
-                              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
                                 <div className="px-3 py-1 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-full">
                                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">
                                     Level {profileUser?.level || 1} • {getLevelLabel(profileUser?.level)}
+                                    {(profileUser?.gender || profileUser?.age) && ` • ${profileUser?.gender || ''}${profileUser?.age ? ` • ${profileUser.age} Years` : ''}`}
+                                    {profileUser?.location && ` • ${profileUser.location}`}
                                   </span>
                                 </div>
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">{profileUser?.email || 'Community Member'}</p>
-                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm">
-                                <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                                <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-3">
+                              <p className="text-[9px] md:text-[10px] font-medium tracking-[0.1em] text-[var(--color-accent)] opacity-60 lowercase font-mono">{profileUser?.email || 'community member'}</p>
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm shrink-0">
+                                  <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                                  <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
+                                </div>
+                                {profileUser?.bio && (
+                                  <p className="text-[10px] text-[var(--color-text-secondary)] font-medium italic opacity-70 truncate max-w-[200px] md:max-w-xs">
+                                    "{profileUser.bio}"
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="space-y-4">
-                          {profileUser?.location && (
-                            <div className="flex items-center justify-center md:justify-start gap-2 text-[var(--color-text-secondary)] text-[10px] font-bold uppercase tracking-widest">
-                              <MapPin size={12} className="text-[var(--color-accent)]" />
-                              {profileUser.location}
-                            </div>
-                          )}
-                          {profileUser?.bio && (
-                            <p className="text-sm md:text-base text-[var(--color-text-secondary)] font-medium leading-relaxed italic border-l-2 border-[var(--color-border)] pl-6 py-2">
-                              "{profileUser.bio}"
-                            </p>
-                          )}
-                        </div>
 
                         <div className="py-2">
                           {profileUser?.interests?.length > 0 && (
@@ -574,60 +563,56 @@ export default function ProfilePage() {
                         </div>
 
                         {(profileUser?.target_goal || isOwnProfile) && (
-                          <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] p-6 md:p-8 rounded-[2.5rem] relative group/goal overflow-hidden">
-                            <div className="flex items-center justify-between mb-6 relative z-10">
-                              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)]">Mission Focus</p>
-                            </div>
+                      <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] p-4 md:p-5 rounded-[1.5rem] relative group/goal overflow-hidden">
+                        <div className="flex items-center justify-between mb-3 relative z-10">
+                          <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] opacity-70">Collaborative Mission</p>
+                        </div>
 
-                            <div className="relative z-10 space-y-6">
-                              {profileUser?.target_goal ? (
-                                <div className="border-l-4 border-[var(--color-accent)]/30 pl-6 py-1">
-                                  <p className="text-base md:text-lg text-[var(--color-text-primary)] font-serif font-black italic leading-relaxed">
-                                    "{profileUser.target_goal}"
-                                  </p>
-                                </div>
-                              ) : isOwnProfile && (
-                                <div className="py-4 text-center">
-                                  <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="inline-flex items-center gap-3 px-8 py-3 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-[var(--color-accent)] hover:text-black transition-all"
-                                  >
-                                    <Plus size={14} /> Define Mission Goal
-                                  </button>
-                                  <p className="mt-3 text-[8px] text-[var(--color-text-secondary)] uppercase tracking-[0.1em]">Setting a goal improves AI Roadmap accuracy</p>
-                                </div>
-                              )}
-
-                              {isOwnProfile && (
-                                <div className="pt-4 mt-4 border-t border-[var(--color-border)]/10">
-                                  <button
-                                    onClick={handleGenerateRoadmap}
-                                    disabled={isGeneratingRoadmap}
-                                    className="w-full py-4 bg-[var(--color-accent)] text-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
-                                  >
-                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                                    <div className="relative z-10 flex items-center gap-3">
-                                      {isGeneratingRoadmap ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">
-                                        {roadmap ? 'Regenerate AI Roadmap' : 'Generate AI Roadmap'}
-                                      </span>
-                                    </div>
-                                  </button>
-                                </div>
-                              )}
+                        <div className="relative z-10 space-y-3">
+                          {profileUser?.target_goal ? (
+                            <div className="border-l-2 border-[var(--color-accent)]/20 pl-4 py-0.5">
+                              <p className="text-xs md:text-sm text-[var(--color-text-primary)] font-serif font-black italic leading-relaxed">
+                                "{profileUser.target_goal}"
+                              </p>
                             </div>
-                          </div>
+                          ) : isOwnProfile && (
+                            <div className="py-1 text-center">
+                              <button
+                                onClick={() => setIsEditing(true)}
+                                className="inline-flex items-center gap-3 px-5 py-2 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] text-[8px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-[var(--color-accent)] hover:text-black transition-all"
+                              >
+                                <Plus size={10} /> Set Mission
+                              </button>
+                            </div>
+                          )}
+
+                          {isOwnProfile && (
+                            <div className="pt-2 mt-2 border-t border-[var(--color-border)]/5">
+                              <button
+                                onClick={handleGenerateRoadmap}
+                                disabled={isGeneratingRoadmap}
+                                className="w-full py-2.5 bg-[var(--color-accent)] text-black rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
+                              >
+                                {isGeneratingRoadmap ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                <span className="text-[8px] font-black uppercase tracking-[0.2em]">
+                                  {roadmap ? 'Update Roadmap' : 'Generate AI Roadmap'}
+                                </span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                         )}
                       </div>
 
                       <div className="lg:w-[320px] space-y-6 shrink-0">
-                        <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-                          <div className="bg-[var(--color-bg-primary)] p-6 rounded-3xl border border-[var(--color-border)] text-center">
-                            <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-2">Reputation</p>
-                            <p className="text-2xl font-serif font-black">{profileUser?.total_reviews ?? 0} <span className="text-[10px] font-sans opacity-40 italic">Reviews</span></p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-[var(--color-bg-primary)] p-5 rounded-2xl border border-[var(--color-border)] text-center flex flex-col justify-center aspect-square transition-all hover:border-[var(--color-accent)]/30 group">
+                            <p className="text-[7px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-1 opacity-50 group-hover:opacity-100 transition-opacity">Reviews</p>
+                            <p className="text-2xl font-serif font-black">{profileUser?.total_reviews ?? 0}</p>
                           </div>
-                          <div className="bg-[var(--color-bg-primary)] p-6 rounded-3xl border border-[var(--color-border)] text-center">
-                            <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-2">Credits</p>
+                          <div className="bg-[var(--color-bg-primary)] p-5 rounded-2xl border border-[var(--color-border)] text-center flex flex-col justify-center aspect-square transition-all hover:border-[var(--color-accent)]/30 group">
+                            <p className="text-[7px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-1 opacity-50 group-hover:opacity-100 transition-opacity">Credits</p>
                             <p className="text-2xl font-serif font-black">{profileUser?.credits ?? 0}</p>
                           </div>
                         </div>
@@ -646,6 +631,11 @@ export default function ProfilePage() {
                             >
                               <Edit2 size={14} /> Edit Identity
                             </button>
+                            
+                            <div className="pt-4 border-t border-[var(--color-border)]/5">
+                              <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-2 opacity-50">Membership Archive</p>
+                              <p className="text-[12px] font-serif italic text-[var(--color-text-primary)]">{joinDate}</p>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -668,10 +658,6 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              <div className="bg-[var(--color-accent-soft)]/10 border border-[var(--color-accent-soft)] p-6 rounded-[2rem]">
-                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] mb-4">Membership Archive</p>
-                <p className="text-sm font-serif italic text-[var(--color-text-primary)]">{joinDate}</p>
-              </div>
             </div>
 
             <div className="flex flex-col space-y-10">
@@ -680,7 +666,7 @@ export default function ProfilePage() {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab as any)}
-                    className={`py-3 text-[10px] font-black uppercase tracking-[0.32em] border-b-2 transition-all ${activeTab === tab
+                    className={`py-3 text-[10px] font-black uppercase tracking-[0.3em] border-b-2 transition-all ${activeTab === tab
                         ? 'text-[var(--color-accent)] border-[var(--color-accent)]'
                         : 'text-[var(--color-text-secondary)] border-transparent hover:text-[var(--color-text-primary)]'
                       }`}
@@ -822,8 +808,6 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-      <CreditPurchaseModal isOpen={showCreditModal} onClose={() => setShowCreditModal(false)} />
-      <ShareCreditsModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} onSuccess={() => refreshUser()} />
     </>
   )
 }

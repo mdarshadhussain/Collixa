@@ -78,46 +78,51 @@ export default function IntentsPage() {
         </div>
 
         {/* Header Area */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 md:gap-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl shadow-[var(--color-accent)]/5 group">
-          <div className="space-y-6 w-full md:w-auto">
-            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] block mb-2 opacity-60">Intent Portal</span>
-            <h2 className="text-4xl md:text-6xl font-serif font-black tracking-tighter leading-[1.1] text-[var(--color-text-primary)]">
-              <Typewriter text="Join the best" speed={0.05} delay={0.1} /> <br />
-              <span className="italic font-light text-[var(--color-accent)]">
-                <Typewriter text="minds together." speed={0.05} delay={0.8} />
-              </span>
-            </h2>
+        <div className="flex flex-col gap-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2.5rem] p-6 sm:p-8 md:p-10 shadow-xl shadow-[var(--color-accent)]/5 group overflow-hidden relative -mt-6 md:-mt-12">
+          <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
+             <Plus size={120} className="text-[var(--color-accent)]" />
           </div>
           
-          <div className="flex w-full md:w-auto items-center gap-3 flex-wrap md:flex-nowrap">
-            <div className="relative hidden lg:block mr-2">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" />
+          <div className="space-y-2 max-w-none relative z-10">
+            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] block mb-2 opacity-70">Synergy Portal</span>
+            <h2 className="text-3xl md:text-6xl font-serif font-black tracking-tighter leading-none text-[var(--color-text-primary)] whitespace-nowrap">
+              <Typewriter text="Join the best minds together." speed={0.05} delay={0.1} />
+            </h2>
+            <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)] opacity-50">Broadcast your vision. Find your perfect match.</p>
+          </div>
+          
+          <div className="flex flex-col md:flex-row items-center gap-4 relative z-10 w-full pt-2">
+            <div className="relative w-full md:flex-1 group">
+              <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" />
               <input
                 type="text"
-                placeholder="Search intents..."
+                placeholder="Search by mission, skill, or goal..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-6 py-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-[var(--color-accent)] w-72 transition-all shadow-sm"
+                className="w-full pl-16 pr-8 py-5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[11px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-[var(--color-accent)] transition-all shadow-inner"
               />
             </div>
-            <button
-              onClick={fetchIntents}
-              className="p-3 sm:p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-primary)] hover:bg-[var(--color-accent-soft)] transition-all text-[var(--color-accent)] shadow-sm"
-            >
-              <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-            </button>
-            <button 
-              onClick={() => router.push('/my-collaborations')}
-              className="px-4 sm:px-6 py-3 sm:py-4 border border-[var(--color-accent)] text-[var(--color-accent)] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[var(--color-accent)] hover:text-white transition-all shadow-lg shadow-[var(--color-accent)]/10"
-            >
-              My Intents
-            </button>
-            <button 
-              onClick={() => router.push('/create')}
-              className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl"
-            >
-              Post Intent <Plus size={16} />
-            </button>
+            
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <button
+                onClick={fetchIntents}
+                className="p-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-primary)] hover:bg-[var(--color-accent-soft)] transition-all text-[var(--color-accent)] shadow-sm group/refresh"
+              >
+                <RefreshCw size={20} className={refreshing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
+              </button>
+              <button 
+                onClick={() => router.push('/my-collaborations')}
+                className="flex-1 md:flex-none px-8 py-5 border border-[var(--color-accent)] text-[var(--color-accent)] text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[var(--color-accent)] hover:text-white transition-all shadow-lg shadow-[var(--color-accent)]/5"
+              >
+                My Intents
+              </button>
+              <button 
+                onClick={() => router.push('/create')}
+                className="flex-1 md:flex-none px-8 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-2xl group/btn"
+              >
+                Post Intent <Plus size={18} className="group-hover:rotate-90 transition-transform" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -140,13 +145,13 @@ export default function IntentsPage() {
 
         {/* Content States */}
         {loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 md:gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
             {[1, 2, 3].map((i) => (
               <div key={i} className="aspect-[4/5] bg-[var(--color-bg-secondary)] rounded-[2rem] animate-pulse border border-[var(--color-border)]" />
             ))}
           </div>
         ) : filteredIntents.length > 0 ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 md:gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
             {filteredIntents.map((intent) => (
               <div
                 key={intent.id}

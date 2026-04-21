@@ -5,7 +5,7 @@ import { Award, Lock, Star, Footprints, Lightbulb, Crown, Users, Target, Trophy,
 import { motion, AnimatePresence } from 'framer-motion'
 import Badge from '@/components/Badge'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { API_URL } from '@/lib/supabase'
 
 const iconMap: { [key: string]: React.ElementType } = {
   Footprints, Lightbulb, Crown, Star, Handshake: Users, Target,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Check, X, Clock, MessageSquare, ChevronRight, Inbox } from 'lucide-react'
-import { skillService, User, storageService } from '@/lib/supabase'
+import { skillService, User, storageService, API_URL } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 import Avatar from '@/components/Avatar'
 import Badge from '@/components/Badge'
@@ -18,8 +18,6 @@ interface ExchangeRequest {
   requester?: User
   skill?: any
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function RequestManager() {
   const { user } = useAuth()

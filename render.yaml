@@ -21,7 +21,7 @@ services:
       - key: PORT
         value: 10000
       - key: FRONTEND_URL
-        value: https://collixa.space
+        value: https://collixa-frontend.onrender.com
 
   # ─── FRONTEND SERVICE (Next.js) ───
   - type: web
@@ -41,7 +41,7 @@ services:
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
       - key: NEXT_PUBLIC_API_URL
-        value: https://api.collixa.space
+        value: https://collixa-backend.onrender.com
       - key: NODE_OPTIONS
         value: "--max-old-space-size=400"
       - key: NODE_VERSION

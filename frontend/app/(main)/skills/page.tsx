@@ -256,94 +256,75 @@ export default function SkillsPage() {
         )}
 
           {/* Editorial Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5">
-            <div className="space-y-4">
-               <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] opacity-60">Tribes Directory</span>
-               <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-black tracking-tighter leading-none text-[var(--color-text-primary)]">
-                 <Typewriter text="Tribes." speed={0.06} delay={0.2} />
-               </h1>
-               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-primary)] opacity-40">Discover talented collaborators</p>
+          <div className="flex flex-col gap-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2.5rem] p-6 sm:p-8 md:p-10 shadow-xl shadow-[var(--color-accent)]/5 group overflow-hidden relative mt-4 md:mt-8">
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform duration-1000">
+               <Star size={140} className="text-[var(--color-accent)]" fill="currentColor" />
             </div>
-            <div className="flex items-center gap-4">
-               <button 
-                 onClick={() => setIsAddModalOpen(true)}
-                 className="flex items-center gap-2 sm:gap-4 px-4 sm:px-7 py-3.5 sm:py-4 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-xl sm:rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.32em] hover:bg-[var(--color-accent)] transition-all shadow-xl group"
-               >
-                 <Plus size={16} className="group-hover:rotate-90 transition-transform" />
-                 List Your expertise
-               </button>
-            </div>
-          </div>
 
-          {/* Search & Intelligence Filters */}
-          <div className="flex flex-col gap-5 md:gap-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
-               <div className="lg:col-span-8 group">
-                  <div className="relative">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={18} />
-                    <input
-                      type="text"
-                      placeholder="Search by expertise (e.g. React, UI Design)..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="editorial-input !pl-16"
-                    />
-                  </div>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+              <div className="space-y-2">
+                 <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] opacity-70">Collective Intelligence</span>
+                 <h1 className="text-3xl sm:text-4xl md:text-6xl font-serif font-black tracking-tighter leading-none text-[var(--color-text-primary)]">
+                   <Typewriter text="Tribes." speed={0.06} delay={0.2} />
+                 </h1>
+                 <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-primary)] opacity-40">Find the expertise you need to scale.</p>
+              </div>
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="w-full md:w-auto flex items-center justify-center gap-4 px-8 py-5 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[var(--color-accent)] transition-all shadow-xl group/btn"
+              >
+                <Plus size={18} className="group-hover/btn:rotate-90 transition-transform" />
+                List Your expertise
+              </button>
+            </div>
+
+            {/* Integrated Search Bar */}
+            <div className="flex flex-col md:flex-row items-center gap-4 relative z-10 w-full pt-2">
+               <div className="relative w-full md:flex-1 group">
+                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search expertise (e.g. React, UX Strategy)..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-16 pr-14 py-5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[11px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-[var(--color-accent)] transition-all shadow-inner"
+                  />
                </div>
-               <div className="lg:col-span-4">
-                  <div className="editorial-select-wrapper group">
-                    <Filter className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--color-accent)] opacity-40 group-focus-within:opacity-100 transition-opacity z-10" size={16} />
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
-                      className="editorial-select !pl-16"
-                    >
-                      <option value="newest">Sort: Recently Added</option>
-                      <option value="rating">Sort: High Rating</option>
-                    </select>
-                  </div>
+               
+               <div className="flex items-center gap-3 w-full md:w-auto">
+                 <button 
+                   onClick={() => setActiveTab('requests')}
+                   className={`flex-1 md:flex-none px-8 py-5 border border-[var(--color-accent)] text-[var(--color-accent)] text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-lg shadow-[var(--color-accent)]/5 ${activeTab === 'requests' ? 'bg-[var(--color-accent)] text-white' : 'hover:bg-[var(--color-accent)] hover:text-white'}`}
+                 >
+                   My Requests
+                 </button>
+                 <button 
+                   onClick={() => setIsAddModalOpen(true)}
+                   className="flex-1 md:flex-none px-8 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-2xl group/btn"
+                 >
+                   List Expertise <Plus size={18} className="group-hover/btn:rotate-90 transition-transform" />
+                 </button>
                </div>
             </div>
-
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-8 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${
-                    activeCategory === cat 
-                      ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] border-[var(--color-inverse-bg)] shadow-lg shadow-[var(--color-text-primary)]/10' 
-                      : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+          </div>
+          {/* Filter Pill List */}
+          <div className="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-8 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap border ${
+                  activeCategory === cat 
+                  ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] border-[var(--color-inverse-bg)] shadow-lg shadow-[var(--color-text-primary)]/10' 
+                  : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl p-2">
-            <button
-              onClick={() => setActiveTab('tribes')}
-              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-[0.12em] ${
-                activeTab === 'tribes'
-                  ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)]'
-                  : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
-              }`}
-            >
-              Tribes
-            </button>
-            <button
-              onClick={() => setActiveTab('requests')}
-              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-[0.12em] ${
-                activeTab === 'requests'
-                  ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)]'
-                  : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
-              }`}
-            >
-              Requests
-            </button>
-          </div>
 
           {activeTab === 'requests' ? (
             <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-6">
@@ -429,7 +410,7 @@ export default function SkillsPage() {
               )}
             </div>
           ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
             {loading ? (
               [...Array(6)].map((_, i) => (
                 <div key={i} className="h-[190px] sm:h-[240px] md:h-[290px] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg sm:rounded-xl md:rounded-2xl animate-pulse" />

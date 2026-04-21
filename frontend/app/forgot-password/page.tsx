@@ -6,7 +6,7 @@ import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { API_URL } from '@/lib/supabase'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()

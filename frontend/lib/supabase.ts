@@ -6,7 +6,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 // Types for Supabase
 export interface User {

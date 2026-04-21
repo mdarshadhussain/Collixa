@@ -6,7 +6,7 @@ import { ArrowLeft, CheckCircle, AlertCircle, Clock, ShieldCheck, RefreshCcw, Lo
 import Button from '@/components/Button'
 import { supabase } from '@/lib/supabase'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { API_URL } from '@/lib/supabase'
 
 function VerifyOtpContent() {
   const router = useRouter()

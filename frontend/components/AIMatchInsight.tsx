@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Sparkles, Loader2, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/app/context/AuthContext'
+import { API_URL } from '@/lib/supabase'
 
 interface MatchResult {
   score: number
@@ -30,7 +31,6 @@ export default function AIMatchInsight({ type, itemId, itemTitle, itemDescriptio
     setLoading(true)
     setError(null)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
       const response = await fetch(`${API_URL}/api/ai/match`, {
         method: 'POST',
         headers: {

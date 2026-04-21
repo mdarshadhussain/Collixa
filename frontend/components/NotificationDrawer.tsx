@@ -4,9 +4,7 @@ import { useState, useEffect } from 'react'
 import { Bell, X, Check, ArrowRight, MessageCircle, Zap, ShieldAlert, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '@/lib/supabase'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { supabase, API_URL } from '@/lib/supabase'
 
 interface Notification {
   id: string

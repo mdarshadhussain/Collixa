@@ -2,7 +2,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { supabase, User } from '@/lib/supabase'
+import { supabase, User, API_URL } from '@/lib/supabase'
 
 // Admin emails configuration
 const ADMIN_EMAILS = ['admin@collixa.space']
@@ -27,7 +27,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)

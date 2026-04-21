@@ -12,7 +12,7 @@ import { storageService, intentService, sessionService, conversationService, ski
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/app/context/AuthContext'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { API_URL } from '@/lib/supabase'
 
 interface HubSections {
   trendingIntents: any[]

@@ -71,7 +71,7 @@ export default function CustomCursor() {
 
   if (!isVisible) return null
 
-  // Mapping: Dark BG -> Pink (#FF85BB), Light BG -> Dark Blue (#021A54)
+  // Pink (#FF85BB) for dark backgrounds, Blue (#021A54) for light backgrounds
   const primaryColor = activeTheme === 'dark' ? '#FF85BB' : '#021A54'
 
   return (
