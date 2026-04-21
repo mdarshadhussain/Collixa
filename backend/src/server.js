@@ -16,6 +16,7 @@ import adminRoutes from './routes/admin.routes.js';
 import achievementRoutes from './routes/achievement.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import initializeDatabase from './utils/initDatabase.js';
+import { supabase, supabaseAdmin } from './config/database.js';
 
 const app = express();
 
