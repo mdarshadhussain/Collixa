@@ -70,7 +70,6 @@ export default function HeroSection() {
                   loading="eager" // Hero image should load as soon as possible
                 />
               </div>
-              <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-[var(--lp-primary)] rounded-full blur-[80px] opacity-15 animate-pulse" />
             </motion.div>
           </div>
         </div>

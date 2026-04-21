@@ -194,7 +194,7 @@ export default function BenefitCardsSection() {
         />
         <Typewriter 
           text="Designed for the detail-oriented team."
-          className="text-[32px] sm:text-[40px] md:text-[56px] font-bold font-sans text-[#021A54] dark:text-white max-w-none leading-none tracking-tight block whitespace-nowrap"
+          className="text-[32px] sm:text-[40px] md:text-[56px] font-bold font-sans text-[#021A54] dark:text-white max-w-none leading-[1.1] tracking-tight block"
         />
       </div>
 

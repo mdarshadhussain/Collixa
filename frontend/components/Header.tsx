@@ -390,10 +390,12 @@ export default function Header() {
               </nav>
 
               <div className="pt-3 mt-3 border-t border-[var(--color-border)] space-y-2">
-                <div className="flex items-center justify-between px-3 py-2 mb-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)]">Dark Mode</span>
-                  <ThemeToggle />
-                </div>
+                {!isLandingPage && (
+                  <div className="flex items-center justify-between px-3 py-2 mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)]">Dark Mode</span>
+                    <ThemeToggle />
+                  </div>
+                )}
                 {isAuthenticated && (
                   <button
                     onClick={() => {
