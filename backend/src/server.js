@@ -16,7 +16,6 @@ import adminRoutes from './routes/admin.routes.js';
 import achievementRoutes from './routes/achievement.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import initializeDatabase from './utils/initDatabase.js';
-import { supabase, supabaseAdmin } from './config/database.js';
 
 const app = express();
 
@@ -71,36 +70,10 @@ if (config.NODE_ENV === 'development') {
 }
 
 /**
- * Health check & Diagnostics
+ * Health check
  */
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-app.get('/api/health/debug', (req, res) => {
-  const checkKey = (key) => {
-    if (!key) return 'MISSING';
-    if (key.includes('"')) return 'CONTAINS_QUOTES';
-    if (key.includes('\n')) return 'CONTAINS_NEWLINE';
-    if (key.includes('\r')) return 'CONTAINS_RETURN';
-    if (key.trim() !== key) return 'CONTAINS_WHITESPACE';
-    return `OK (Length: ${key.length})`;
-  };
-
-  res.status(200).json({
-    status: 'SYSTEM_CHECK',
-    env: {
-      NODE_ENV: config.NODE_ENV,
-      URL_CHECK: checkKey(config.SUPABASE_URL),
-      ANON_KEY_CHECK: checkKey(config.SUPABASE_ANON_KEY),
-      SERVICE_ROLE_CHECK: checkKey(config.SUPABASE_SERVICE_ROLE_KEY),
-      GEMINI_KEY_CHECK: checkKey(config.GEMINI_API_KEY)
-    },
-    client: {
-      has_supabase: !!supabase,
-      has_admin: !!supabaseAdmin
-    }
-  });
 });
 
 /**
