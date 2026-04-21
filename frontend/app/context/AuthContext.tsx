@@ -86,15 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        setLoading(false);
         return { error: error.message };
       }
 
       return { error: null };
     } catch (err) {
       console.error('Login error:', err);
-      return { error: 'Login failed' };
-    } finally {
       setLoading(false);
+      return { error: 'Login failed' };
     }
   }
 
@@ -110,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        setLoading(false);
         return { error: error.message };
       }
 
@@ -117,9 +118,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: null, pendingVerification: true };
     } catch (err) {
       console.error('Registration error:', err);
-      return { error: 'Registration failed' };
-    } finally {
       setLoading(false);
+      return { error: 'Registration failed' };
     }
   }
 
