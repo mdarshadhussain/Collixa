@@ -1,265 +1,261 @@
 'use client'
 
-import { useState, Suspense, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react'
-import Button from '@/components/Button'
-import Input from '@/components/Input'
-
-import { API_URL } from '@/lib/supabase'
+import { useState, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
+import { Lock, Eye, EyeOff, Loader2, CheckCircle, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '../context/AuthContext'
+import { useSearchParams } from 'next/navigation'
 
 function ResetPasswordContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const email = searchParams.get('email')
-
+  const initialEmail = searchParams.get('email') || ''
+  
+  const [email, setEmail] = useState(initialEmail)
   const [otp, setOtp] = useState('')
-  const [newPassword, setNewPassword] = useState('')
+  const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
+  const { resetPassword } = useAuth()
 
-    if (!otp || otp.length !== 6) {
-      newErrors.otp = 'OTP must be 6 digits'
-    }
-
-    if (!newPassword) {
-      newErrors.newPassword = 'Password is required'
-    } else if (newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters'
-    } else if (!/[A-Z]/.test(newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one uppercase letter'
-    } else if (!/[0-9]/.test(newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one number'
-    }
-
-    if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
     if (!email) {
-      setError('Email is required. Please use the reset link from your email.')
+      setError('Please provide your associated email identity.')
       return
     }
 
-    if (!validateForm()) {
+    if (!otp || otp.length !== 6) {
+      setError('Please enter the 6-digit recovery cipher.')
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
       return
     }
 
     setLoading(true)
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp, newPassword }),
+      // Step 1: Verify the recovery OTP with Supabase
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'recovery'
       })
 
-      const data = await response.json()
+      if (verifyError) {
+        setError(verifyError.message)
+        setLoading(false)
+        return
+      }
 
-      if (response.ok) {
+      // Step 2: Since verifyOtp logs the user in, we can now update the password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      })
+
+      if (updateError) {
+        setError(updateError.message)
+      } else {
         setSuccess(true)
-        // Redirect to login after 2 seconds
         setTimeout(() => {
           router.push('/auth')
-        }, 2000)
-      } else {
-        setError(data.error || 'Failed to reset password')
+        }, 3000)
       }
     } catch (err) {
-      setError('An error occurred. Please try again.')
+      setError('Credential synchronization failed.')
       console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
-  if (!email) {
-    return (
-      <div className="min-h-screen bg-[var(--color-bg-secondary)] flex items-center justify-center px-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Link</h1>
-          <p className="text-gray-600 mb-4">
-            This password reset link is invalid or has expired.
-          </p>
-          <Button
-            onClick={() => router.push('/forgot-password')}
-            variant="primary"
-          >
-            Request New Link
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-[var(--color-bg-secondary)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-sage-light rounded-lg flex items-center justify-center">
-              <span className="text-sage-dark font-bold text-2xl">C</span>
+    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex font-sans overflow-hidden">
+      
+      {/* ─── LEFT PANEL (EDITORIAL) ─── */}
+      <div className="hidden lg:flex flex-col flex-1 bg-[#021A54] p-20 justify-between relative overflow-hidden">
+         <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#FF85BB] rounded-full blur-[160px] opacity-20" />
+         
+         <div className="relative z-10">
+            <div className="flex items-center gap-4 cursor-pointer group mb-20" onClick={() => router.push('/')}>
+               <h1 className="text-4xl font-serif font-black tracking-tighter text-white">Collixa.</h1>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Collixa</h1>
-          </div>
-          <p className="text-gray-600 mt-2">Create New Password</p>
-        </div>
 
-        {/* Card */}
-        <div className="bg-[var(--color-bg-secondary)] border border-gray-100 rounded-lg p-8 shadow-subtle">
-          {success ? (
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <CheckCircle size={56} className="text-green-500" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Password Reset!</h2>
-              <p className="text-gray-600">
-                Your password has been successfully reset.
-              </p>
-              <p className="text-sm text-gray-500">Redirecting to login...</p>
+            <div className="space-y-10 max-w-xl">
+               <h2 className="text-6xl font-serif font-black leading-[0.9] italic tracking-tighter text-white">
+                 Define your <br /> new cipher.
+               </h2>
+               <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#F5F5F0]/40 leading-relaxed max-w-xs">
+                 Establishing a new encrypted gateway to your workspace.
+               </p>
             </div>
-          ) : (
-            <>
-              <div className="mb-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-2">Reset Password</h2>
-                <p className="text-sm text-gray-600">
-                  Enter the OTP from your email and create a new password.
-                </p>
-              </div>
+         </div>
 
-              {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
-                  <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-700 text-sm font-medium">{error}</p>
-                </div>
-              )}
+         <div className="relative z-10 pt-8 border-t border-white/10">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FF85BB]/40 italic">Collixa Identity Protocol</p>
+         </div>
+      </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* OTP */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    OTP Code
-                  </label>
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6)
-                      setOtp(value)
-                      if (errors.otp) setErrors({ ...errors, otp: '' })
-                    }}
-                    placeholder="000000"
-                    maxLength={6}
-                    className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-[var(--color-bg-secondary)] text-center text-2xl font-bold tracking-widest transition-all ${
-                      errors.otp ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                    disabled={loading}
-                  />
-                  {errors.otp && (
-                    <p className="text-sm text-red-500 font-semibold mt-2">{errors.otp}</p>
-                  )}
-                </div>
+      {/* ─── RIGHT PANEL (FORM) ─── */}
+      <div className="flex-[1.2] flex flex-col justify-center px-8 md:px-24 bg-[var(--color-bg-primary)]">
+        <div className="max-w-md w-full mx-auto space-y-12">
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+             <span className="text-[10px] font-black uppercase tracking-[0.6em] text-[var(--color-accent)]">Identity Finalization</span>
+             <h3 className="text-3xl font-serif font-black text-[var(--color-text-primary)] tracking-tighter">
+               Update Credentials.
+             </h3>
+          </motion.div>
 
-                {/* New Password */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    New Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => {
-                        setNewPassword(e.target.value)
-                        if (errors.newPassword) setErrors({ ...errors, newPassword: '' })
-                      }}
-                      placeholder="SecurePass123"
-                      className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-[var(--color-bg-secondary)] transition-all ${
-                        errors.newPassword ? 'border-red-300' : 'border-gray-200'
-                      }`}
-                      disabled={loading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  {errors.newPassword && (
-                    <p className="text-sm text-red-500 font-semibold mt-2">{errors.newPassword}</p>
-                  )}
-                </div>
-
-                {/* Confirm Password */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value)
-                        if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' })
-                      }}
-                      placeholder="SecurePass123"
-                      className={`w-full px-4 py-3 bg-gray-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-sage-light focus:bg-[var(--color-bg-secondary)] transition-all ${
-                        errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
-                      }`}
-                      disabled={loading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    >
-                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="text-sm text-red-500 font-semibold mt-2">{errors.confirmPassword}</p>
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={loading}
-                  className="w-full"
-                >
-                  {loading ? 'Resetting...' : 'Reset Password'}
-                </Button>
-              </form>
-
-              <button
-                onClick={() => router.push('/auth')}
-                className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+          <AnimatePresence mode="wait">
+            {success ? (
+              <motion.div 
+                key="success"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[3rem] p-10 md:p-12 shadow-2xl text-center space-y-8"
               >
-                <ArrowLeft size={18} />
-                Back to Login
-              </button>
-            </>
-          )}
+                 <div className="w-20 h-20 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto">
+                    <CheckCircle size={32} className="text-green-500" />
+                 </div>
+                 <div className="space-y-4">
+                    <h4 className="text-2xl font-serif italic font-black tracking-tight">Identity Restored.</h4>
+                    <p className="text-[11px] font-bold text-[var(--color-text-secondary)] leading-loose">
+                      Your credentials have been updated. Re-routing to authentication portal...
+                    </p>
+                 </div>
+                 <div className="w-full h-1 bg-[var(--color-bg-primary)] rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 3 }}
+                      className="h-full bg-[var(--color-accent)]"
+                    />
+                 </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="form"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[3rem] p-10 md:p-12 shadow-2xl relative overflow-hidden"
+              >
+                {error && (
+                  <div className="mb-8 p-5 bg-red-500/5 border border-red-500/20 rounded-2xl flex gap-4 text-red-500 items-center">
+                    <ShieldCheck size={18} className="flex-shrink-0" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest leading-relaxed">{error}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleReset} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)] ml-2">Email Identity</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="identity@nexus.com"
+                      className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-6 py-4 text-xs font-bold focus:border-[var(--color-accent)] outline-none transition-all"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)] ml-2">Recovery Cipher (OTP)</label>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-6 py-4 text-center text-3xl font-black tracking-[0.4em] focus:border-[var(--color-accent)] outline-none transition-all text-[var(--color-accent)]"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)] ml-2">New Password</label>
+                    <div className="relative group">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-6 py-5 text-xs font-bold focus:border-[var(--color-accent)] outline-none transition-all pr-14"
+                        required
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] opacity-30 hover:opacity-100 transition-opacity"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.5em] text-[var(--color-text-secondary)] ml-2">Confirm Authorization</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-6 py-5 text-xs font-bold focus:border-[var(--color-accent)] outline-none transition-all pr-14"
+                        required
+                        disabled={loading}
+                      />
+                      <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] opacity-30">
+                        <Lock size={18} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || !password || !confirmPassword || !otp || !email}
+                    className="w-full py-5 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.3em] rounded-[1.5rem] hover:bg-[var(--color-accent)] transition-all flex items-center justify-center gap-4 shadow-xl disabled:opacity-20 group mt-4"
+                  >
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : (
+                      <>
+                        Update Credentials
+                        <Sparkles size={14} className="group-hover:scale-125 transition-transform" />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                <div className="mt-8 pt-6 border-t border-[var(--color-border)] text-center">
+                   <p className="text-[8px] font-black tracking-widest uppercase text-[var(--color-text-secondary)] opacity-30">
+                     Encryption Level: AES-256 Equivalent
+                   </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>
@@ -268,12 +264,8 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-       <div className="min-h-screen bg-[var(--color-bg-secondary)] flex items-center justify-center">
-          <span className="text-sage-dark font-serif italic text-2xl animate-pulse">Establishing secure link...</span>
-       </div>
-    }>
-       <ResetPasswordContent />
+    <Suspense fallback={<div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center font-serif italic text-2xl text-[var(--color-accent)]">Establishing link...</div>}>
+      <ResetPasswordContent />
     </Suspense>
   )
 }

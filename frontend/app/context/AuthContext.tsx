@@ -24,6 +24,9 @@ interface AuthContextType {
   updateUser: (updatedUser: User) => void
   toggleViewMode: () => void
   setViewMode: (mode: 'admin' | 'user') => void
+  checkEmail: (email: string) => Promise<{ exists: boolean; error: string | null }>
+  requestReset: (email: string) => Promise<{ error: string | null; success: boolean }>
+  resetPassword: (email: string, otp: string, newPassword: string) => Promise<{ error: string | null; success: boolean }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -46,7 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('auth_token', session.access_token);
         
         try {
-          console.log('[AuthContext] Fetching profile from:', `${API_URL}/api/auth/profile`);
           const response = await fetch(`${API_URL}/api/auth/profile`, {
             headers: {
               'Authorization': `Bearer ${session.access_token}`
@@ -55,44 +57,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (response.ok) {
             const data = await response.json();
-            console.log('[AuthContext] Profile fetch successful:', data.user?.email);
             setUser(data.user);
-            // Check if user is admin
             const adminStatus = ADMIN_EMAILS.includes(data.user.email);
             setIsAdmin(adminStatus);
-            // Restore view mode from localStorage for admins
             if (adminStatus) {
               const savedViewMode = localStorage.getItem('collixa_view_mode') as 'admin' | 'user';
-              if (savedViewMode) {
-                setViewModeState(savedViewMode);
-              }
+              if (savedViewMode) setViewModeState(savedViewMode);
             }
           } else {
-            const errorText = await response.text();
-            console.error(`[AuthContext] Profile fetch failed (${response.status}):`, errorText);
-            
-            // Fallback: If session exists but profile fetch fails, create a minimal user
-            // to prevent the redirection loop while we debug the backend/DB.
-            console.warn('[AuthContext] Using fallback user from session');
+            // Fallback for minimal user data if profile fetch fails
             setUser({
               id: session.user.id,
               email: session.user.email || '',
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+              name: session.user.user_metadata?.name || 'User',
               role: 'USER',
-              xp: 0,
-              level: 1,
               is_verified: true
             } as any);
           }
         } catch (err) {
-          console.error('[AuthContext] Fatal error during profile fetch:', err);
-          // Fallback also here
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: 'User',
-            role: 'USER'
-          } as any);
+          console.error('[AuthContext] Profile fetch error:', err);
         }
       } else {
         setUser(null);
@@ -108,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<{ error: string | null; pendingVerification?: boolean; otp?: string }> => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -129,7 +112,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (email: string, password: string, name: string): Promise<{ error: string | null; pendingVerification?: boolean; otp?: string }> => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signUp({
+      
+      // Step 1: Check if user already exists via backend
+      const checkResponse = await fetch(`${API_URL}/api/auth/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const checkData = await checkResponse.json();
+      if (checkData.exists) {
+        setLoading(false);
+        return { error: 'An account with this email already exists. Please login instead.' };
+      }
+
+      // Step 2: Proceed with Supabase registration
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -151,6 +149,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const checkEmail = async (email: string): Promise<{ exists: boolean; error: string | null }> => {
+     try {
+       const response = await fetch(`${API_URL}/api/auth/check-email`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ email })
+       });
+       const data = await response.json();
+       return { exists: data.exists, error: null };
+     } catch (err) {
+       return { exists: false, error: 'Database unreachable' };
+     }
+  }
+
+  const requestReset = async (email: string): Promise<{ error: string | null; success: boolean }> => {
+    try {
+      setLoading(true);
+      // Check existence first to show warning
+      const { exists } = await checkEmail(email);
+      if (!exists) {
+        setLoading(false);
+        return { error: 'No account found with this email address.', success: false };
+      }
+
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+      setLoading(false);
+      if (response.ok) return { error: null, success: true };
+      return { error: data.error || 'Failed to send recovery code', success: false };
+    } catch (err) {
+      setLoading(false);
+      return { error: 'Link to security layer interrupted', success: false };
+    }
+  }
+
+  const resetPassword = async (email: string, otp: string, newPassword: string): Promise<{ error: string | null; success: boolean }> => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, newPassword })
+      });
+
+      const data = await response.json();
+      setLoading(false);
+      if (response.ok) return { error: null, success: true };
+      return { error: data.error || 'Password reset failed', success: false };
+    } catch (err) {
+      setLoading(false);
+      return { error: 'Connection failure', success: false };
+    }
+  }
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -163,84 +220,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const toggleViewMode = () => {
-    const newMode = viewMode === 'admin' ? 'user' : 'admin';
-    setViewModeState(newMode);
-    localStorage.setItem('collixa_view_mode', newMode);
+    const newMode = viewMode === 'admin' ? 'user' : 'admin'
+    setViewModeState(newMode)
+    localStorage.setItem('collixa_view_mode', newMode)
   }
 
   const setViewMode = (mode: 'admin' | 'user') => {
-    setViewModeState(mode);
-    localStorage.setItem('collixa_view_mode', mode);
+    setViewModeState(mode)
+    localStorage.setItem('collixa_view_mode', mode)
   }
 
   const loginWithGoogle = async () => {
     try {
-      setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      setLoading(true)
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin + '/dashboard'
         }
-      });
+      })
 
-      if (error) {
-        return { error: error.message };
-      }
-
-      return { error: null };
+      if (error) return { error: error.message }
+      return { error: null }
     } catch (err) {
-      console.error('Google login error:', err);
-      return { error: 'Google login failed' };
+      console.error('Google login error:', err)
+      return { error: 'Google login failed' }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   const loginWithFacebook = async () => {
     try {
-      setLoading(true);
+      setLoading(true)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
           redirectTo: window.location.origin + '/dashboard'
         }
-      });
+      })
 
-      if (error) {
-        return { error: error.message };
-      }
-
-      return { error: null };
+      if (error) return { error: error.message }
+      return { error: null }
     } catch (err) {
-      console.error('Facebook login error:', err);
-      return { error: 'Facebook login failed' };
+      console.error('Facebook login error:', err)
+      return { error: 'Facebook login failed' }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   const refreshUser = async () => {
-    const sessionToken = token || localStorage.getItem('auth_token');
-    if (!sessionToken) return;
+    const sessionToken = token || localStorage.getItem('auth_token')
+    if (!sessionToken) return
 
     try {
       const response = await fetch(`${API_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${sessionToken}`
         }
-      });
+      })
 
       if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
+        const data = await response.json()
+        setUser(data.user)
       }
     } catch (error) {
-      console.error('Refresh user error:', error);
+      console.error('Refresh user error:', error)
     }
   }
 
   const updateUser = (updatedUser: User) => {
-    setUser(updatedUser);
+    setUser(updatedUser)
   }
 
   return (
@@ -262,6 +313,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateUser,
         toggleViewMode,
         setViewMode,
+        checkEmail,
+        requestReset,
+        resetPassword,
       }}
     >
       {children}

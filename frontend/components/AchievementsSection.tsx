@@ -84,25 +84,29 @@ export default function AchievementsSection({ userId, variant = 'full' }: Achiev
     <div className="space-y-12 pb-24">
       {/* ─── SUMMARY HERO ─── */}
       {variant === 'full' && (
-        <div className="grid grid-cols-2 gap-4">
-           <div className="bg-[var(--color-bg-secondary)] rounded-[2rem] p-6 sm:p-8 border border-[var(--color-border)] shadow-lg shadow-black/5 flex items-center gap-6">
-              <div className="w-14 h-14 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-accent)] border border-[var(--color-accent)]/20 shadow-inner">
-                 <Award size={24} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div className="bg-[var(--color-bg-secondary)]/50 backdrop-blur-md rounded-[2.5rem] p-8 border border-[var(--color-border)] shadow-xl shadow-black/5 flex items-center gap-8 group hover:border-[var(--color-accent)] transition-all duration-500">
+              <div className="w-20 h-20 rounded-full bg-[var(--color-accent)] text-[var(--color-inverse-text)] flex items-center justify-center shadow-lg shadow-[var(--color-accent)]/20 group-hover:scale-110 transition-transform duration-500">
+                 <Award size={32} />
               </div>
               <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Destinies Manifested</p>
-                 <p className="text-3xl font-black text-[var(--color-text-primary)] mt-1">
-                    {unlockedCount} <span className="text-base font-normal text-[var(--color-text-secondary)] opacity-50">/ {achievements.length}</span>
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] opacity-60">Legacy Milestone</p>
+                 <p className="text-4xl font-black text-[var(--color-text-primary)] mt-1 tracking-tighter">
+                    {unlockedCount} <span className="text-lg font-light text-[var(--color-text-secondary)] opacity-40">/ {achievements.length}</span>
                  </p>
+                 <div className="mt-2 h-1 w-32 bg-[var(--color-border)] rounded-full overflow-hidden">
+                    <div className="h-full bg-[var(--color-accent)]" style={{ width: `${(unlockedCount / achievements.length) * 100}%` }} />
+                 </div>
               </div>
            </div>
-           <div className="bg-[var(--color-bg-secondary)] rounded-[2rem] p-6 sm:p-8 border border-[var(--color-border)] shadow-lg shadow-black/5 flex items-center gap-6">
-              <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shadow-inner">
-                 <Star size={24} fill="currentColor" />
+           <div className="bg-[var(--color-bg-secondary)]/50 backdrop-blur-md rounded-[2.5rem] p-8 border border-[var(--color-border)] shadow-xl shadow-black/5 flex items-center gap-8 group hover:border-amber-500/50 transition-all duration-500">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:rotate-12 transition-transform duration-500">
+                 <Star size={32} fill="currentColor" />
               </div>
               <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Global Credits Found</p>
-                 <p className="text-3xl font-black text-[var(--color-text-primary)] mt-1">+{totalRewards}</p>
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] opacity-60">Economy Impact</p>
+                 <p className="text-4xl font-black text-[var(--color-text-primary)] mt-1 tracking-tighter">+{totalRewards.toLocaleString()} <span className="text-sm font-black uppercase tracking-widest text-amber-500">CR</span></p>
+                 <p className="text-[9px] font-medium text-[var(--color-text-secondary)] mt-1">Total value discovered from deeds</p>
               </div>
            </div>
         </div>

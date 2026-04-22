@@ -24,6 +24,9 @@ router.post('/register', registerValidation, validate, AuthController.register);
 // Login user
 router.post('/login', loginValidation, validate, AuthController.login);
 
+// Check if user exists
+router.post('/check-email', AuthController.checkEmail);
+
 // Request password reset (OTP)
 router.post('/forgot-password', AuthController.forgotPassword);
 

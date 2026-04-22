@@ -399,6 +399,14 @@ export class AuthService {
       ...(process.env.NODE_ENV === 'development' && { otp })
     };
   }
+  /**
+   * Check if user exists by email
+   * @param {string} email - User email
+   * @returns {Promise<Object>} User object or null
+   */
+  static async checkEmail(email) {
+    return await UserModel.findByEmail(email);
+  }
 }
 
 export default AuthService;

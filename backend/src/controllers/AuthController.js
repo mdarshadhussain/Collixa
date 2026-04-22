@@ -238,6 +238,28 @@ export class AuthController {
       next(error);
     }
   }
+  /**
+   * Check if user exists by email
+   * POST /api/auth/check-email
+   */
+  static async checkEmail(req, res, next) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const user = await AuthService.checkEmail(email);
+
+      res.status(200).json({
+        exists: !!user,
+        message: user ? 'User exists' : 'User not found',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 export default AuthController;

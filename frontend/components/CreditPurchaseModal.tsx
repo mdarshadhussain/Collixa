@@ -77,9 +77,8 @@ export default function CreditPurchaseModal({ isOpen, onClose }: CreditPurchaseM
     setLoading(pkg.id)
     setError(null)
 
-    // Brief simulated verification before redirect
-    await new Promise(resolve => setTimeout(resolve, 800))
-    
+    // Redirect to the dedicated checkout page (card page)
+    await new Promise(resolve => setTimeout(resolve, 500)) // Subtle feedback
     router.push(`/checkout?package=${pkg.id}`)
     onClose()
     setLoading(null)

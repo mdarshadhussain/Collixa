@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Award, ArrowLeft, Trophy, Sparkles, Zap, Star, Shield, Target, Users, MapPin, Globe, CreditCard } from 'lucide-react'
+import { Award, ArrowLeft, Trophy, Sparkles, Zap, Star, Shield, Target, Users, MapPin, Globe, CreditCard, Send } from 'lucide-react'
 import AchievementsSection from '@/components/AchievementsSection'
 import { useAuth } from '@/app/context/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
+import CreditPurchaseModal from '@/components/CreditPurchaseModal'
+import ShareCreditsModal from '@/components/ShareCreditsModal'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -22,6 +24,8 @@ export default function RewardsPage() {
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loadingTransactions, setLoadingTransactions] = useState(true)
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -70,10 +74,34 @@ export default function RewardsPage() {
              <h1 className="text-5xl md:text-7xl font-serif font-black tracking-tighter leading-tight text-[var(--color-text-primary)]">
                Achieve <span className="italic font-light text-[var(--color-accent)]"> greatness.</span>
              </h1>
-             
+
              <p className="text-lg text-[var(--color-text-secondary)] font-medium max-w-lg leading-relaxed">
                Every interaction counts toward your digital legacy. Secure rewards, build reputation, and unlock the future.
              </p>
+
+             {/* ─── QUICK ACTIONS ─── */}
+             <div className="flex flex-wrap gap-4 pt-6">
+                <button 
+                  onClick={() => setShowPurchaseModal(true)}
+                  className="px-8 py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[var(--color-accent)]/20 flex items-center gap-3 group"
+                >
+                   <div className="p-2 bg-black/20 rounded-lg group-hover:scale-110 transition-transform">
+                      <CreditCard size={14} />
+                   </div>
+                   Acquire Credits
+                </button>
+                <button 
+                   onClick={() => setShowShareModal(true)}
+                   className="px-8 py-4 bg-[var(--color-bg-primary)]/50 backdrop-blur-md border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-2xl font-black uppercase tracking-widest text-[10px] hover:border-[var(--color-accent)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3 group"
+                >
+                   <div className="p-2 bg-[var(--color-accent)]/10 rounded-lg group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
+                      <Send size={14} className="text-[var(--color-accent)]" />
+                   </div>
+                   Transfer Wealth
+                </button>
+             </div>
+             
+
            </div>
 
            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
@@ -200,6 +228,18 @@ export default function RewardsPage() {
         </section>
 
       </div>
+
+      {/* MODALS */}
+      <CreditPurchaseModal 
+        isOpen={showPurchaseModal} 
+        onClose={() => setShowPurchaseModal(false)} 
+      />
+      
+      <ShareCreditsModal 
+        isOpen={showShareModal} 
+        onClose={() => setShowShareModal(false)}
+        onSuccess={() => fetchTransactions()}
+      />
     </>
   )
 }
