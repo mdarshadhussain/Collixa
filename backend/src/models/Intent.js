@@ -11,7 +11,7 @@ const enrichIntentWithUser = async (intent) => {
     // Fetch user details
     const { data: user, error } = await getClient()
       .from('users')
-      .select('id, email, name, avatar_url, xp, level')
+      .select('id, email, name, avatar_url, title')
       .eq('id', intent.created_by)
       .single();
     
@@ -60,16 +60,27 @@ export class IntentModel {
   static async getAll() {
     const { data, error } = await getClient()
       .from('intents')
-      .select(`*`)
-      .in('status', ['looking', 'active', 'completed']) // Show approved and active ones
+      .select(`
+        *,
+        collaboration_requests(status)
+      `)
+      .in('status', ['looking', 'active', 'completed', 'in_progress'])
       .order('created_at', { ascending: false });
 
     if (error) {
       throw new Error(`Failed to fetch intents: ${error.message}`);
     }
 
+    // Filter out intents that have reached their collaborator limit
+    const filteredData = (data || []).filter(intent => {
+      const acceptedCount = (intent.collaboration_requests || [])
+        .filter(r => r.status === 'ACCEPTED').length;
+      const limit = intent.collaborator_limit || 1;
+      return acceptedCount < limit;
+    });
+
     // Enrich with user data
-    return await enrichIntentsWithUsers(data || []);
+    return await enrichIntentsWithUsers(filteredData);
   }
 
   /**
@@ -105,18 +116,47 @@ export class IntentModel {
    * @returns {Promise<Array>} User's intents
    */
   static async getByUserId(userId) {
-    const { data, error } = await getClient()
+    // 1. Get intents created by the user
+    const { data: createdIntents, error: createdError } = await getClient()
       .from('intents')
       .select(`*`)
       .eq('created_by', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      throw new Error(`Failed to fetch user intents: ${error.message}`);
+    if (createdError) {
+      throw new Error(`Failed to fetch created intents: ${createdError.message}`);
     }
 
+    // 2. Get intents where user is an accepted collaborator
+    const { data: collaborations, error: collabError } = await getClient()
+      .from('collaboration_requests')
+      .select(`
+        intent:intents(*)
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'ACCEPTED');
+
+    if (collabError) {
+      throw new Error(`Failed to fetch collaborations: ${collabError.message}`);
+    }
+
+    const collaboratedIntents = (collaborations || [])
+      .map(c => c.intent)
+      .filter(i => i !== null);
+
+    // Combine and remove duplicates (if any)
+    const combinedIntents = [...createdIntents];
+    collaboratedIntents.forEach(collab => {
+      if (!combinedIntents.some(i => String(i.id) === String(collab.id))) {
+        combinedIntents.push(collab);
+      }
+    });
+
+    // Sort by created_at desc
+    combinedIntents.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
     // Enrich with user data
-    return await enrichIntentsWithUsers(data || []);
+    return await enrichIntentsWithUsers(combinedIntents);
   }
 
   /**
@@ -246,6 +286,29 @@ export class IntentModel {
   }
 
   /**
+   * Get accepted collaborators for an intent
+   * @param {string} intentId - Intent ID
+   * @returns {Promise<Array>} Accepted users
+   */
+  static async getCollaborators(intentId) {
+    if (isNaN(Number(intentId))) return [];
+    
+    const { data, error } = await getClient()
+      .from('collaboration_requests')
+      .select(`
+        user:users(id, email, name, avatar_url, title)
+      `)
+      .eq('intent_id', intentId)
+      .eq('status', 'ACCEPTED');
+
+    if (error) {
+      throw new Error(`Failed to fetch collaborators: ${error.message}`);
+    }
+
+    return (data || []).map(d => d.user);
+  }
+
+  /**
    * Update collaboration request status
    * @param {string} requestId - Request ID
    * @param {string} status - New status (ACCEPTED, REJECTED)
@@ -291,6 +354,49 @@ export class IntentModel {
     }
 
     return data || null;
+  }
+
+  /**
+   * Get all pending collaboration requests for intents owned by the user
+   * @param {string} userId - Owner User ID
+   * @returns {Promise<Array>} Pending requests with intent and user details
+   */
+  static async getPendingRequestsForUser(userId) {
+    console.log(`[IntentModel] Fetching pending requests for owner: ${userId}`);
+    // 1. Get all intent IDs owned by this user
+    const { data: myIntents, error: intentsError } = await getClient()
+      .from('intents')
+      .select('id')
+      .eq('created_by', userId);
+
+    if (intentsError) {
+      console.error(`[IntentModel] Error fetching intents: ${intentsError.message}`);
+      throw new Error(`Failed to fetch user intents for requests: ${intentsError.message}`);
+    }
+
+    console.log(`[IntentModel] Found ${myIntents?.length || 0} intents for this user.`);
+
+    if (!myIntents || myIntents.length === 0) return [];
+
+    const intentIds = myIntents.map(i => i.id);
+
+    // 2. Fetch all pending requests for these intents
+    const { data, error } = await getClient()
+      .from('collaboration_requests')
+      .select(`
+        *,
+        user:users(id, email, name, avatar_url),
+        intent:intents(id, title)
+      `)
+      .in('intent_id', intentIds)
+      .eq('status', 'PENDING')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch pending requests: ${error.message}`);
+    }
+
+    return data || [];
   }
 }
 

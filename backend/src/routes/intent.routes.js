@@ -207,16 +207,13 @@ router.post(
 );
 
 /**
- * POST /api/intents/:id/join
- * Instant join project (requires authentication)
+ * GET /api/intents/actions/pending
+ * Get pending collaboration requests for current user's intents
  */
-router.post(
-  '/:id/join',
+router.get(
+  '/actions/pending',
   authMiddleware,
-  param('id')
-    .notEmpty()
-    .withMessage('Invalid intent ID'),
-  IntentController.joinIntent
+  IntentController.getPendingActions
 );
 
 /**
@@ -271,6 +268,11 @@ router.patch(
     .notEmpty()
     .withMessage('Invalid request ID'),
   IntentController.rejectRequest
+);
+
+router.get(
+  '/:id/collaborators',
+  IntentController.getCollaborators
 );
 
 export default router;

@@ -80,7 +80,7 @@ export class StatsController {
         .select(`
           *,
           created_by:users!intents_created_by_fkey(id, name, avatar_url),
-          requests:collaboration_requests(count)
+          collaboration_requests(status)
         `)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -110,7 +110,8 @@ export class StatsController {
         .from('intents')
         .select(`
           *,
-          created_by:users!intents_created_by_fkey(id, name, avatar_url)
+          created_by:users!intents_created_by_fkey(id, name, avatar_url),
+          collaboration_requests(status)
         `)
         .order('created_at', { ascending: false })
         .limit(8);
@@ -120,21 +121,34 @@ export class StatsController {
         throw newError;
       }
 
+      // 4. Filter and process
+      const processIntents = (intents) => {
+        return (intents || []).filter(intent => {
+          const acceptedCount = (intent.collaboration_requests || [])
+            .filter(r => r.status === 'ACCEPTED').length;
+          const limit = intent.collaborator_limit || 1;
+          return acceptedCount < limit;
+        });
+      };
+
+      const filteredTrending = processIntents(trendingIntents);
+      const filteredNewArrivals = processIntents(newArrivals);
+
       // Sorting in memory for AI Weighting (Simulated)
-      const sortedIntents = [...(trendingIntents || [])].sort((a, b) => {
-        const aCount = a.requests?.[0]?.count || 0;
-        const bCount = b.requests?.[0]?.count || 0;
+      const sortedIntents = [...filteredTrending].sort((a, b) => {
+        const aCount = (a.collaboration_requests || []).length;
+        const bCount = (b.collaboration_requests || []).length;
         return bCount - aCount;
       }).slice(0, 4);
 
-      console.log(`[StatsController] Hub Sections - Trending: ${sortedIntents.length}, Fresh: ${newArrivals?.length || 0}`);
+      console.log(`[StatsController] Hub Sections - Trending: ${sortedIntents.length}, Fresh: ${filteredNewArrivals?.length || 0}`);
 
       return res.status(200).json({
         success: true,
         data: {
           trendingIntents: sortedIntents,
           trendingTribes: (trendingTribes || []).slice(0, 4),
-          newArrivals: newArrivals || []
+          newArrivals: filteredNewArrivals
         }
       });
     } catch (error) {

@@ -212,28 +212,42 @@ export default function MyIntentsPage() {
                      </div>
                    )}
 
-                   {/* Action Buttons */}
-                   {intent.status === 'pending' && (
-                     <div className="mt-4 pt-4 border-t border-[var(--color-border)] grid grid-cols-2 gap-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/create?id=${intent.id}`)
-                        }}
-                        className="flex items-center justify-center gap-2 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] rounded-xl transition-all"
-                      >
-                        <Edit size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(e, intent.id)}
-                        disabled={deletingId === intent.id}
-                        className="flex items-center justify-center gap-2 py-3 bg-red-500/5 text-red-500 border border-red-500/10 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white rounded-xl transition-all disabled:opacity-50"
-                      >
-                        {deletingId === intent.id ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />} 
-                        Delete
-                      </button>
-                     </div>
-                   )}
+                    {/* Ownership / Collaboration Indicator */}
+                    <div className="mt-4 flex items-center justify-between">
+                       <span className={`text-[8px] font-black uppercase tracking-widest ${
+                         (typeof intent.created_by === 'object' ? intent.created_by.id === user?.id : intent.created_by === user?.id)
+                         ? 'text-[var(--color-accent)]'
+                         : 'text-blue-500'
+                       }`}>
+                         {(typeof intent.created_by === 'object' ? intent.created_by.id === user?.id : intent.created_by === user?.id)
+                         ? '● Owner' 
+                         : '● Collaborator'}
+                       </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    {(intent.status === 'pending' || intent.status === 'looking') && 
+                     (typeof intent.created_by === 'object' ? intent.created_by.id === user?.id : intent.created_by === user?.id) && (
+                      <div className="mt-4 pt-4 border-t border-[var(--color-border)] grid grid-cols-2 gap-3">
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation()
+                           router.push(`/create?id=${intent.id}`)
+                         }}
+                         className="flex items-center justify-center gap-2 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] rounded-xl transition-all"
+                       >
+                         <Edit size={14} /> Edit
+                       </button>
+                       <button
+                         onClick={(e) => handleDelete(e, intent.id)}
+                         disabled={deletingId === intent.id}
+                         className="flex items-center justify-center gap-2 py-3 bg-red-500/5 text-red-500 border border-red-500/10 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white rounded-xl transition-all disabled:opacity-50"
+                       >
+                         {deletingId === intent.id ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />} 
+                         Delete
+                       </button>
+                      </div>
+                    )}
                 </div>
               </div>
             ))}

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { Check, X, ShieldAlert, Loader2 } from 'lucide-react'
+import ConfirmationModal from '@/components/ConfirmationModal'
+import { notify } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -10,6 +12,17 @@ export default function AdminApprovals() {
   const [pendingIntents, setPendingIntents] = useState<any[]>([])
   const [pendingTribes, setPendingTribes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean,
+    onConfirm: () => void,
+    title: string,
+    message: string
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+    title: '',
+    message: ''
+  })
 
   const fetchPending = async () => {
     try {
@@ -32,7 +45,7 @@ export default function AdminApprovals() {
       }
     } catch (error) {
       console.error('Error fetching pending content:', error)
-      alert('Failed to load pending content')
+      notify.error('Failed to load pending content')
     } finally {
       setLoading(false)
     }
@@ -57,35 +70,41 @@ export default function AdminApprovals() {
       })
 
       if (res.ok) {
-        alert(`Successfully approved ${type.slice(0, -1)}`)
+        notify.success(`Successfully approved ${type.slice(0, -1)}`)
         fetchPending()
       } else {
-        alert(`Failed to approve ${type.slice(0, -1)}`)
+        notify.error(`Failed to approve ${type.slice(0, -1)}`)
       }
     } catch (err) {
-      alert('An error occurred')
+      notify.error('An error occurred during approval')
     }
   }
 
-  const handleReject = async (id: string, type: 'intents' | 'tribes') => {
-    if (!window.confirm('Are you sure you want to reject and delete this content?')) return
+  const handleReject = (id: string, type: 'intents' | 'tribes') => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Reject Content?',
+      message: 'Are you sure you want to reject and permanently delete this content? This action cannot be reversed.',
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('auth_token')
+          const res = await fetch(`${API_URL}/api/admin/${type}/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
 
-    try {
-      const token = localStorage.getItem('auth_token')
-      const res = await fetch(`${API_URL}/api/admin/${type}/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-
-      if (res.ok) {
-        alert(`Successfully rejected and deleted ${type.slice(0, -1)}`)
-        fetchPending()
-      } else {
-        alert(`Failed to reject ${type.slice(0, -1)}`)
+          if (res.ok) {
+            notify.success(`Successfully rejected and deleted ${type.slice(0, -1)}`)
+            fetchPending()
+          } else {
+            notify.error(`Failed to reject ${type.slice(0, -1)}`)
+          }
+        } catch (err) {
+          notify.error('An error occurred during rejection')
+        }
+        setConfirmModal(prev => ({ ...prev, isOpen: false }))
       }
-    } catch (err) {
-      alert('An error occurred')
-    }
+    })
   }
 
   if (loading) {
@@ -173,6 +192,16 @@ export default function AdminApprovals() {
           </div>
         </div>
       </div>
+      
+      <ConfirmationModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        mode="danger"
+        confirmText="Confirm Rejection"
+      />
     </AdminLayout>
   )
 }

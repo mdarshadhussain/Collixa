@@ -67,6 +67,7 @@ function CreateIntentContent() {
     timeline: '',
     budget: '',
     goal: '',
+    collaborator_limit: 1,
   })
 
   const getCategoryIcon = (name: string) => {
@@ -101,6 +102,7 @@ function CreateIntentContent() {
               timeline: intent.timeline ? new Date(intent.timeline).toISOString().slice(0, 16) : '',
               budget: intent.budget || '',
               goal: intent.goal || '',
+              collaborator_limit: intent.collaborator_limit || 1,
             })
           } else {
             setSubmitError('Failed to load project for editing')
@@ -180,7 +182,7 @@ function CreateIntentContent() {
         const fileExt = uploadedFile.name.split('.').pop()
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
         const storagePath = `intents/${fileName}`
-        const uploadedPath = await storageService.uploadFile(uploadedFile, storagePath)
+        const uploadedPath = await storageService.uploadFile('attachments', storagePath, uploadedFile)
         if (uploadedPath) attachmentPath = uploadedPath
       }
 
@@ -191,7 +193,8 @@ function CreateIntentContent() {
           ? formData.customCategory
           : formData.category,
         timeline: formData.timeline ? new Date(formData.timeline).toISOString() : new Date().toISOString(),
-        status: 'looking',
+        // Only set status to 'looking' for new posts
+        ...(!editId && { status: 'looking' }),
         created_by: user?.id || '',
         ...(attachmentPath && { attachment_name: attachmentPath })
       }
@@ -212,7 +215,7 @@ function CreateIntentContent() {
 
       setSubmitSuccess(true)
       setTimeout(() => {
-        router.push(editId ? '/my-intents' : '/dashboard')
+        router.push(editId ? `/intent/${editId}` : '/dashboard')
       }, 2000)
 
     } catch (err: any) {
@@ -224,7 +227,7 @@ function CreateIntentContent() {
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Marketplace', href: '/dashboard' },
-    { icon: FileText, label: 'My Intents', href: '/my-intents' },
+    { icon: FileText, label: 'My Intents', href: '/my-collaborations' },
     { icon: MessageSquare, label: 'Messages', href: '/chat' },
     { icon: Users, label: 'Community', href: '/skills' },
   ]
@@ -414,6 +417,24 @@ function CreateIntentContent() {
                         placeholder="What defines success for this project?"
                         className="editorial-input"
                       />
+                    </div>
+
+                    {/* Collaborator Limit */}
+                    <div className="space-y-3">
+                      <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                        <Users size={16} className="text-[var(--color-accent)]" /> Expected Collaborators
+                      </label>
+                      <input
+                        type="number"
+                        name="collaborator_limit"
+                        min="1"
+                        max="20"
+                        value={formData.collaborator_limit}
+                        onChange={handleChange}
+                        placeholder="1"
+                        className="editorial-input"
+                      />
+                      <p className="text-[10px] text-[var(--color-text-secondary)] font-medium italic opacity-70">How many creative partners are you looking for?</p>
                     </div>
 
                     {submitError && (

@@ -14,6 +14,7 @@ export class IntentService {
     const intentData = {
       ...data,
       created_by: userId,
+      collaborator_limit: data.collaborator_limit || 1,
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -35,12 +36,13 @@ export class IntentService {
         .single();
 
       if (!convError && conversation) {
-        // Add owner as first participant
+        // Add owner as first participant (Admin)
         await supabase
           .from('conversation_participants')
           .insert([{
             conversation_id: conversation.id,
-            user_id: userId
+            user_id: userId,
+            role: 'ADMIN'
           }]);
       }
     } catch (err) {
@@ -80,30 +82,11 @@ export class IntentService {
       throw new Error('Intent not found');
     }
 
-    // Attach collaboration request count
-    const requests = await IntentModel.getRequestsForIntent(intentId);
-    intent.request_count = requests.length;
-    intent.accepted_count = requests.filter(r => r.status === 'ACCEPTED').length;
+     // Attach accepted collaborators
+     intent.collaborators = await IntentModel.getCollaborators(intentId);
+     intent.accepted_count = intent.collaborators.length;
 
-    // Attach collaborator info if it exists
-    if (intent.collaborator_id) {
-       try {
-         const userSelector = 'id, name, avatar_url, email, level';
-         const { data: collaborator, error: collabError } = await getClient()
-           .from('users')
-           .select(userSelector)
-           .eq('id', intent.collaborator_id)
-           .single();
-         
-         if (!collabError) {
-           intent.collaborator = collaborator;
-         }
-       } catch (err) {
-         console.error('Failed to enrich collaborator info:', err);
-       }
-    }
-
-    return intent;
+     return intent;
   }
 
   /**
@@ -319,77 +302,12 @@ export class IntentService {
   }
 
   /**
-   * Instant join an intent (adds to group chat immediately)
+   * Get collaboration requests for an intent
    * @param {string} intentId - Intent ID
-   * @param {string} userId - User ID
-   * @returns {Promise<Object>} Created/Updated collaboration request
+   * @returns {Promise<Array>} Collaboration requests
    */
-  static async joinIntent(intentId, userId) {
-    // 1. Check if intent exists
-    const intent = await IntentModel.getById(intentId);
-    if (!intent) {
-      throw new Error('Intent not found');
-    }
-
-    // 2. Cannot join own intent
-    const creatorId = typeof intent.created_by === 'object' ? intent.created_by.id : intent.created_by;
-    if (String(creatorId) === String(userId)) {
-      throw new Error('You are the owner of this project');
-    }
-
-    // 3. Check if already joined/requested
-    const existing = await IntentModel.getExistingRequest(userId, intentId);
-    if (existing && existing.status === 'ACCEPTED') {
-      return existing; // Already in
-    }
-
-    // 4. Create or update request to ACCEPTED
-    let request;
-    if (existing) {
-      request = await IntentModel.updateRequest(existing.id, 'ACCEPTED');
-    } else {
-      const requestData = {
-        intent_id: intentId,
-        user_id: userId,
-        status: 'ACCEPTED',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      request = await IntentModel.createRequest(requestData);
-    }
-
-    // 5. Add to Group Chat
-    try {
-      const { data: conversation } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('intent_id', intentId)
-        .eq('type', 'GROUP')
-        .single();
-
-      if (conversation) {
-        // Check if already a participant
-        const { data: alreadyPart } = await supabase
-          .from('conversation_participants')
-          .select('id')
-          .eq('conversation_id', conversation.id)
-          .eq('user_id', userId)
-          .single();
-
-        if (!alreadyPart) {
-          await supabase
-            .from('conversation_participants')
-            .insert([{
-              conversation_id: conversation.id,
-              user_id: userId
-            }]);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to auto-add user to group chat on join:', err);
-    }
-
-    return request;
+  static async getCollaborationRequests(intentId) {
+    return await IntentModel.getRequestsForIntent(intentId);
   }
 
   /**
@@ -416,24 +334,35 @@ export class IntentService {
       throw new Error('Not authorized to accept this request');
     }
 
-    if (request.status !== 'PENDING' && request.status !== 'ACCEPTED') {
+    if (request.status !== 'PENDING') {
       throw new Error(`Cannot accept a ${request.status} request`);
     }
 
-    // Enforce ONE-ON-ONE: Check if intent is already in progress or has a collaborator
-    if (request.intent.status === 'in_progress' || request.intent.collaborator_id) {
-      throw new Error('This intent is already in progress with another collaborator');
+    // MULTI-MEMBER LOGIC: Check against collaborator_limit
+    const collaborators = await IntentModel.getCollaborators(request.intent_id);
+    const limit = request.intent.collaborator_limit || 1;
+
+    if (collaborators.length >= limit) {
+      throw new Error(`This intent has already reached its limit of ${limit} collaborators`);
     }
 
     // 1. Update the request status
     const updatedRequest = await IntentModel.updateRequest(requestId, 'ACCEPTED');
 
-    // 2. Update the intent to IN PROGRESS and set the collaborator_id
-    await IntentModel.update(request.intent_id, {
-      status: 'in_progress',
-      collaborator_id: request.user_id,
-      updated_at: new Date().toISOString()
-    });
+    // 2. Update the intent status if it's the first collaborator
+    if (collaborators.length === 0) {
+      await IntentModel.update(request.intent_id, {
+        status: 'in_progress',
+        updated_at: new Date().toISOString()
+      });
+    }
+
+    // 3. Fetch user info for the system message
+    const { data: acceptedUser } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', request.user_id)
+      .single();
 
     // AUTOMATION: Add user to Project Group Chat
     try {
@@ -446,12 +375,22 @@ export class IntentService {
         .single();
 
       if (conversation) {
+        // Add to participants
         await supabase
           .from('conversation_participants')
           .insert([{
             conversation_id: conversation.id,
-            user_id: request.user_id
+            user_id: request.user_id,
+            role: 'MEMBER'
           }]);
+
+        // Insert WhatsApp-style Join Message
+        const ChatService = (await import('./ChatService.js')).default;
+        await ChatService.sendMessage(
+          conversation.id, 
+          userId, // Sent by owner (or system)
+          `[SYSTEM]: ${acceptedUser?.name || 'A new member'} joined the group`
+        );
       }
     } catch (err) {
       console.error('Failed to auto-add user to group chat:', err);

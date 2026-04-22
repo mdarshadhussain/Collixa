@@ -59,11 +59,6 @@ export default function AIMatchInsight({ type, itemId, itemTitle, itemDescriptio
     }
   }
 
-  // Removed automatic trigger to save quota
-  // useEffect(() => {
-  //   fetchMatchInsight()
-  // }, [itemId, user?.id])
-
   if (!user) return null
 
   return (
@@ -98,7 +93,9 @@ export default function AIMatchInsight({ type, itemId, itemTitle, itemDescriptio
            </div>
          ) : error ? (
            <div className="text-center py-4 space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-red-500 opacity-60">"Notice: Daily AI Knowledge limit reached."</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-red-500 opacity-60">
+                {error.includes('AI Service Unavailable') ? "AI Service is currently offline." : error}
+              </p>
               <button 
                 onClick={fetchMatchInsight}
                 className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] hover:underline"

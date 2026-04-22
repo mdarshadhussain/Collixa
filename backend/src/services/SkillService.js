@@ -100,6 +100,45 @@ export class SkillService {
           skill?.name || 'skill',
           status === 'ACCEPTED'
         );
+
+        // AUTOMATION: Create a Direct Chat for Accepted Tribe Exchanges
+        if (status === 'ACCEPTED') {
+          try {
+            // 1. Create the conversation
+            const { data: conversation, error: convError } = await client
+              .from('conversations')
+              .insert([{
+                type: 'DIRECT',
+                participant_1: exchange.provider_id,
+                participant_2: exchange.requester_id,
+                title: `Tribe: ${skill?.name || 'Collaboration'}`
+              }])
+              .select()
+              .single();
+
+            if (!convError && conversation) {
+              // 2. Add participants
+              await client.from('conversation_participants').insert([
+                { conversation_id: conversation.id, user_id: exchange.provider_id, role: 'ADMIN' },
+                { conversation_id: conversation.id, user_id: exchange.requester_id, role: 'MEMBER' }
+              ]);
+
+              // 3. Send system message
+              const { data: requester } = await client.from('users').select('name').eq('id', exchange.requester_id).single();
+              const { data: prov } = await client.from('users').select('name').eq('id', exchange.provider_id).single();
+              
+              const { ChatService } = await import('./ChatService.js');
+              await ChatService.sendMessage(
+                conversation.id,
+                exchange.provider_id,
+                `[SYSTEM]: Tribe collaboration started! You can now chat and schedule meetings for "${skill?.name || 'this skill'}".`,
+                'system'
+              );
+            }
+          } catch (err) {
+            console.error('Failed to auto-create tribe chat:', err);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to notify requester:', err);

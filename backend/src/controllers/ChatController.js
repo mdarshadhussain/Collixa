@@ -6,11 +6,44 @@ export class ChatController {
    */
   static async sendMessage(req, res, next) {
     try {
-      const { conversationId, content } = req.body;
-      const message = await ChatService.sendMessage(conversationId, req.user.id, content);
+      const { conversationId, content, type, metadata } = req.body;
+      const message = await ChatService.sendMessage(conversationId, req.user.id, content, type, metadata);
       res.status(200).json({
         success: true,
         data: message
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update participant role (Admin only)
+   */
+  static async updateParticipantRole(req, res, next) {
+    try {
+      const { conversationId } = req.params;
+      const { userId, role } = req.body;
+      await ChatService.updateParticipantRole(conversationId, userId, role, req.user.id);
+      res.status(200).json({
+        success: true,
+        message: 'Participant role updated'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Remove participant (Admin only or self-removal)
+   */
+  static async removeParticipant(req, res, next) {
+    try {
+      const { conversationId, userId } = req.params;
+      await ChatService.removeParticipant(conversationId, userId, req.user.id);
+      res.status(200).json({
+        success: true,
+        message: 'Participant removed successfully'
       });
     } catch (error) {
       next(error);
@@ -42,6 +75,22 @@ export class ChatController {
       res.status(200).json({
         success: true,
         message: 'Messages marked as read'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Clear chat history for the current user
+   */
+  static async clearChat(req, res, next) {
+    try {
+      const { conversationId } = req.params;
+      await ChatService.clearHistory(conversationId, req.user.id);
+      res.status(200).json({
+        success: true,
+        message: 'Chat history cleared for your view'
       });
     } catch (error) {
       next(error);

@@ -54,6 +54,8 @@ export interface Intent {
   rejection_reason?: string
   accepted_count?: number
   request_count?: number
+  collaborators?: User[]
+  collaborator_limit?: number
 }
 
 export interface Message {
@@ -61,6 +63,8 @@ export interface Message {
   conversation_id: number
   sender_id: string
   content: string
+  type: 'text' | 'location' | 'system' | 'image'
+  metadata?: any
   created_at: string
 }
 
@@ -69,10 +73,10 @@ export interface Conversation {
   participant_1?: string
   participant_2?: string
   type: 'DIRECT' | 'GROUP'
-  status?: 'PENDING' | 'ACCEPTED'
   title?: string
   admin_id?: string
   intent_id?: number
+  status?: string
   last_message?: string
   updated_at: string
 }
@@ -246,30 +250,30 @@ export const intentService = {
     }
   },
 
-  // Instant join an intent
-  async joinProject(intentId: string, userId: string): Promise<any> {
+  // Request to join an intent (Approval flow)
+  async requestToJoin(intentId: string | number): Promise<any> {
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/api/intents/${intentId}/join`, {
+      const response = await fetch(`${API_URL}/api/intents/${intentId}/request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ userId })
+        }
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to join project')
+        throw new Error(error.error || 'Failed to send request')
       }
 
       return await response.json()
     } catch (err) {
-      console.error('Error joining project:', err)
+      console.error('Error requesting to join:', err)
       throw err
     }
   },
+
 
   // Get intents by user
   async getUserIntents(userId: string): Promise<Intent[]> {
@@ -402,17 +406,91 @@ export const intentService = {
       throw err
     }
   },
+
+  // Reject a collaboration request
+  async rejectCollaborationRequest(requestId: string | number): Promise<any> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/intents/requests/${requestId}/reject`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to reject request')
+      }
+
+      return await response.json()
+    } catch (err) {
+      console.error('Error rejecting request:', err)
+      throw err
+    }
+  },
+
+  // Get pending collaboration requests for current user's intents
+  async getPendingActions(): Promise<any[]> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/intents/actions/pending`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+      return data.data || []
+    } catch (err) {
+      console.error('Error fetching pending actions:', err)
+      return []
+    }
+  },
+
+  // Get accepted collaborators for an intent
+  async getCollaborators(intentId: string | number): Promise<any[]> {
+    try {
+      const response = await fetch(`${API_URL}/api/intents/${intentId}/collaborators`)
+      const data = await response.json()
+      return data.data || []
+    } catch (err) {
+      console.error('Error fetching collaborators:', err)
+      return []
+    }
+  },
 }
 
 // Message Functions
 export const messageService = {
   // Get conversation messages
-  async getMessages(conversationId: number): Promise<(Message & { sender?: User })[]> {
-    const { data, error } = await supabase
+  async getMessages(conversationId: number, userId?: string): Promise<(Message & { sender?: User })[]> {
+    // 1. Get user's history_cleared_at for this conversation if userId is provided
+    let historyClearedAt: string | null = null;
+    
+    if (userId) {
+      const { data: participant } = await supabase
+        .from('conversation_participants')
+        .select('history_cleared_at')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (participant?.history_cleared_at) {
+        historyClearedAt = participant.history_cleared_at;
+      }
+    }
+
+    // 2. Fetch messages
+    let query = supabase
       .from('messages')
-      .select('*, sender:users(id, name, avatar_url)')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
+      .select('*, sender_id(id, name, avatar_url)')
+      .eq('conversation_id', conversationId);
+    
+    if (historyClearedAt) {
+      query = query.gt('created_at', historyClearedAt);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: true });
 
     if (error) {
       console.error('Error fetching messages:', error)
@@ -426,7 +504,9 @@ export const messageService = {
   async sendMessage(
     conversationId: number,
     senderId: string,
-    content: string
+    content: string,
+    type: 'text' | 'location' | 'system' | 'image' = 'text',
+    metadata: any = null
   ): Promise<Message | null> {
     try {
       const token = localStorage.getItem('auth_token')
@@ -436,7 +516,7 @@ export const messageService = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ conversationId, content })
+        body: JSON.stringify({ conversationId, content, type, metadata })
       })
       
       const data = await response.json()
@@ -449,7 +529,7 @@ export const messageService = {
       // Fallback to direct Supabase if backend fails (though notifications won't trigger)
       const { data, error } = await supabase
         .from('messages')
-        .insert([{ conversation_id: conversationId, sender_id: senderId, content }])
+        .insert([{ conversation_id: conversationId, sender_id: senderId, content, type, metadata }])
         .select()
         .single()
       return data as Message
@@ -500,6 +580,24 @@ export const messageService = {
 
     return true
   },
+
+  async scheduleMeeting(conversationId: number, title: string, scheduledAt: string, durationMinutes: number = 30): Promise<any> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/meetings/schedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ conversationId, title, scheduledAt, durationMinutes })
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error scheduling meeting:', err)
+      throw err
+    }
+  },
 }
 
 // Conversation Functions
@@ -527,7 +625,12 @@ export const conversationService = {
 
   // Find or create direct conversation between two users
   async getOrCreateDirectConversation(user1: string, user2: string): Promise<Conversation | null> {
+    if (!user1 || !user2) {
+      throw new Error('User IDs are required to start a conversation.');
+    }
+
     // Check if exists
+    // We use a simpler OR query or separate checks if needed, but standard .or should work if syntax is clean
     const { data: existing, error: lookupError } = await supabase
       .from('conversations')
       .select('*')
@@ -537,25 +640,26 @@ export const conversationService = {
 
     if (lookupError) {
       console.error('Chat lookup error:', lookupError)
+      // If the complex .or fails, we could fallback, but let's see the error first
+      throw new Error(`Database lookup failed: ${lookupError.message}`);
     }
 
     if (existing) return existing as Conversation
 
-    // Create new with PENDING status. The creator is inherently participant_1 here.
+    // Create new. Direct chats are implicitly accepted when created here.
     const { data, error } = await supabase
       .from('conversations')
       .insert([{
         participant_1: user1,
         participant_2: user2,
-        type: 'DIRECT',
-        status: 'PENDING'
+        type: 'DIRECT'
       }])
       .select()
       .single()
 
     if (error) {
       console.error('Chat creation error:', error)
-      throw new Error(error.message)
+      throw new Error(`Failed to create conversation: ${error.message}`)
     }
 
     // Add participants to participants table
@@ -619,32 +723,24 @@ export const conversationService = {
     return true
   },
 
-  // Accept a chat request
+  // Accept a chat request (Legacy - if status ever added back)
   async acceptMessageRequest(conversationId: number): Promise<boolean> {
-    const { error } = await supabase
-      .from('conversations')
-      .update({ status: 'ACCEPTED' })
-      .eq('id', conversationId)
-      
-    return !error
+    return true
   },
 
   // Clear all messages in a conversation
   async clearChat(conversationId: number): Promise<boolean> {
-    const { error } = await supabase
-      .from('messages')
-      .delete()
-      .eq('conversation_id', conversationId)
-
-    if (error) {
-      console.error('Error clearing chat:', error)
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/${conversationId}/clear`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      return response.ok
+    } catch (err) {
+      console.error('Error clearing chat:', err)
       return false
     }
-
-    // Also reset last_message to make it reflect empty state
-    await this.updateConversation(conversationId, { last_message: '' })
-    
-    return true
   },
 
   // Delete an entire conversation
@@ -660,6 +756,42 @@ export const conversationService = {
     }
 
     return true
+  },
+
+  // Update participant role
+  async updateParticipantRole(conversationId: number, userId: string, role: string): Promise<boolean> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/${conversationId}/participants/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId, role })
+      })
+      return response.ok
+    } catch (err) {
+      console.error('Error updating participant role:', err)
+      return false
+    }
+  },
+
+  // Remove participant
+  async removeParticipant(conversationId: number, userId: string): Promise<boolean> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/${conversationId}/participants/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      return response.ok
+    } catch (err) {
+      console.error('Error removing participant:', err)
+      return false
+    }
   },
 }
 
@@ -682,7 +814,7 @@ export const storageService = {
   /**
    * Upload a file to the attachments bucket via Backend Proxy
    */
-  async uploadFile(file: File, path: string): Promise<string | null> {
+  async uploadFile(bucket: string, path: string, file: File): Promise<string | null> {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) throw new Error('Authentication required for upload');
@@ -690,7 +822,7 @@ export const storageService = {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('path', path);
-      formData.append('bucket', 'attachments');
+      formData.append('bucket', bucket);
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const response = await fetch(`${apiUrl}/api/storage/upload`, {
@@ -707,7 +839,8 @@ export const storageService = {
       }
 
       const data = await response.json();
-      return data.path;
+      // Return full public URL
+      return this.getPublicUrl(data.path);
     } catch (error) {
       console.error('Error uploading file via proxy:', error);
       return null;

@@ -12,7 +12,7 @@ export class AIService {
     
     if (config.GEMINI_API_KEY) {
       this.genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-      this.model = this.genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     } else {
       console.warn('⚠️  GEMINI_API_KEY not found in configuration. AI features will be disabled.');
     }

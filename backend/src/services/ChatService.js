@@ -7,7 +7,7 @@ export class ChatService {
   /**
    * Send a message and notify recipient
    */
-  static async sendMessage(conversationId, senderId, content) {
+  static async sendMessage(conversationId, senderId, content, type = 'text', metadata = null) {
     // 1. Insert message
     const { data: message, error } = await getClient()
       .from('messages')
@@ -15,6 +15,8 @@ export class ChatService {
         conversation_id: conversationId, 
         sender_id: senderId, 
         content,
+        type,
+        metadata,
         is_read: false 
       }])
       .select('*, sender:users(id, name, avatar_url)')
@@ -26,7 +28,7 @@ export class ChatService {
     await getClient()
       .from('conversations')
       .update({ 
-        last_message: content, 
+        last_message: type === 'location' ? '📍 Shared a location' : content, 
         updated_at: new Date().toISOString() 
       })
       .eq('id', conversationId);
@@ -54,6 +56,75 @@ export class ChatService {
     }
 
     return message;
+  }
+
+  /**
+   * Update participant role
+   */
+  static async updateParticipantRole(conversationId, userId, role, actorId) {
+    // 1. Check if actor is an ADMIN
+    const { data: actor, error: actorError } = await getClient()
+      .from('conversation_participants')
+      .select('role')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', actorId)
+      .single();
+
+    if (actorError || actor?.role !== 'ADMIN') {
+      const error = new Error('Only admins can update roles');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // 2. Update role
+    const { error } = await getClient()
+      .from('conversation_participants')
+      .update({ role })
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  /**
+   * Remove participant from conversation
+   */
+  static async removeParticipant(conversationId, userId, actorId) {
+    // 1. Check if actor is an ADMIN or removing themselves
+    if (userId !== actorId) {
+      const { data: actor, error: actorError } = await getClient()
+        .from('conversation_participants')
+        .select('role')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', actorId)
+        .single();
+
+      if (actorError || actor?.role !== 'ADMIN') {
+        const error = new Error('Only admins can remove participants');
+        error.statusCode = 403;
+        throw error;
+      }
+    }
+
+    // 2. Remove participant
+    const { error } = await getClient()
+      .from('conversation_participants')
+      .delete()
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    // 3. Add system message
+    try {
+      const { data: user } = await getClient().from('users').select('name').eq('id', userId).single();
+      await this.sendMessage(conversationId, actorId, `[SYSTEM]: ${user?.name || 'User'} has left the conversation`, 'system');
+    } catch (err) {
+      console.error('Failed to send system message on departure:', err);
+    }
+
+    return true;
   }
 
   /**
@@ -102,6 +173,20 @@ export class ChatService {
       console.error('Failed to clear message notifications:', err);
     }
 
+    return true;
+  }
+
+  /**
+   * Clear chat history for a specific user (personal view reset)
+   */
+  static async clearHistory(conversationId, userId) {
+    const { error } = await getClient()
+      .from('conversation_participants')
+      .update({ history_cleared_at: new Date().toISOString() })
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
     return true;
   }
 }

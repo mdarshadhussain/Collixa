@@ -292,7 +292,7 @@ export default function ProfilePage() {
         const fileExt = avatarFile.name.split('.').pop()
         const fileName = `avatar-${user?.id}-${Date.now()}.${fileExt}`
         const storagePath = `profiles/${fileName}`
-        const uploadedPath = await storageService.uploadFile(avatarFile, storagePath)
+        const uploadedPath = await storageService.uploadFile('attachments', storagePath, avatarFile)
 
         if (uploadedPath) {
           finalAvatarUrl = uploadedPath

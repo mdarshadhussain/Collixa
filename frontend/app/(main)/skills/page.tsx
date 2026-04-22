@@ -12,6 +12,8 @@ import AddSkillModal from '@/components/AddSkillModal'
 import SkillExchangeModal from '@/components/SkillExchangeModal'
 import Typewriter from '@/components/Typewriter'
 import { useAuth } from '@/app/context/AuthContext'
+import ConfirmationModal from '@/components/ConfirmationModal'
+import { notify } from '@/lib/utils'
 
 export default function SkillsPage() {
   const router = useRouter()
@@ -38,7 +40,11 @@ export default function SkillsPage() {
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewedSessionIds, setReviewedSessionIds] = useState<string[]>([])
   const [editingSkill, setEditingSkill] = useState<any | null>(null)
-  const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, skillId: string}>({
+    isOpen: false,
+    skillId: ''
+  })
 
   const CATEGORIES = ['All', 'Development', 'Design', 'Marketing', 'Data Science', 'Writing', 'Business', 'Other']
 
@@ -208,20 +214,26 @@ export default function SkillsPage() {
   }
 
   const handleDeleteSkill = async (skillId: string) => {
-    if (!window.confirm('Are you sure you want to delete this skill? This cannot be undone.')) return
-    setIsDeleting(skillId)
+    setConfirmModal({ isOpen: true, skillId })
+  }
+
+  const confirmDelete = async () => {
+    const { skillId } = confirmModal
+    setIsDeleting(true)
     try {
       const res = await skillService.deleteSkill(skillId)
       if (res.success) {
+        setSkills(prev => prev.filter(s => s.id !== skillId))
         setFeedback({ type: 'success', text: 'Skill deleted successfully.' })
-        fetchSkills()
+        if (refreshUser) refreshUser()
       } else {
         setFeedback({ type: 'error', text: res.error || 'Failed to delete skill' })
       }
     } catch (err) {
       setFeedback({ type: 'error', text: 'Error deleting skill' })
     } finally {
-      setIsDeleting(null)
+      setIsDeleting(false)
+      setConfirmModal({ isOpen: false, skillId: '' })
     }
   }
 
@@ -457,10 +469,10 @@ export default function SkillsPage() {
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDeleteSkill(skill.id); }}
-                          disabled={isDeleting === skill.id}
+                          disabled={isDeleting}
                           className="p-1.5 hover:bg-red-500/10 rounded-md transition-colors text-[var(--color-text-secondary)] hover:text-red-500"
                         >
-                          <Trash2 size={12} className={isDeleting === skill.id ? 'animate-pulse' : ''} />
+                          <Trash2 size={12} className={isDeleting ? 'animate-pulse' : ''} />
                         </button>
                       </div>
                     )}
@@ -734,6 +746,17 @@ export default function SkillsPage() {
           </div>
         </div>
       )}
-      </div>
+      {/* Confirmation Modal for Deletion */}
+      <ConfirmationModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, skillId: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Skill?"
+        message="Are you sure you want to permanently delete this skill? This will remove it from the community and your profile coordinate."
+        mode="danger"
+        confirmText="Confirm Deletion"
+        loading={isDeleting}
+      />
+    </div>
   )
 }

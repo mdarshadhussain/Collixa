@@ -1,4 +1,5 @@
 import IntentService from '../services/IntentService.js';
+import IntentModel from '../models/Intent.js';
 import { AchievementService } from '../services/AchievementService.js';
 import { validationResult } from 'express-validator';
 
@@ -99,7 +100,7 @@ export class IntentController {
     try {
       const { id } = req.params;
       const userId = req.user.id;
-      const { title, description, category, location, timeline, budget, goal } = req.body;
+      const { title, description, category, location, timeline, budget, goal, attachment_name, collaborator_limit } = req.body;
 
       const updates = {};
       if (title) updates.title = title;
@@ -109,6 +110,8 @@ export class IntentController {
       if (timeline) updates.timeline = timeline;
       if (budget) updates.budget = budget;
       if (goal) updates.goal = goal;
+      if (attachment_name) updates.attachment_name = attachment_name;
+      if (collaborator_limit) updates.collaborator_limit = collaborator_limit;
 
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ error: 'No fields to update' });
@@ -233,32 +236,6 @@ export class IntentController {
   }
   
   /**
-   * Join an intent (Instant join)
-   * POST /api/intents/:id/join
-   */
-  static async joinIntent(req, res, next) {
-    try {
-      const { id } = req.params;
-      const userId = req.user.id;
-
-      const request = await IntentService.joinIntent(id, userId);
-
-      return res.status(201).json({
-        message: 'Joined project successfully',
-        data: request,
-      });
-    } catch (error) {
-      if (error.message === 'Intent not found') {
-        return res.status(404).json({ error: 'Intent not found' });
-      }
-      if (error.message.includes('owner') || error.message.includes('already')) {
-        return res.status(400).json({ error: error.message });
-      }
-      next(error);
-    }
-  }
-
-  /**
    * Get collaboration request status for a specific user and intent
    * GET /api/intents/:id/request/status
    */
@@ -292,7 +269,8 @@ export class IntentController {
 
       // Verify intent exists and user is the creator
       const intent = await IntentService.getIntentById(id);
-      if (intent.created_by !== userId) {
+      const creatorId = typeof intent.created_by === 'object' ? intent.created_by.id : intent.created_by;
+      if (String(creatorId) !== String(userId)) {
         return res.status(403).json({ error: 'Not authorized to view requests for this intent' });
       }
 
@@ -405,6 +383,43 @@ export class IntentController {
       return res.status(200).json({
         data: intents,
         total: intents.length,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get pending actions (collaboration requests) for the user
+   * GET /api/intents/actions/pending
+   */
+  static async getPendingActions(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const requests = await IntentModel.getPendingRequestsForUser(userId);
+      console.log(`[IntentController] getPendingActions for ${userId}: found ${requests.length} requests`);
+
+      return res.status(200).json({
+        success: true,
+        data: requests
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get all accepted collaborators for an intent
+   * GET /api/intents/:id/collaborators
+   */
+  static async getCollaborators(req, res, next) {
+    try {
+      const { id } = req.params;
+      const collaborators = await IntentModel.getCollaborators(id);
+
+      return res.status(200).json({
+        success: true,
+        data: collaborators
       });
     } catch (error) {
       next(error);

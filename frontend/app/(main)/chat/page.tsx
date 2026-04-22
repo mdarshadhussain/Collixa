@@ -2,12 +2,15 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Send, Plus, MoreVertical, Search, ArrowLeft, MessageCircle, X, Loader2 } from 'lucide-react'
+import { Send, Plus, MoreVertical, Search, ArrowLeft, MessageCircle, X, Loader2, MapPin, Image as ImageIcon, Camera, Video, Calendar } from 'lucide-react'
 import Badge from '@/components/Badge'
 import { useAuth } from '@/app/context/AuthContext'
-import { conversationService, messageService, supabase, userService } from '@/lib/supabase'
+import { conversationService, messageService, supabase, userService, storageService } from '@/lib/supabase'
 import Typewriter from '@/components/Typewriter'
 import Avatar from '@/components/Avatar'
+import ConfirmationModal from '@/components/ConfirmationModal'
+import CustomDateTimePicker from '@/components/CustomDateTimePicker'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface UIMessage {
   id: number
@@ -16,6 +19,8 @@ interface UIMessage {
   content: string
   timestamp: string
   isOwn: boolean
+  type?: 'text' | 'location' | 'system' | 'image' | 'meeting'
+  metadata?: any
 }
 
 interface UIConversation {
@@ -28,6 +33,8 @@ interface UIConversation {
   chatStatus?: 'PENDING' | 'ACCEPTED'
   chatType: 'DIRECT' | 'GROUP'
   isSender?: boolean
+  role?: 'ADMIN' | 'MEMBER'
+  admin_id?: string
 }
 
 export default function ChatPage() {
@@ -47,6 +54,35 @@ export default function ChatPage() {
   const [searchedUser, setSearchedUser] = useState<any>(null)
   const [isSearchingUser, setIsSearchingUser] = useState(false)
   const [newChatFeedback, setNewChatFeedback] = useState<{type: 'success'|'error', text: string} | null>(null)
+  
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean, 
+    title: string, 
+    message: string, 
+    onConfirm: () => void,
+    mode: 'danger' | 'warning'
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    mode: 'warning'
+  })
+  const [showMembersModal, setShowMembersModal] = useState(false)
+  const [showPlusMenu, setShowPlusMenu] = useState(false)
+  const [showLocationSearch, setShowLocationSearch] = useState(false)
+  const [locationSearchQuery, setLocationSearchQuery] = useState('')
+  const [locationResults, setLocationResults] = useState<any[]>([])
+  const [isSearchingLocationSearch, setIsSearchingLocationSearch] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [participants, setParticipants] = useState<any[]>([])
+  const [isFetchingParticipants, setIsFetchingParticipants] = useState(false)
+  const [isSendingLocation, setIsSendingLocation] = useState(false)
+  const [showMeetingModal, setShowMeetingModal] = useState(false)
+  const [meetingTitle, setMeetingTitle] = useState('')
+  const [meetingDateTime, setMeetingDateTime] = useState('')
+  const [isSchedulingMeeting, setIsSchedulingMeeting] = useState(false)
   
   const router = useRouter()
   
@@ -69,6 +105,17 @@ export default function ChatPage() {
       try {
         const rawConvos = await conversationService.getConversations(user.id)
         
+        // Fetch roles for each conversation
+        const { data: roles } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id, role')
+          .eq('user_id', user.id);
+
+        const roleMap = (roles || []).reduce((acc: any, curr) => {
+          acc[curr.conversation_id] = curr.role;
+          return acc;
+        }, {});
+        
         const mapped: UIConversation[] = rawConvos.map(conv => {
           if (conv.type === 'GROUP') {
             return {
@@ -79,11 +126,12 @@ export default function ChatPage() {
               unread: 0,
               status: 'online',
               chatStatus: 'ACCEPTED',
-              chatType: 'GROUP'
+              chatType: 'GROUP',
+              role: roleMap[conv.id] || 'MEMBER',
+              admin_id: conv.admin_id
             }
           }
 
-          // Because getConversations has a join, participant_1 is an object at runtime
           const p1 = (typeof conv.participant_1 === 'object' ? conv.participant_1 : null) as any
           const p2 = (typeof conv.participant_2 === 'object' ? conv.participant_2 : null) as any
           
@@ -97,15 +145,15 @@ export default function ChatPage() {
             lastMessage: conv.last_message || 'New Match!',
             unread: 0,
             status: 'online',
-            chatStatus: conv.status || 'ACCEPTED',
+            chatStatus: (conv.status as 'PENDING' | 'ACCEPTED') || 'ACCEPTED',
             chatType: 'DIRECT',
-            isSender: isUserP1
+            isSender: isUserP1,
+            admin_id: conv.admin_id
           }
         })
         
         setConversations(mapped)
         
-        // Auto-select based on URL ID or first conversation
         setSelectedConversation(currentSelected => {
           if (!currentSelected && mapped.length > 0) {
             const target = chatIdFromUrl 
@@ -131,10 +179,8 @@ export default function ChatPage() {
 
     loadConversations()
 
-    // Realtime listener for conversations updates
     const convoChannel = supabase.channel(`conversations_usr_${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
-          // Re-fetch everything safely
           loadConversations()
       })
       .subscribe()
@@ -142,19 +188,31 @@ export default function ChatPage() {
     return () => {
       supabase.removeChannel(convoChannel)
     }
-  }, [user]) // Only remount on user change
+  }, [user])
 
-  // Fetch messages when conversation clicked and setup realtime watcher
   useEffect(() => {
     if (!selectedConversation || !user) return
 
     const loadMessages = async () => {
       try {
-        const rawMessages = await messageService.getMessages(selectedConversation.id)
+        const rawMessages = await messageService.getMessages(selectedConversation?.id || 0)
         const mapped: UIMessage[] = rawMessages.map(m => {
-          const isOwn = m.sender_id === user.id
-          const senderName = isOwn ? 'You' : (m.sender?.name || 'User')
+          const senderId = typeof m.sender_id === 'object' ? (m.sender_id as any)?.id : m.sender_id;
+          const isOwn = senderId === user.id
+          const sName = typeof m.sender_id === 'object' ? (m.sender_id as any)?.name : 'User';
+          const senderName = isOwn ? 'You' : sName;
           
+          let type = m.type || 'text';
+          if (m.content.startsWith('[SYSTEM]:')) type = 'system';
+          let metadata = m.metadata;
+          if (typeof metadata === 'string') {
+            try {
+              metadata = JSON.parse(metadata);
+            } catch (e) {
+              console.error('Failed to parse metadata', e);
+            }
+          }
+
           return {
             id: m.id,
             content: m.content,
@@ -162,8 +220,12 @@ export default function ChatPage() {
             timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             author: senderName,
             avatar: isOwn 
-              ? (user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=User`)
-              : (m.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`)
+              ? (user?.avatar_url ? storageService.getPublicUrl(user.avatar_url) : `https://api.dicebear.com/7.x/avataaars/svg?seed=User`)
+              : (typeof m.sender_id === 'object' && (m.sender_id as any)?.avatar_url 
+                  ? storageService.getPublicUrl((m.sender_id as any).avatar_url) 
+                  : `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`),
+            type: type,
+            metadata: metadata
           }
         })
         setMessages(mapped)
@@ -174,13 +236,31 @@ export default function ChatPage() {
 
     loadMessages()
     
-    // Mark as read when entering conversation
     const markRead = async () => {
       await messageService.markAsRead(selectedConversation.id)
     }
     markRead()
+    
+    if (selectedConversation?.chatType === 'GROUP') {
+      const fetchParts = async () => {
+         setIsFetchingParticipants(true)
+         try {
+           const { data } = await supabase
+            .from('conversation_participants')
+            .select('role, user_id(id, name, avatar_url, title)')
+            .eq('conversation_id', selectedConversation.id)
+           setParticipants(data?.map((p: any) => ({ ...p.user_id, role: p.role })) || [])
+         } catch (err) {
+           console.error(err)
+         } finally {
+           setIsFetchingParticipants(false)
+         }
+      }
+      fetchParts()
+    } else {
+      setParticipants([])
+    }
 
-    // Subscribe to new messages for this conversation (instant delivery)
     const channel = supabase.channel(`public:messages:conv_${selectedConversation.id}`)
       .on('postgres_changes', { 
         event: 'INSERT', 
@@ -200,7 +280,9 @@ export default function ChatPage() {
               author: m.sender_id === user.id ? 'You' : selectedConversation.name,
               avatar: m.sender_id === user.id 
                 ? (user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=User`)
-                : selectedConversation.avatar
+                : selectedConversation.avatar,
+              type: m.type || 'text',
+              metadata: typeof m.metadata === 'string' ? JSON.parse(m.metadata) : m.metadata
             }]
          })
       })
@@ -211,24 +293,44 @@ export default function ChatPage() {
     }
   }, [selectedConversation, user])
 
+  const handleScheduleMeeting = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!selectedConversation || !user || !meetingTitle || !meetingDateTime) return
+    
+    setIsSchedulingMeeting(true)
+    try {
+      await messageService.scheduleMeeting(
+        selectedConversation.id,
+        meetingTitle,
+        meetingDateTime
+      )
+      setShowMeetingModal(false)
+      setMeetingTitle('')
+      setMeetingDateTime('')
+    } catch (err) {
+      console.error('Failed to schedule meeting:', err)
+    } finally {
+      setIsSchedulingMeeting(false)
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || !user) return
 
     const content = newMessage.trim()
-    setNewMessage('') // Fast optimistic clear
+    setNewMessage('')
     
-    // Add optimistic local message instantly before DB completes round trip
     const tempMsg: UIMessage = {
-      id: Date.now(), // Temporary ID until refresh
+      id: Date.now(),
       author: 'You',
       avatar: user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=User`,
       content: content,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isOwn: true,
+      type: 'text'
     }
     setMessages(prev => [...prev, tempMsg])
 
-    // Update conversation sidebar locally (optimistic)
     setConversations((prev) =>
       prev.map((conv) =>
         conv.id === selectedConversation.id
@@ -238,16 +340,133 @@ export default function ChatPage() {
     )
 
     try {
+      if (!selectedConversation) return
       await messageService.sendMessage(selectedConversation.id, user.id, content)
-      // We could optionally update conversation's last message on PG, but standard app architectures
-      // often have a trigger or require a separate update wrapper if we specifically want `last_message` column modified.
-      // E.g: await conversationService.updateConversation(selectedConversation.id, { last_message: content })
       await conversationService.updateConversation(selectedConversation.id, { last_message: content }) 
     } catch(err) {
-      console.error('Message failed to jump:', err)
-      // Error handling UI omitted for brevity, but could re-inject failed msgs here
+      console.error('Message failed:', err)
     }
   }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user || !selectedConversation) return
+
+    setIsUploadingImage(true)
+    setShowPlusMenu(false)
+    try {
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
+      const path = `chat/${selectedConversation.id}/${fileName}`
+      const url = await storageService.uploadFile('attachments', path, file)
+      
+      if (url) {
+        await messageService.sendMessage(
+          selectedConversation.id,
+          user.id,
+          '[Image]',
+          'image',
+          { url }
+        )
+      }
+    } catch (err) {
+      console.error('Upload failed:', err)
+    } finally {
+      setIsUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleSearchLocation = async () => {
+    if (!locationSearchQuery.trim()) return
+    setIsSearchingLocationSearch(true)
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearchQuery)}`)
+      const data = await res.json()
+      setLocationResults(data)
+    } catch (err) {
+      console.error('Search failed:', err)
+    } finally {
+      setIsSearchingLocationSearch(false)
+    }
+  }
+
+  const selectLocation = async (lat: string, lon: string, display_name: string) => {
+    if (!user || !selectedConversation) return
+    try {
+      await messageService.sendMessage(
+        selectedConversation.id,
+        user.id,
+        display_name,
+        'location',
+        { latitude: parseFloat(lat), longitude: parseFloat(lon) }
+      )
+      setShowLocationSearch(false)
+      setLocationSearchQuery('')
+      setLocationResults([])
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleSendLocation = () => {
+    if (!selectedConversation || !user) return
+    
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser')
+      return
+    }
+
+    setIsSendingLocation(true)
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        try {
+          await messageService.sendMessage(
+            selectedConversation.id, 
+            user.id, 
+            `📍 Shared a location`, 
+            'location', 
+            { latitude, longitude }
+          )
+        } catch (err) {
+          console.error('Failed to send location:', err)
+        } finally {
+          setIsSendingLocation(false)
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error)
+        alert('Could not get your location. Please check permissions.')
+        setIsSendingLocation(false)
+      }
+    )
+  }
+
+  const handleMakeAdmin = async (targetUserId: string) => {
+    if (!selectedConversation) return
+    const success = await conversationService.updateParticipantRole(selectedConversation.id, targetUserId, 'ADMIN')
+    if (success) {
+      setParticipants(prev => prev.map(p => p.id === targetUserId ? { ...p, role: 'ADMIN' } : p))
+    }
+  }
+
+  const handleRemoveAdmin = async (targetUserId: string) => {
+    if (!selectedConversation) return
+    const success = await conversationService.updateParticipantRole(selectedConversation.id, targetUserId, 'MEMBER')
+    if (success) {
+      setParticipants(prev => prev.map(p => p.id === targetUserId ? { ...p, role: 'MEMBER' } : p))
+    }
+  }
+
+  const handleRemoveMember = async (targetUserId: string) => {
+    if (!selectedConversation) return
+    const success = await conversationService.removeParticipant(selectedConversation.id, targetUserId)
+    if (success) {
+      setParticipants(prev => prev.filter(p => p.id !== targetUserId))
+    }
+  }
+
   const handleSearchUser = async () => {
     if (!newChatEmail.trim() || !user) return
     setIsSearchingUser(true)
@@ -320,7 +539,7 @@ export default function ChatPage() {
 
   return (
     <>
-      <div className="h-[calc(100vh-160px)] flex gap-4 overflow-hidden">
+      <div className="h-[calc(100vh-160px)] flex gap-4 overflow-hidden relative">
             
             <div
               className={`w-full md:w-80 lg:w-96 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] flex flex-col overflow-hidden shadow-sm transition-all ${
@@ -388,7 +607,6 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {/* Chat Area */}
             <div className={`flex-1 flex flex-col bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
               {selectedConversation ? (
                 <>
@@ -401,8 +619,12 @@ export default function ChatPage() {
                         <ArrowLeft size={20} />
                       </button>
                       <Avatar name={selectedConversation.name} src={selectedConversation.avatar} size="lg" />
-                      <div>
-                        <h3 className="text-lg font-serif font-black tracking-tight">{selectedConversation.name}</h3>
+                      <div className="cursor-pointer group/title" onClick={() => selectedConversation?.chatType === 'GROUP' && setShowMembersModal(true)}>
+                        <h3 className="text-lg font-serif font-black tracking-tight flex items-center gap-2 group-hover/title:text-[var(--color-accent)] transition-all">
+                          {selectedConversation?.name}
+                          {selectedConversation?.role === 'ADMIN' && <Badge variant="blue" className="px-2 py-0.5 text-[7px]">ADMIN</Badge>}
+                        </h3>
+                        {selectedConversation.chatType === 'GROUP' && <p className="text-[9px] font-black uppercase tracking-widest opacity-40 group-hover/title:opacity-100 transition-all">View Members</p>}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 lg:gap-4 relative">
@@ -470,23 +692,233 @@ export default function ChatPage() {
                          </div>
                       </div>
                     ) : (
-                      messages.map((msg) => (
-                        <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
-                          <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
-                            <div className={`max-w-[16rem] md:max-w-md px-6 py-4 rounded-3xl shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-tr-none' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-tl-none'}`}>
-                              <p className="text-sm font-medium">{msg.content}</p>
+                      messages.map((msg: any) => (
+                        msg.type === 'system' ? (
+                          <div key={msg.id} className="flex justify-center my-6">
+                            <div className="bg-[var(--color-bg-primary)]/40 backdrop-blur-sm px-6 py-2 rounded-2xl border border-[var(--color-border)] shadow-sm">
+                              <p className="text-[9px] font-black text-[var(--color-text-secondary)] uppercase tracking-[0.2em] opacity-60">
+                                {msg.content.replace('[SYSTEM]:', '').trim()}
+                              </p>
                             </div>
-                            <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-2 opacity-40">{msg.timestamp}</span>
                           </div>
-                        </div>
+                        ) : msg.type === 'location' ? (
+                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
+                            <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
+                               {selectedConversation?.chatType === 'GROUP' && !msg.isOwn && (
+                                 <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] ml-4 mb-1 opacity-60">
+                                   {msg.author}
+                                 </span>
+                               )}
+                              <div className={`max-w-[16rem] md:max-w-md p-0 overflow-hidden rounded-3xl shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-tr-none' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-tl-none'}`}>
+                                <div className="p-4 bg-black/5">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="p-2 bg-[var(--color-accent)] text-white rounded-xl">
+                                      <MapPin size={16} />
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Location Shared</p>
+                                      <p className="text-xs font-bold">{msg.metadata?.latitude?.toFixed(4)}, {msg.metadata?.longitude?.toFixed(4)}</p>
+                                    </div>
+                                  </div>
+                                  <a 
+                                    href={`https://www.google.com/maps?q=${msg.metadata?.latitude},${msg.metadata?.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full py-3 bg-[var(--color-accent)] text-white text-[10px] font-black uppercase tracking-widest text-center rounded-xl hover:bg-black transition-all"
+                                  >
+                                    View on Map
+                                  </a>
+                                </div>
+                              </div>
+                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-2 opacity-40">{msg.timestamp}</span>
+                            </div>
+                          </div>
+                        ) : msg.type === 'image' ? (
+                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
+                            <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
+                              {selectedConversation?.chatType === 'GROUP' && !msg.isOwn && (
+                                <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] ml-4 mb-1 opacity-60">
+                                  {msg.author}
+                                </span>
+                              )}
+                              <div className={`max-w-[10rem] md:max-w-[14rem] p-1.5 overflow-hidden rounded-[2rem] shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] rounded-tr-none' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-tl-none'}`}>
+                                <img 
+                                  src={msg.metadata?.url} 
+                                  alt="Shared Image" 
+                                  className="w-full h-auto rounded-[1.5rem] object-cover min-w-[140px] min-h-[100px]"
+                                  loading="lazy"
+                                />
+                              </div>
+                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-2 opacity-40">{msg.timestamp}</span>
+                            </div>
+                          </div>
+                        ) : msg.type === 'meeting' ? (
+                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
+                            <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
+                              {selectedConversation?.chatType === 'GROUP' && !msg.isOwn && (
+                                <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] ml-4 mb-1 opacity-60">
+                                  {msg.author}
+                                </span>
+                              )}
+                              <div className={`max-w-[15rem] md:max-w-[18rem] overflow-hidden rounded-[1.5rem] shadow-2xl transition-all hover:scale-[1.01] ${msg.isOwn ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)]'}`}>
+                                <div className="p-4">
+                                  <div className="flex items-center gap-3 mb-4">
+                                    <div className={`p-2 rounded-xl ${msg.isOwn ? 'bg-white/20' : 'bg-[var(--color-accent-soft)]/30 text-[var(--color-accent)]'}`}>
+                                      <Video size={18} />
+                                    </div>
+                                    <div className="overflow-hidden">
+                                      <p className={`text-[7px] font-black tracking-[0.1em] mb-0.5 ${msg.isOwn ? 'text-white/60' : 'opacity-40'}`}>Collab Meeting</p>
+                                      <p className="text-[11px] font-black tracking-tight truncate">{msg.metadata?.title}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-3">
+                                    <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl ${msg.isOwn ? 'bg-black/10' : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)]'}`}>
+                                      <Calendar size={12} className={msg.isOwn ? 'text-white/40' : 'opacity-30'} />
+                                      <p className={`text-[10px] font-bold ${msg.isOwn ? 'text-white/80' : 'opacity-70'}`}>
+                                        {msg.metadata?.scheduledAt ? new Date(msg.metadata.scheduledAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pending'}
+                                      </p>
+                                    </div>
+                                    
+                                    <button 
+                                      onClick={() => window.open(`https://meet.jit.si/${msg.metadata?.roomName}`, '_blank')}
+                                      className={`w-full py-3 text-[10px] font-black tracking-[0.1em] text-center rounded-xl transition-all shadow-lg active:scale-[0.98] ${msg.isOwn ? 'bg-white text-[var(--color-accent)] hover:bg-black hover:text-white' : 'bg-[var(--color-accent)] text-white hover:bg-black'}`}
+                                    >
+                                      Join meeting
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-1.5 opacity-40">{msg.timestamp}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
+                            <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
+                              {selectedConversation?.chatType === 'GROUP' && !msg.isOwn && (
+                                <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] ml-4 mb-1 opacity-60">
+                                  {msg.author}
+                                </span>
+                              )}
+                              <div className={`max-w-[16rem] md:max-w-md px-6 py-4 rounded-3xl shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-tr-none' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-tl-none'}`}>
+                                <p className="text-sm font-medium">{msg.content}</p>
+                              </div>
+                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-2 opacity-40">{msg.timestamp}</span>
+                            </div>
+                          </div>
+                        )
                       ))
                     )}
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <div className="p-4 pb-24 md:p-6 md:pb-6 border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+                  <div className="p-4 pb-24 md:p-6 md:pb-6 border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)] relative">
+                    <AnimatePresence>
+                    {showPlusMenu && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-full left-4 mb-4 w-56 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-3xl shadow-2xl overflow-hidden z-30"
+                      >
+                        <div className="p-2 space-y-1">
+                          <div className="relative w-full group">
+                            <button className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all">
+                              <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                <ImageIcon size={18} />
+                              </div>
+                              <div className="text-left">
+                                <p className="text-xs font-black tracking-tight">Photos</p>
+                                <p className="text-[9px] opacity-40">Share images</p>
+                              </div>
+                            </button>
+                            <input 
+                              type="file" 
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                              accept="image/*"
+                              ref={fileInputRef}
+                              onChange={handleFileSelect}
+                            />
+                          </div>
+                          
+                          <div className="h-px bg-[var(--color-border)] mx-3 my-1" />
+
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setShowPlusMenu(false)
+                              handleSendLocation()
+                            }}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group"
+                          >
+                            <div className="p-2 bg-green-500/10 text-green-500 rounded-xl group-hover:bg-green-500 group-hover:text-white transition-all">
+                              <MapPin size={18} />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-xs font-black tracking-tight">Current location</p>
+                              <p className="text-[9px] opacity-40">Share GPS coords</p>
+                            </div>
+                          </button>
+
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setShowPlusMenu(false)
+                              setShowLocationSearch(true)
+                            }}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group"
+                          >
+                            <div className="p-2 bg-purple-500/10 text-purple-500 rounded-xl group-hover:bg-purple-500 group-hover:text-white transition-all">
+                              <Search size={18} />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-xs font-black tracking-tight">Search location</p>
+                              <p className="text-[9px] opacity-40">Find any place</p>
+                            </div>
+                          </button>
+
+                          <div className="h-px bg-[var(--color-border)] mx-3 my-1" />
+
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setShowPlusMenu(false)
+                              setShowMeetingModal(true)
+                            }}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group"
+                          >
+                            <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl group-hover:bg-orange-500 group-hover:text-white transition-all">
+                              <Calendar size={18} />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-xs font-black tracking-tight">Schedule meeting</p>
+                              <p className="text-[9px] opacity-40">Set a collab time</p>
+                            </div>
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                    </AnimatePresence>
+
                     <div className="flex gap-2.5 md:gap-4 items-center">
-                      <button className="p-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-2xl hover:text-[var(--color-accent)] transition-all flex-shrink-0"><Plus size={20} /></button>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setShowPlusMenu(!showPlusMenu)
+                        }}
+                        disabled={isUploadingImage}
+                        className={`p-4 ${showPlusMenu ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'} rounded-2xl hover:text-[var(--color-accent)] transition-all flex-shrink-0 disabled:opacity-50`}
+                      >
+                        {isUploadingImage ? (
+                          <Loader2 size={20} className="animate-spin" />
+                        ) : (
+                          <Plus size={20} className={`transition-transform duration-300 ${showPlusMenu ? 'rotate-45' : ''}`} />
+                        )}
+                      </button>
                       <input
                         type="text"
                         placeholder="Type a message..."
@@ -507,11 +939,19 @@ export default function ChatPage() {
                 </div>
               )}
             </div>
-        
+      </div>
+
+      <AnimatePresence>
       {isNewChatModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsNewChatModalOpen(false)} />
-          <div className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 space-y-6 shadow-2xl overflow-hidden">
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsNewChatModalOpen(false)} 
+          />
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+            className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 space-y-6 shadow-2xl overflow-hidden"
+          >
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-soft)]" />
             
             <div className="flex items-center justify-between z-10 relative">
@@ -530,7 +970,7 @@ export default function ChatPage() {
             <div className="space-y-4 z-10 relative">
               {!searchedUser ? (
                 <>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-1">User Email Address</label>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-1">User Email Address</span>
                   <div className="relative flex items-center group">
                     <Search className="absolute left-4 text-[var(--color-accent)] opacity-60 group-focus-within:opacity-100 transition-opacity" size={16} />
                     <input
@@ -570,10 +1010,232 @@ export default function ChatPage() {
                 searchedUser ? 'Send Request' : 'Search User'
               )}
             </button>
-          </div>
+          </motion.div>
         </div>
       )}
-      </div>
+      </AnimatePresence>
+
+      <AnimatePresence>
+      {showMembersModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowMembersModal(false)} 
+          />
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+            className="relative w-full max-w-sm bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 space-y-6 shadow-2xl overflow-hidden"
+          >
+             <div className="flex items-center justify-between">
+                <h3 className="text-xl font-serif font-black italic tracking-tight">Group Members</h3>
+                <button onClick={() => setShowMembersModal(false)} className="text-[10px] font-black uppercase tracking-widest opacity-50 hover:opacity-100">Close</button>
+             </div>
+             
+             <div className="space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
+                {isFetchingParticipants ? (
+                  <div className="flex justify-center py-8"><Loader2 className="animate-spin text-[var(--color-accent)]" /></div>
+                ) : (
+                  participants.map(p => (
+                    <div key={p.id} className="flex flex-col gap-2 p-3 bg-[var(--color-bg-primary)] rounded-2xl border border-[var(--color-border)] group">
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                             <Avatar name={p.name} src={p.avatar_url ? storageService.getPublicUrl(p.avatar_url) : undefined} size="sm" />
+                             <div>
+                                <p className="text-sm font-black tracking-tight flex items-center gap-2">
+                                  {p.name} {p.id === user?.id && <span className="opacity-40 font-normal">(You)</span>}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                   <Badge variant={p.role === 'ADMIN' ? 'blue' : 'sage'}>{p.role || 'MEMBER'}</Badge>
+                                   {p.title && <span className="text-[8px] font-black uppercase tracking-widest opacity-40">{p.title}</span>}
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                       {selectedConversation?.role === 'ADMIN' && p.id !== user?.id && (user?.id === selectedConversation?.admin_id || p.id !== selectedConversation?.admin_id) && (
+                          <div className="flex gap-2 pt-2 border-t border-[var(--color-border)]">
+                            {p.role !== 'ADMIN' ? (
+                              <button 
+                                onClick={() => handleMakeAdmin(p.id)}
+                                className="flex-1 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-[var(--color-accent)] transition-all"
+                              >
+                                Make Admin
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleRemoveAdmin(p.id)}
+                                className="flex-1 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-red-500 transition-all text-red-500"
+                              >
+                                Remove Admin
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleRemoveMember(p.id)}
+                              className="flex-1 py-2 bg-red-500/5 text-red-500 border border-red-500/10 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                       )}
+                       {p.id === selectedConversation?.admin_id && (
+                          <div className="pt-2 border-t border-[var(--color-border)]">
+                             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-600 text-center">Group Creator</p>
+                          </div>
+                       )}
+                    </div>
+                  ))
+                )}
+             </div>
+          </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+      
+      <ConfirmationModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        mode={confirmModal.mode}
+      />
+
+      <AnimatePresence>
+      {showLocationSearch && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+           <motion.div 
+             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+             className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowLocationSearch(false)} 
+           />
+           <motion.div 
+             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+             className="relative bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] shadow-2xl w-full max-w-xl overflow-hidden"
+             onClick={(e) => e.stopPropagation()}
+           >
+              <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-bg-primary)]/50">
+                 <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-serif font-black italic">Search Location</h2>
+                    <button onClick={() => setShowLocationSearch(false)} className="p-2 hover:bg-black/5 rounded-full transition-all">
+                       <X size={24} />
+                    </button>
+                 </div>
+                 <div className="relative">
+                    <input 
+                      type="text" 
+                      value={locationSearchQuery}
+                      onChange={(e) => setLocationSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearchLocation()}
+                      placeholder="Type a city, street, or landmark..."
+                      className="w-full pl-14 pr-6 py-5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-sm focus:border-[var(--color-accent)] transition-all outline-none"
+                    />
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 opacity-40" size={20} />
+                    <button 
+                      onClick={handleSearchLocation}
+                      disabled={isSearchingLocationSearch}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-[var(--color-accent)] text-white rounded-xl hover:bg-black transition-all"
+                    >
+                      {isSearchingLocationSearch ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                    </button>
+                 </div>
+              </div>
+              <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                 {locationResults.length === 0 && !isSearchingLocationSearch ? (
+                    <div className="py-20 text-center opacity-40">
+                       <MapPin size={48} className="mx-auto mb-4" />
+                       <p className="text-[10px] font-black uppercase tracking-widest">No results yet</p>
+                    </div>
+                 ) : (
+                    <div className="space-y-2">
+                       {locationResults.map((loc: any, i: number) => (
+                          <button 
+                            key={i}
+                            onClick={() => selectLocation(loc.lat, loc.lon, loc.display_name)}
+                            className="w-full text-left p-4 hover:bg-[var(--color-bg-primary)] rounded-2xl border border-transparent hover:border-[var(--color-border)] transition-all group"
+                          >
+                             <div className="flex gap-4 items-center">
+                                <div className="p-3 bg-black/5 rounded-xl group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all">
+                                   <MapPin size={20} />
+                                </div>
+                                <div>
+                                   <p className="text-sm font-bold truncate max-w-md">{loc.display_name}</p>
+                                   <p className="text-[10px] opacity-40 font-black uppercase tracking-widest">Lat: {parseFloat(loc.lat).toFixed(4)}, Lon: {parseFloat(loc.lon).toFixed(4)}</p>
+                                </div>
+                             </div>
+                          </button>
+                       ))}
+                    </div>
+                 )}
+              </div>
+           </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+      {showMeetingModal && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowMeetingModal(false)} 
+          />
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+            className="relative bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-3 bg-orange-500/10 text-orange-500 rounded-2xl">
+                  <Calendar size={24} />
+                </div>
+                <button onClick={() => setShowMeetingModal(false)} className="p-2 hover:bg-[var(--color-bg-primary)] rounded-xl transition-all">
+                  <X size={20} />
+                </button>
+              </div>
+              <h3 className="text-xl font-black tracking-tight">Schedule meeting</h3>
+              <p className="text-[10px] font-black opacity-40 mt-1">Set up a video call for this collab</p>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <span className="text-[9px] font-black opacity-40 ml-1">Meeting Topic</span>
+                <input 
+                  type="text" 
+                  value={meetingTitle}
+                  onChange={(e) => setMeetingTitle(e.target.value)}
+                  placeholder="e.g., Project Sync / Design Review"
+                  className="w-full px-6 py-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl text-sm font-medium focus:border-orange-500 outline-none transition-all"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <span className="text-[9px] font-black opacity-40 ml-1">Date & Time</span>
+                <CustomDateTimePicker 
+                   value={meetingDateTime}
+                   onChange={(val) => setMeetingDateTime(val)}
+                   minDate={new Date().toISOString()}
+                />
+              </div>
+
+              <button 
+                onClick={handleScheduleMeeting}
+                disabled={isSchedulingMeeting || !meetingTitle || !meetingDateTime}
+                className="w-full py-5 bg-orange-500 text-white text-[10px] font-black tracking-[0.1em] rounded-2xl hover:bg-orange-600 disabled:opacity-40 transition-all shadow-xl shadow-orange-500/20 flex items-center justify-center gap-3"
+              >
+                {isSchedulingMeeting ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <>
+                    <Video size={18} />
+                    Schedule meeting
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
     </>
   )
 }
