@@ -79,7 +79,7 @@ export class StatsController {
         .from('intents')
         .select(`
           *,
-          created_by:users!intents_created_by_fkey(id, name, avatar_url),
+          created_by:users(id, name, avatar_url),
           collaboration_requests(status)
         `)
         .order('created_at', { ascending: false })
@@ -110,7 +110,7 @@ export class StatsController {
         .from('intents')
         .select(`
           *,
-          created_by:users!intents_created_by_fkey(id, name, avatar_url),
+          created_by:users(id, name, avatar_url),
           collaboration_requests(status)
         `)
         .order('created_at', { ascending: false })
@@ -150,6 +150,57 @@ export class StatsController {
           trendingTribes: (trendingTribes || []).slice(0, 4),
           newArrivals: filteredNewArrivals
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get dynamic gamification progress for the current user
+   * GET /api/intents/hub/gamification
+   */
+  static async getGamificationProgress(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const LevelService = (await import('../services/LevelService.js')).default;
+      const progress = await LevelService.getProgress(userId);
+
+      if (!progress) {
+        return res.status(404).json({ success: false, error: 'Progress data not found' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: progress
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get XP transaction history for the current user
+   * GET /api/intents/hub/gamification/history
+   */
+  static async getXPHistory(req, res, next) {
+    try {
+      const userId = req.user.id;
+      
+      const { data: history, error } = await getClient()
+        .from('xp_transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        throw error;
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: history
       });
     } catch (error) {
       next(error);

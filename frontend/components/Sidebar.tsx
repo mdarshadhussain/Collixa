@@ -13,6 +13,7 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Hub', href: '/dashboard' },
   { icon: FileText, label: 'Intent', href: '/collaborations' },
   { icon: MessageSquare, label: 'Messages', href: '/chat' },
+  { icon: Zap, label: 'Wallet', href: '/credits' },
   { icon: Users, label: 'Tribes', href: '/skills' },
   { icon: User, label: 'Profile', href: '/profile' },
   { icon: Award, label: 'Achievements', href: '/rewards' },

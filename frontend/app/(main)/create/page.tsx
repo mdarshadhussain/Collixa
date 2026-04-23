@@ -29,7 +29,8 @@ import {
   Lightbulb,
   UsersRound,
   Layers,
-  Calendar
+  Calendar,
+  ShieldCheck
 } from 'lucide-react'
 import CustomDatePicker from '@/components/CustomDatePicker'
 import { useAuth } from '@/app/context/AuthContext'
@@ -210,6 +211,17 @@ function CreateIntentContent() {
 
       if (!response.ok) {
         const data = await response.json()
+        
+        // Handle express-validator style errors array
+        if (data.errors && Array.isArray(data.errors)) {
+          const newErrors: Record<string, string> = {}
+          data.errors.forEach((err: any) => {
+            newErrors[err.path || err.param] = err.msg
+          })
+          setErrors(newErrors)
+          throw new Error('Please correct the highlighted errors.')
+        }
+
         throw new Error(data.error || 'Failed to post project')
       }
 
@@ -250,16 +262,45 @@ function CreateIntentContent() {
             <AnimatePresence mode="wait">
               {submitSuccess ? (
                 <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center justify-center py-12 md:py-20 text-center space-y-5 md:space-y-8"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center py-16 md:py-24 text-center space-y-8"
                 >
-                   <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
-                      <CheckCircle size={28} className="md:w-10 md:h-10" />
+                   {/* Creative Pulsing Orb */}
+                   <div className="relative">
+                     <motion.div 
+                        animate={{ 
+                          scale: [1, 1.2, 1],
+                          opacity: [0.3, 0.6, 0.3],
+                        }}
+                        transition={{ repeat: Infinity, duration: 3 }}
+                        className="absolute inset-0 bg-[var(--color-accent)] blur-3xl rounded-full"
+                     />
+                     <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-[2rem] bg-[var(--color-bg-primary)] border-2 border-[var(--color-accent)] flex items-center justify-center text-[var(--color-accent)] shadow-2xl shadow-[var(--color-accent)]/20">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+                        >
+                          <Clock size={40} className="md:w-12 md:h-12" />
+                        </motion.div>
+                     </div>
                    </div>
-                   <div className="space-y-4">
-                     <h3 className="text-2xl md:text-3xl font-serif font-black">Success!</h3>
-                     <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Your project is now live on the marketplace.</p>
+
+                   <div className="space-y-4 max-w-md mx-auto">
+                     <h3 className="text-2xl md:text-3xl font-serif font-black tracking-tight">Transmission Received.</h3>
+                     <div className="space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">Verification in Progress</p>
+                        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                          Your intent is now being analyzed by **Collixa Architects**. We ensure every project meets our quality standards before it hits the marketplace.
+                        </p>
+                     </div>
+                   </div>
+                   
+                   <div className="pt-4">
+                      <div className="flex items-center gap-2 text-[8px] font-bold uppercase tracking-widest opacity-40">
+                         <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse" />
+                         Finalizing handshake...
+                      </div>
                    </div>
                 </motion.div>
               ) : isInitialLoading ? (
@@ -419,23 +460,65 @@ function CreateIntentContent() {
                       />
                     </div>
 
-                    {/* Collaborator Limit */}
-                    <div className="space-y-3">
-                      <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
-                        <Users size={16} className="text-[var(--color-accent)]" /> Expected Collaborators
-                      </label>
-                      <input
-                        type="number"
-                        name="collaborator_limit"
-                        min="1"
-                        max="20"
-                        value={formData.collaborator_limit}
-                        onChange={handleChange}
-                        placeholder="1"
-                        className="editorial-input"
-                      />
-                      <p className="text-[10px] text-[var(--color-text-secondary)] font-medium italic opacity-70">How many creative partners are you looking for?</p>
+                    {/* Collaborator Limit - SLIM CREATIVE SLIDER */}
+                    <div className="space-y-3 bg-[var(--color-bg-primary)]/40 p-4 sm:p-5 rounded-2xl md:rounded-[2rem] border border-[var(--color-border)] shadow-sm">
+                      <div className="flex justify-between items-center">
+                        <label className="text-sm md:text-base font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
+                          <Users size={16} className="text-[var(--color-accent)]" /> Expected Collaborators
+                        </label>
+                        <input
+                          type="number"
+                          name="collaborator_limit"
+                          min="1"
+                          max="50"
+                          value={formData.collaborator_limit}
+                          onChange={(e) => {
+                            const val = Math.min(50, Math.max(1, parseInt(e.target.value) || 1))
+                            setFormData(prev => ({ ...prev, collaborator_limit: val }))
+                          }}
+                          className="w-20 bg-[var(--color-bg-primary)] border-2 border-[var(--color-border)] rounded-xl px-2 py-2 text-xl font-serif font-black italic text-[var(--color-accent)] text-center focus:outline-none focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-soft)]/30 transition-all shadow-sm hover:border-[var(--color-text-secondary)]/30"
+                        />
+                      </div>
+                      
+                      {/* Visualizer - Reduced Height */}
+                      <div className="flex flex-wrap gap-1 h-6 items-center justify-center overflow-hidden">
+                        <AnimatePresence>
+                          {Array.from({ length: Math.min(Number(formData.collaborator_limit), 50) }).map((_, i) => (
+                            <motion.div
+                              key={i}
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                              className="w-2 hs-2 md:w-2.5 md:h-2.5 rounded-full bg-[var(--color-accent)] shadow-[0_0_5px_rgba(var(--color-accent-rgb),0.3)]"
+                            />
+                          ))}
+                        </AnimatePresence>
+                        {Number(formData.collaborator_limit) === 0 && (
+                          <p className="text-[8px] font-black uppercase tracking-widest opacity-20">Slide to define scale</p>
+                        )}
+                      </div>
+
+                      {/* Slider Track - Tighter spacing */}
+                      <div className="relative">
+                        <input
+                          type="range"
+                          name="collaborator_limit"
+                          min="1"
+                          max="50"
+                          step="1"
+                          value={formData.collaborator_limit}
+                          onChange={handleChange}
+                          className="w-full h-1 bg-[var(--color-border)] rounded-full appearance-none cursor-pointer accent-[var(--color-accent)] focus:outline-none custom-slider"
+                        />
+                        <div className="flex justify-between mt-2 px-1">
+                          <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-30 italic">Solo</span>
+                          <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-30 italic">Community (50)</span>
+                        </div>
+                      </div>
                     </div>
+
+                    {errors.collaborator_limit && <p className="text-[10px] font-bold text-red-500">{errors.collaborator_limit}</p>}
 
                     {submitError && (
                       <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500">

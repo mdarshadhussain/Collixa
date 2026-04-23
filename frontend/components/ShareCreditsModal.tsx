@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Search, Send, User as UserIcon, Loader2, Sparkles, AlertCircle } from 'lucide-react'
+import { X, Search, Send, User as UserIcon, Loader2, Sparkles, AlertCircle, CreditCard, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { API_URL } from '@/lib/supabase'
@@ -20,6 +20,13 @@ interface ShareCreditsModalProps {
   onSuccess?: () => void
 }
 
+const TIER_RULES: Record<string, { fee: number }> = {
+  'Nomad': { fee: 0.10 },
+  'Architect': { fee: 0.08 },
+  'Luminary': { fee: 0.05 },
+  'Oracle': { fee: 0.02 }
+}
+
 export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareCreditsModalProps) {
   const router = useRouter()
   const { user: currentUser, refreshUser } = useAuth()
@@ -31,6 +38,11 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const tierRule = TIER_RULES[currentUser?.tier || 'Nomad']
+  const creditAmount = parseInt(amount) || 0
+  const feeAmount = Math.ceil(creditAmount * tierRule.fee)
+  const totalDeduction = creditAmount + feeAmount
 
   useEffect(() => {
     if (isOpen) {
@@ -91,14 +103,13 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
       return
     }
 
-    const creditAmount = parseInt(amount)
     if (!creditAmount || creditAmount <= 0) {
       setError('Enter a valid allocation')
       return
     }
 
-    if (creditAmount > (currentUser?.credits || 0)) {
-      setError('Insufficient credit pool')
+    if (totalDeduction > (currentUser?.credits || 0)) {
+      setError(`Insufficient pool. Total ${totalDeduction} Creds required (incl. fee).`)
       return
     }
 
@@ -124,7 +135,7 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
       if (response.ok) {
         await refreshUser()
         if (onSuccess) onSuccess()
-        router.push(`/payment/success?amount=${creditAmount}&type=TRANSFER&recipient=${encodeURIComponent(foundUser.name)}`)
+        router.push(`/payment/success?amount=${totalDeduction}&fee=${feeAmount}&principal=${creditAmount}&type=TRANSFER&recipient=${encodeURIComponent(foundUser.name)}`)
         onClose()
       } else {
         setError(data.error || 'Transaction failed')
@@ -174,13 +185,14 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
 
           <div className="space-y-5">
             {/* Balance Badge */}
-            <div className="bg-[var(--color-bg-primary)]/60 backdrop-blur-md border border-[var(--color-border)] rounded-2xl p-4 flex items-center justify-between group hover:border-[var(--color-accent)] transition-all duration-500">
+            <div className="bg-[var(--color-bg-primary)]/60 backdrop-blur-md border border-[var(--color-border)] rounded-2xl p-4 flex items-center justify-between group transition-all duration-500">
                <div>
                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)] mb-1">Available Reserve</p>
                  <p className="text-2xl font-serif font-black text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{currentUser?.credits || 0} <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Creds</span></p>
                </div>
-               <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-accent)]">
-                  <Sparkles size={20} />
+               <div className="text-right">
+                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] mb-1">{currentUser?.tier || 'Nomad'} Rank</p>
+                  <p className="text-[10px] font-bold text-[var(--color-text-secondary)] opacity-60">Fee: {tierRule.fee * 100}%</p>
                </div>
             </div>
 
@@ -250,6 +262,24 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
                   />
                </div>
             </div>
+
+            {/* Fee Breakdown */}
+            {creditAmount > 0 && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2"
+              >
+                <div className="flex justify-between items-center text-[9px] font-bold text-[var(--color-text-secondary)]">
+                   <span className="uppercase tracking-widest">Protocol Fee ({tierRule.fee * 100}%)</span>
+                   <span className="font-serif">+{feeAmount} Creds</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-black text-[var(--color-text-primary)] border-t border-white/5 pt-2">
+                   <span className="uppercase tracking-widest">Total Deduction</span>
+                   <span className="text-[var(--color-accent)] font-serif">{totalDeduction} Creds</span>
+                </div>
+              </motion.div>
+            )}
 
             {/* Feedback Messages */}
             <AnimatePresence>

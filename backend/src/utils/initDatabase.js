@@ -14,7 +14,11 @@ export const initializeDatabase = async () => {
     console.log('🔄 Initializing database...');
 
     const bootstrapSQL = `
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER NOT NULL DEFAULT 100;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS tier VARCHAR(50) NOT NULL DEFAULT 'Nomad';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_genesis_completed BOOLEAN NOT NULL DEFAULT FALSE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS age INTEGER;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(50);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS interests JSONB DEFAULT '[]';
@@ -52,12 +56,14 @@ export const initializeDatabase = async () => {
         sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         amount INTEGER NOT NULL,
+        fee_amount INTEGER DEFAULT 0,
         message TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
       CREATE INDEX IF NOT EXISTS idx_credit_transfers_sender_id ON credit_transfers(sender_id);
       CREATE INDEX IF NOT EXISTS idx_credit_transfers_recipient_id ON credit_transfers(recipient_id);
+      ALTER TABLE credit_transfers ADD COLUMN IF NOT EXISTS fee_amount INTEGER DEFAULT 0;
 
       -- User achievements table
       CREATE TABLE IF NOT EXISTS user_achievements (
@@ -78,7 +84,7 @@ export const initializeDatabase = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         amount INTEGER NOT NULL,
-        type VARCHAR(20) NOT NULL CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD', 'ADMIN_DEDUCT')),
+        type VARCHAR(20) NOT NULL CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD', 'ADMIN_DEDUCT', 'FEE')),
         description TEXT,
         session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -88,7 +94,8 @@ export const initializeDatabase = async () => {
       ALTER TABLE credit_transactions DROP CONSTRAINT IF EXISTS credit_transactions_type_check;
       ALTER TABLE credit_transactions ALTER COLUMN type TYPE VARCHAR(20);
       ALTER TABLE credit_transactions ADD COLUMN IF NOT EXISTS description TEXT;
-      ALTER TABLE credit_transactions ADD CONSTRAINT credit_transactions_type_check CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD', 'ADMIN_DEDUCT'));
+      ALTER TABLE credit_transactions DROP CONSTRAINT IF EXISTS credit_transactions_type_check;
+      ALTER TABLE credit_transactions ADD CONSTRAINT credit_transactions_type_check CHECK (type IN ('EARN', 'SPEND', 'PURCHASE', 'TRANSFER', 'ACHIEVEMENT', 'ADMIN_ADD', 'ADMIN_DEDUCT', 'FEE'));
       ALTER TABLE credit_transactions ALTER COLUMN session_id DROP NOT NULL;
 
       CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
@@ -130,6 +137,18 @@ export const initializeDatabase = async () => {
 
       CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
       CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
+
+      -- XP Transactions for History
+      CREATE TABLE IF NOT EXISTS xp_transactions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        amount INTEGER NOT NULL,
+        type VARCHAR(50) NOT NULL, -- e.g., 'ACHIEVEMENT', 'GENESIS', 'ENGAGEMENT'
+        description TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_xp_transactions_user_id ON xp_transactions(user_id);
 
       -- Views for Aggregated Ratings
       CREATE OR REPLACE VIEW skill_ratings AS

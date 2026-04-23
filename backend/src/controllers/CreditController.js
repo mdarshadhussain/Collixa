@@ -21,6 +21,13 @@ const CREDIT_PACKAGES = {
   'ultimate': { name: 'The Editorial', credits: 2000, price: 5000 } // $50.00
 };
 
+const TIER_RULES = {
+  'Nomad': { fee: 0.10, bonus: 0.00 },
+  'Architect': { fee: 0.08, bonus: 0.02 },
+  'Luminary': { fee: 0.05, bonus: 0.05 },
+  'Oracle': { fee: 0.02, bonus: 0.10 }
+};
+
 export class CreditController {
   static async getMyTransactions(req, res, next) {
     try {
@@ -84,12 +91,22 @@ export class CreditController {
       }
 
       const userId = req.user.id;
-      const credits = pkg.credits;
+      const user = await UserModel.findById(userId);
+      const baseCredits = pkg.credits;
+      
+      // Apply Rank Bonus
+      const rule = TIER_RULES[user.tier] || TIER_RULES['Nomad'];
+      const bonusCredits = Math.floor(baseCredits * rule.bonus);
+      const totalCredits = baseCredits + bonusCredits;
 
       // Use CreditService for consistent and cleaner logic
-      await CreditService.addCredits(userId, credits, 'PURCHASE');
+      await CreditService.addCredits(userId, totalCredits, 'PURCHASE');
 
-      res.status(200).json({ success: true, message: `Successfully added ${credits} credits` });
+      res.status(200).json({ 
+        success: true, 
+        message: `Successfully added ${totalCredits} credits (${bonusCredits} rank bonus included)`,
+        data: { base: baseCredits, bonus: bonusCredits, total: totalCredits }
+      });
     } catch (error) {
       console.error('Simulation update failed:', error);
       next(error);
@@ -103,7 +120,6 @@ export class CreditController {
 
     try {
       // Stripe requires the raw body for signature verification.
-      // We use req.rawBody which is captured in server.js via the express.json verify callback.
       const payload = req.rawBody || req.body;
       event = stripe.webhooks.constructEvent(payload, sig, config.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
@@ -113,15 +129,19 @@ export class CreditController {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
-      const { userId, credits } = session.metadata;
+      const { userId, credits: baseCreditsStr } = session.metadata;
+      const baseCredits = parseInt(baseCreditsStr);
 
       try {
-        // Use CreditService for consistent and cleaner logic
-        await CreditService.addCredits(userId, credits, 'PURCHASE');
-        console.log(`✅ Successfully credited ${credits} credits to user ${userId}`);
+        const user = await UserModel.findById(userId);
+        const rule = TIER_RULES[user.tier] || TIER_RULES['Nomad'];
+        const bonusCredits = Math.floor(baseCredits * rule.bonus);
+        const totalCredits = baseCredits + bonusCredits;
+
+        await CreditService.addCredits(userId, totalCredits, 'PURCHASE');
+        console.log(`✅ Successfully credited ${totalCredits} credits (${bonusCredits} bonus) to user ${userId}`);
       } catch (dbErr) {
         console.error('Database update failed after payment:', dbErr);
-        // Stripe will retry if we return 500
         return res.status(500).json({ error: 'Database update failed' });
       }
     }
@@ -155,16 +175,24 @@ export class CreditController {
         return res.status(400).json({ success: false, error: 'Cannot send credits to yourself' });
       }
 
-      // Check sender has enough credits
+      // Check sender has enough credits (including fee)
       const sender = await UserModel.findById(senderId);
-      if (!sender || (sender.credits || 0) < creditAmount) {
-        return res.status(400).json({ success: false, error: 'Insufficient credits' });
+      
+      const rule = TIER_RULES[sender.tier] || TIER_RULES['Nomad'];
+      const feeAmount = Math.ceil(creditAmount * rule.fee);
+      const totalDeduction = creditAmount + feeAmount;
+
+      if (!sender || (sender.credits || 0) < totalDeduction) {
+        return res.status(400).json({ 
+          success: false, 
+          error: `Insufficient pool. Transfer of ${creditAmount} CR requires a ${feeAmount} CR protocol fee (Total: ${totalDeduction} CR).` 
+        });
       }
 
-      // Deduct from sender
-      await CreditService.deductCredits(senderId, creditAmount, 'TRANSFER');
+      // Deduct total (amount + fee) from sender
+      await CreditService.deductCredits(senderId, totalDeduction, 'TRANSFER');
 
-      // Add to recipient
+      // Add only the requested amount to recipient
       await CreditService.addCredits(recipient.id, creditAmount, 'TRANSFER');
 
       // Record transfer transaction
@@ -173,6 +201,7 @@ export class CreditController {
         sender_id: senderId,
         recipient_id: recipient.id,
         amount: creditAmount,
+        fee_amount: feeAmount,
         message: message || null
       }]);
 
@@ -190,20 +219,25 @@ export class CreditController {
         senderId,
         'CREDIT_SENT',
         'Credits Sent',
-        `You sent ${creditAmount} credits to ${recipient.name}`,
+        `You sent ${creditAmount} credits to ${recipient.name}. A fee of ${feeAmount} credits was applied.`,
         '/profile'
       );
 
-      // Check for achievements for sender (don't block response)
+      const LevelService = (await import('../services/LevelService.js')).default;
+      await LevelService.awardXP(senderId, Math.floor(creditAmount * 0.5), 'Credit Sharing');
+
       AchievementService.checkAndAwardAchievements(senderId).catch(console.error);
       AchievementService.checkAndAwardAchievements(recipient.id).catch(console.error);
 
       res.status(200).json({
         success: true,
-        message: `Successfully shared ${creditAmount} credits with ${recipient.name}`,
+        message: `Successfully shared ${creditAmount} credits (${feeAmount} fee applied)`,
         data: {
           recipient: { name: recipient.name, email: recipient.email },
-          amount: creditAmount
+          amount: creditAmount,
+          fee: feeAmount,
+          total: totalDeduction,
+          rate: rule.fee * 100
         }
       });
     } catch (error) {

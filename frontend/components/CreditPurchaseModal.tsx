@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Sparkles, Zap, Crown, Gem, Check, ArrowRight, Loader2 } from 'lucide-react'
+import { X, Sparkles, Zap, Crown, Gem, Check, ArrowRight, Loader2, Award } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 
 interface CreditPurchaseModalProps {
@@ -20,7 +20,6 @@ const PACKAGES = [
     description: 'Perfect for exploring a few niche skills.',
     icon: Sparkles,
     color: 'from-blue-400 to-indigo-500',
-    bonus: null
   },
   {
     id: 'pro',
@@ -31,7 +30,6 @@ const PACKAGES = [
     icon: Zap,
     color: 'from-amber-400 to-orange-500',
     popular: true,
-    bonus: '50 Bonus'
   },
   {
     id: 'premium',
@@ -41,7 +39,6 @@ const PACKAGES = [
     description: 'Master your field with heavy collaboration power.',
     icon: Crown,
     color: 'from-emerald-400 to-teal-600',
-    bonus: '250 Bonus'
   },
   {
     id: 'ultimate',
@@ -51,15 +48,24 @@ const PACKAGES = [
     description: 'Limitless influence within the Intent economy.',
     icon: Gem,
     color: 'from-rose-400 to-purple-600',
-    bonus: '1000 Bonus'
   }
 ]
 
+const TIER_RULES: Record<string, { bonus: number }> = {
+  'Nomad': { bonus: 0.00 },
+  'Architect': { bonus: 0.02 },
+  'Luminary': { bonus: 0.05 },
+  'Oracle': { bonus: 0.10 }
+}
+
 export default function CreditPurchaseModal({ isOpen, onClose }: CreditPurchaseModalProps) {
   const router = useRouter()
-  const { token, refreshUser } = useAuth()
+  const { user, token, refreshUser } = useAuth()
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const activeTier = user?.tier || 'Nomad'
+  const bonusMultiplier = TIER_RULES[activeTier].bonus
 
   // Block scroll when modal is open
   useEffect(() => {
@@ -76,9 +82,7 @@ export default function CreditPurchaseModal({ isOpen, onClose }: CreditPurchaseM
   const handlePurchase = async (pkg: any) => {
     setLoading(pkg.id)
     setError(null)
-
-    // Redirect to the dedicated checkout page (card page)
-    await new Promise(resolve => setTimeout(resolve, 500)) // Subtle feedback
+    await new Promise(resolve => setTimeout(resolve, 500)) 
     router.push(`/checkout?package=${pkg.id}`)
     onClose()
     setLoading(null)
@@ -113,21 +117,31 @@ export default function CreditPurchaseModal({ isOpen, onClose }: CreditPurchaseM
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-4 lg:mb-6">
             <div className="space-y-0.5 sm:space-y-1">
               <span className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] block italic leading-none">Wealth & Power</span>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black tracking-tighter italic leading-tight">Acquire.</h2>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black tracking-tighter italic leading-tight text-[var(--color-text-primary)]">Acquire.</h2>
               <p className="text-[8px] md:text-[9px] text-[var(--color-text-secondary)] font-medium max-w-md opacity-70">Unlock premium capabilities across the marketplace.</p>
             </div>
-            <button 
-              onClick={onClose}
-              className="w-8 h-8 md:w-10 md:h-10 border border-[var(--color-border)] rounded-full flex items-center justify-center hover:bg-[var(--color-bg-primary)] transition-all bg-[var(--color-bg-primary)]/50 shrink-0"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-3">
+              {bonusMultiplier > 0 && (
+                <div className="px-3 py-1.5 bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 rounded-full flex items-center gap-2">
+                   <Award size={12} className="text-[var(--color-accent)]" />
+                   <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)]">{activeTier} Bonus: +{bonusMultiplier * 100}%</span>
+                </div>
+              )}
+              <button 
+                onClick={onClose}
+                className="w-8 h-8 md:w-10 md:h-10 border border-[var(--color-border)] rounded-full flex items-center justify-center hover:bg-[var(--color-bg-primary)] transition-all bg-[var(--color-bg-primary)]/50 shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {PACKAGES.map((pkg) => {
               const Icon = pkg.icon
               const isProcessing = loading === pkg.id
+              const bonusAmount = Math.floor(pkg.credits * bonusMultiplier)
+              const totalCredits = pkg.credits + bonusAmount
 
               return (
                 <div 
@@ -150,12 +164,17 @@ export default function CreditPurchaseModal({ isOpen, onClose }: CreditPurchaseM
                     <div>
                       <h3 className="text-xs lg:text-sm font-serif font-black leading-tight line-clamp-1">{pkg.name}</h3>
                       <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className="text-lg lg:text-2xl font-serif font-black text-[var(--color-accent)]">{pkg.credits}</span>
+                        <span className="text-lg lg:text-2xl font-serif font-black text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{totalCredits}</span>
                         <span className="text-[6px] lg:text-[7px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Creds</span>
                       </div>
+                      {bonusAmount > 0 && (
+                        <p className="text-[7px] font-black text-[var(--color-accent)] uppercase tracking-widest mt-1">
+                          +{bonusAmount} rank bonus
+                        </p>
+                      )}
                     </div>
 
-                    <p className="hidden sm:block text-[8px] lg:text-[9px] text-[var(--color-text-secondary)] font-medium leading-relaxed line-clamp-2">
+                    <p className="hidden sm:block text-[8px] lg:text-[9px] text-[var(--color-text-secondary)] font-medium leading-relaxed line-clamp-2 opacity-60">
                       {pkg.description}
                     </p>
                   </div>
@@ -163,11 +182,6 @@ export default function CreditPurchaseModal({ isOpen, onClose }: CreditPurchaseM
                   <div className="mt-3 lg:mt-5 pt-2 lg:pt-3 border-t border-[var(--color-border)]/50 space-y-2 lg:space-y-3">
                     <div className="flex items-center justify-between">
                        <p className="text-base lg:text-xl font-serif font-black">{pkg.price}</p>
-                       {pkg.bonus && (
-                         <span className="hidden lg:block text-[7px] font-black uppercase px-2 py-0.5 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] rounded-lg">
-                           {pkg.bonus.split(' ')[0]}
-                         </span>
-                       )}
                     </div>
                     
                     <button

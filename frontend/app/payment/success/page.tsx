@@ -25,6 +25,8 @@ function SuccessContent() {
   const amount = parseInt(searchParams.get('amount') || '0')
   const type = searchParams.get('type') || (packageId ? 'PURCHASE' : 'TRANSACTION')
   const recipient = searchParams.get('recipient')
+  const fee = parseInt(searchParams.get('fee') || '0')
+  const principal = parseInt(searchParams.get('principal') || '0')
 
   const pkg = packageId ? ((PACKAGES as any)[packageId] || PACKAGES.starter) : null
   const displayCredits = pkg ? pkg.credits : amount
@@ -131,7 +133,12 @@ function SuccessContent() {
                 <div className="pt-3 border-t border-[var(--color-border)] opacity-60">
                    <p className="text-[7px] font-bold uppercase tracking-widest leading-loose">
                      {recipient ? (
-                       <>Sent To: <span className="text-[var(--color-text-primary)] font-black">{recipient}</span><br /></>
+                       <>
+                         Sent To: <span className="text-[var(--color-text-primary)] font-black">{recipient}</span><br />
+                         {fee > 0 && (
+                           <>Principal: <span className="text-[var(--color-text-primary)] font-black">{principal} CR</span> (Includes <span className="text-[var(--color-accent)]">{fee} fee</span>)<br /></>
+                         )}
+                       </>
                      ) : (
                        <>Tier: <span className="text-[var(--color-text-primary)] font-black">{pkg?.name || displayName}</span><br /></>
                      )}

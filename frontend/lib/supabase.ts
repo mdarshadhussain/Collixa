@@ -22,6 +22,8 @@ export interface User {
   credits?: number
   xp?: number
   level?: number
+  tier?: string
+  is_genesis_completed?: boolean
   is_verified?: boolean
   age?: string | number
   gender?: string
@@ -1035,6 +1037,89 @@ export const sessionService = {
     } catch (err) {
       console.error('Error completing session:', err)
       return { success: false, error: 'Failed to complete session' }
+    }
+  }
+}
+
+export const creditService = {
+  async getMyTransactions() {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/credits`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await response.json()
+      return data.data || []
+    } catch (err) {
+      console.error('Error fetching transactions:', err)
+      return []
+    }
+  },
+
+  async createCheckoutSession(packageId: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/credits/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ packageId })
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error creating checkout session:', err)
+      return { success: false, error: 'Failed to initiate checkout' }
+    }
+  },
+
+  async simulateSuccess(packageId: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/credits/simulate-success`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ packageId })
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error simulating success:', err)
+      return { success: false, error: 'Failed to simulate purchase' }
+    }
+  },
+
+  async shareCredits(recipientEmail: string, amount: number, message?: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/credits/share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ recipientEmail, amount, message })
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error sharing credits:', err)
+      return { success: false, error: 'Failed to share credits' }
+    }
+  },
+
+  async searchUserByEmail(email: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/credits/search-user?email=${email}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error searching user:', err)
+      return { success: false, error: 'Failed to find user' }
     }
   }
 }

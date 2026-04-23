@@ -11,6 +11,8 @@ const router = express.Router();
  */
 router.get('/stats', StatsController.getPlatformStats);
 router.get('/hub/sections', StatsController.getHubSections);
+router.get('/hub/gamification', authMiddleware, StatsController.getGamificationProgress);
+router.get('/hub/gamification/history', authMiddleware, StatsController.getXPHistory);
 
 
 /**
@@ -47,6 +49,15 @@ const createIntentValidation = [
     .trim()
     .isLength({ max: 255 })
     .withMessage('Attachment name must not exceed 255 characters'),
+  body('collaborator_limit')
+    .optional()
+    .isInt({ min: 1, max: 50 })
+    .withMessage('Collaborator limit must be between 1 and 50'),
+  body('goal')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Goal must not exceed 500 characters'),
 ];
 
 const updateIntentValidation = [

@@ -20,13 +20,7 @@ interface HubSections {
   newArrivals: any[]
 }
 
-const getLevelInfo = (xp: number = 0) => {
-  if (xp >= 3500) return { level: 5, label: 'Master', next: null, currentRange: 3500 }
-  if (xp >= 1500) return { level: 4, label: 'Professional', next: 3500, currentRange: 1500 }
-  if (xp >= 500) return { level: 3, label: 'Collaborator', next: 1500, currentRange: 500 }
-  if (xp >= 100) return { level: 2, label: 'Contributor', next: 500, currentRange: 100 }
-  return { level: 1, label: 'Novice', next: 100, currentRange: 0 }
-}
+// Level info is now handled by the backend API
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -42,6 +36,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true)
   const [loadingAI, setLoadingAI] = useState(false)
+  const [gamification, setGamification] = useState<any>(null)
 
   const fetchData = async () => {
     if (!authUser) return
@@ -49,6 +44,7 @@ export default function DashboardPage() {
     try {
       if (token) {
         setLoadingAI(true)
+        // AI Recommendations
         fetch(`${API_URL}/api/ai/recommendations`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -61,6 +57,16 @@ export default function DashboardPage() {
             console.error('AI Recommendations fetch failed:', err)
             setLoadingAI(false)
           })
+
+        // Gamification Progress
+        fetch(`${API_URL}/api/intents/hub/gamification`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.success) setGamification(data.data)
+          })
+          .catch(err => console.error('Gamification fetch failed:', err))
       }
       // Fetch trending data (public)
       fetch(`${API_URL}/api/intents/hub/sections`)
@@ -156,21 +162,21 @@ export default function DashboardPage() {
                     <span className="italic text-[var(--color-accent)]">{authUser.name?.split(' ')[0]}</span>.
                   </h1>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50 flex items-center gap-2">
-                    {getLevelInfo(authUser.xp).label} • {authUser.xp || 0} XP
+                    {gamification?.tier || 'Nomad'} • {authUser.xp || 0} XP
                   </p>
                 </div>
 
                 {/* XP PROGRESS BAR */}
-                {getLevelInfo(authUser.xp).next && (
+                {gamification && (
                   <div className="w-full max-w-xs space-y-1.5">
                     <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/30">
                       <span>Next Level</span>
-                      <span>{Math.round(((authUser.xp || 0) - getLevelInfo(authUser.xp).currentRange) / (getLevelInfo(authUser.xp).next! - getLevelInfo(authUser.xp).currentRange) * 100)}%</span>
+                      <span>{gamification.percentage}%</span>
                     </div>
                     <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.round(((authUser.xp || 0) - getLevelInfo(authUser.xp).currentRange) / (getLevelInfo(authUser.xp).next! - getLevelInfo(authUser.xp).currentRange) * 100)}%` }}
+                        animate={{ width: `${gamification.percentage}%` }}
                         className="h-full bg-[var(--color-accent)] shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.5)]"
                       />
                     </div>
@@ -180,13 +186,19 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex gap-4 w-full lg:w-auto">
-              <div className="bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center flex-1 lg:min-w-[140px] hover:bg-black/60 transition-colors cursor-pointer ring-1 ring-[var(--color-accent)]/20 shadow-[0_0_20px_rgba(var(--color-accent-rgb),0.1)]">
-                <Zap size={24} className="text-[var(--color-accent)] mb-3" />
+              <div 
+                onClick={() => router.push('/credits')}
+                className="bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center flex-1 lg:min-w-[140px] hover:bg-black/60 transition-colors cursor-pointer ring-1 ring-[var(--color-accent)]/20 shadow-[0_0_20px_rgba(var(--color-accent-rgb),0.1)] group"
+              >
+                <Zap size={24} className="text-[var(--color-accent)] mb-3 group-hover:scale-110 transition-transform" />
                 <h3 className="text-4xl font-black">{authUser.credits || 0}</h3>
                 <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1">Credits</p>
               </div>
-              <div className="bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center flex-1 lg:min-w-[140px] hover:bg-black/60 transition-colors">
-                <Clock size={24} className="text-white/60 mb-3" />
+              <div 
+                onClick={() => router.push('/collaborations')}
+                className="bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center flex-1 lg:min-w-[140px] hover:bg-black/60 transition-colors cursor-pointer group"
+              >
+                <Clock size={24} className="text-white/60 mb-3 group-hover:rotate-12 transition-transform" />
                 <h3 className="text-4xl font-black">{activeSessionsCount}</h3>
                 <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1">Active Sessions</p>
               </div>
@@ -266,11 +278,14 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 {myIntents.length > 0 ? (
-                  <div className="space-y-4">
-                    {myIntents.filter(i => ['looking', 'in_progress', 'pending'].includes(i.status)).slice(0, 3).map(intent => (
-                      <div key={intent.id} className="flex justify-between items-center bg-[var(--color-bg-primary)] p-4 rounded-2xl cursor-pointer hover:border-[var(--color-accent)]/50 border border-transparent transition-colors" onClick={() => router.push(`/intent/${intent.id}`)}>
-                        <span className="font-bold text-sm truncate mr-4">{intent.title}</span>
-                        <Badge variant="sage" className="text-[9px] font-black uppercase tracking-widest bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] shrink-0 px-3 py-1.5">{intent.status === 'in_progress' ? 'Active' : intent.status}</Badge>
+                  <div className="space-y-3">
+                    {myIntents.filter(i => ['looking', 'in_progress', 'pending'].includes(i.status)).slice(0, 2).map(intent => (
+                      <div key={intent.id} className="flex justify-between items-center bg-[var(--color-bg-primary)] p-3 rounded-xl cursor-pointer hover:border-[var(--color-accent)]/50 border border-[var(--color-border)]/50 transition-colors" onClick={() => router.push(`/intent/${intent.id}`)}>
+                        <div className="flex-1 min-w-0 pr-4">
+                           <p className="font-bold text-xs truncate">{intent.title}</p>
+                           <p className="text-[8px] uppercase font-bold tracking-widest opacity-40 mt-0.5">{intent.category || 'Intent'}</p>
+                        </div>
+                        <Badge variant="sage" className="text-[8px] font-black uppercase tracking-widest bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] shrink-0 px-2.5 py-1">{intent.status === 'in_progress' ? 'Active' : intent.status}</Badge>
                       </div>
                     ))}
                   </div>
@@ -291,11 +306,18 @@ export default function DashboardPage() {
                   <Star size={14} className="text-[var(--color-accent)]" />
                   <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">Current Objective</h3>
                 </div>
-                <p className="text-3xl font-serif font-black italic tracking-tighter text-white mb-6">First Mission</p>
+                <p className="text-3xl font-serif font-black italic tracking-tighter text-white mb-6">
+                  {authUser.is_genesis_completed ? "Identity Genesis" : "The Ascent Begins"}
+                </p>
                 <div className="w-full bg-white/10 rounded-full h-2 mb-3">
-                  <div className="bg-[var(--color-accent)] h-2 rounded-full shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.8)]" style={{ width: '50%' }}></div>
+                  <div 
+                    className="bg-[var(--color-accent)] h-2 rounded-full shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.8)]" 
+                    style={{ width: `${gamification?.percentage || 0}%` }}
+                  ></div>
                 </div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-white/50">Earn 50 Credits</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/50">
+                  {authUser.is_genesis_completed ? "Identity Verified" : "Next Milestone: 50 Credits"}
+                </p>
               </div>
               <button onClick={() => router.push('/profile')} className="mt-8 w-full py-4 bg-white/5 text-white/80 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-white/10 hover:text-white transition-all backdrop-blur-sm relative z-10 flex items-center justify-center gap-2">View Full Roadmap <ArrowUpRight size={14} /></button>
             </div>
@@ -400,7 +422,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {sections?.newArrivals.slice(0, 4).map((intent, i) => (
+            {(sections?.newArrivals || []).slice(0, 4).map((intent, i) => (
               <motion.div
                 key={intent.id}
                 initial={{ opacity: 0, scale: 0.9 }}

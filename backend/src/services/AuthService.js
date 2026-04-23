@@ -148,6 +148,35 @@ export class AuthService {
     safeUpdates.updated_at = new Date().toISOString();
 
     const user = await UserModel.update(userId, safeUpdates);
+
+    // --- IDENTITY GENESIS CHECK ---
+    // Award 50 Credits + 1000 XP if profile is completed for the first time
+    if (!user.is_genesis_completed) {
+      const bioValid = user.bio && user.bio.trim().length >= 20;
+      const avatarValid = user.avatar_url && !user.avatar_url.includes('dicebear.com/7.x/avataaars'); // User replaced default
+      const interestsValid = Array.isArray(user.interests) && user.interests.length >= 3;
+      const coreFieldsValid = user.name && user.location && user.target_goal;
+
+      if (bioValid && avatarValid && interestsValid && coreFieldsValid) {
+        console.log(`[AuthService] User ${userId} completed Identity Genesis! Awarding rewards.`);
+        
+        // Award Credits
+        const CreditService = (await import('./CreditService.js')).default;
+        await CreditService.addCredits(userId, 50, 'ACHIEVEMENT');
+
+        // Award XP (Hitting Level 2 instantly)
+        const LevelService = (await import('./LevelService.js')).default;
+        await LevelService.awardXP(userId, 1000, 'Identity Genesis');
+
+        // Mark as completed
+        await UserModel.update(userId, { is_genesis_completed: true });
+        
+        // Refresh user object for return
+        const updatedUser = await UserModel.findById(userId);
+        const { password_hash, ...userFinal } = updatedUser;
+        return userFinal;
+      }
+    }
     
     const { password_hash, ...userWithoutPassword } = user;
     return userWithoutPassword;

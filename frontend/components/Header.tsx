@@ -79,6 +79,7 @@ export default function Header() {
   const mainNavItems = [
     { label: 'Hub', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Intent', href: '/collaborations', icon: FileText },
+    { label: 'Wallet', href: '/credits', icon: Zap },
     { label: 'Tribes', href: '/skills', icon: Users },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
   ]
@@ -301,14 +302,6 @@ export default function Header() {
                  </div>
               )}
             </Link>
-          )}
-          {isAuthenticated && (
-            <button 
-              onClick={() => setShowCreditModal(true)}
-              className="px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[8px] font-black uppercase tracking-[0.08em] text-[var(--color-accent)] hover:border-[var(--color-accent)] active:scale-90 transition-all"
-            >
-              {user?.credits ?? 0}
-            </button>
           )}
           <div className="flex items-center gap-2">
             {isAuthenticated && isAdmin && (
