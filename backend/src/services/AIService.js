@@ -148,7 +148,7 @@ export class AIService {
       - duration: Practical time estimate
       - resources: Array of strings
       
-      ONLY return the JSON array.
+      IMPORTANT: Return ONLY the JSON array. No markdown code blocks, no preamble, just the raw JSON.
     `;
 
     try {
@@ -157,10 +157,11 @@ export class AIService {
       const text = response.text();
       // Improved JSON extraction for markdown arrays
       const jsonStr = text.match(/\[[\s\S]*\]/)?.[0] || text;
-      return JSON.parse(jsonStr);
+      const steps = JSON.parse(jsonStr);
+      return { steps, isFallback: false };
     } catch (error) {
-      console.warn('[AIService] Roadmap Error (Falling back to static template):', error.message);
-      return fallbackRoadmap;
+      console.warn('[AIService] Roadmap Error (Falling back to static template):', error);
+      return { steps: fallbackRoadmap, isFallback: true };
     }
   }
 

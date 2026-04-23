@@ -74,6 +74,7 @@ export default function ProfilePage() {
   const [showCreditModal, setShowCreditModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [roadmap, setRoadmap] = useState<any[] | null>(null)
+  const [isFallbackRoadmap, setIsFallbackRoadmap] = useState(false)
   const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false)
 
   const handleGenerateRoadmap = async () => {
@@ -95,7 +96,12 @@ export default function ProfilePage() {
       const data = await response.json()
       if (response.ok && data.roadmap) {
         setRoadmap(data.roadmap)
-        notify.success('AI Roadmap generated successfully!')
+        setIsFallbackRoadmap(data.isFallback || false)
+        if (data.isFallback) {
+          notify.success('Showing standard roadmap (AI Limit)')
+        } else {
+          notify.success('AI Roadmap generated successfully!')
+        }
       } else {
         notify.error(data.error || 'Failed to generate roadmap')
       }
@@ -159,6 +165,7 @@ export default function ProfilePage() {
        const cached = typeof user.cached_roadmap === 'string' ? JSON.parse(user.cached_roadmap) : user.cached_roadmap;
        if (cached.goal === user.target_goal) {
           setRoadmap(cached.steps);
+          setIsFallbackRoadmap(cached.isFallback || false);
        }
     }
   }, [user?.cached_roadmap, user?.target_goal]);
@@ -654,7 +661,7 @@ export default function ProfilePage() {
                       <X size={20} />
                     </button>
                   </div>
-                  <LearningPathRoadmap steps={roadmap} />
+                  <LearningPathRoadmap steps={roadmap} isFallback={isFallbackRoadmap} />
                 </div>
               )}
 

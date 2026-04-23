@@ -135,7 +135,11 @@ export class AIController {
       
       if (cached && cached.goal === goal) {
         console.log(`[AIController] Serving cached roadmap for goal: "${goal}"`);
-        return res.status(200).json({ success: true, roadmap: cached.steps });
+        return res.status(200).json({ 
+          success: true, 
+          roadmap: cached.steps,
+          isFallback: cached.isFallback || false 
+        });
       }
 
       console.log(`[AIController] Cache invalid or missing. Generating fresh dynamic roadmap...`);
@@ -145,11 +149,12 @@ export class AIController {
       const userWithSkills = { ...user, skills: userSkills.map(s => s.name) };
 
       // 3. Generate fresh roadmap
-      const roadmapSteps = await AIService.generateLearningPath(userWithSkills, goal);
+      const { steps, isFallback } = await AIService.generateLearningPath(userWithSkills, goal);
       
       const roadmapOutput = {
         goal: goal,
-        steps: roadmapSteps,
+        steps: steps,
+        isFallback: isFallback,
         generated_at: new Date().toISOString()
       };
 
@@ -159,7 +164,7 @@ export class AIController {
         roadmap_updated_at: roadmapOutput.generated_at
       }).catch(err => console.warn('[AIController] Roadmap cache save failed:', err.message));
 
-      res.status(200).json({ success: true, roadmap: roadmapSteps });
+      res.status(200).json({ success: true, roadmap: steps, isFallback });
     } catch (error) {
       console.error('[AIController] Learning Path Error:', error.message);
       next(error);

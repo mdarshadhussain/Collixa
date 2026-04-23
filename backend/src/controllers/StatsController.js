@@ -79,7 +79,7 @@ export class StatsController {
         .from('intents')
         .select(`
           *,
-          created_by:users(id, name, avatar_url),
+          created_by:users!intents_created_by_fkey(id, name, avatar_url),
           collaboration_requests(status)
         `)
         .order('created_at', { ascending: false })
@@ -110,7 +110,7 @@ export class StatsController {
         .from('intents')
         .select(`
           *,
-          created_by:users(id, name, avatar_url),
+          created_by:users!intents_created_by_fkey(id, name, avatar_url),
           collaboration_requests(status)
         `)
         .order('created_at', { ascending: false })
