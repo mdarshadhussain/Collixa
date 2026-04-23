@@ -16,16 +16,14 @@ export class EmailService {
     const emailProvider = config.EMAIL_PROVIDER || 'gmail';
 
     if (emailProvider === 'gmail') {
-      // Gmail configuration
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: config.EMAIL_USER,
-          pass: config.EMAIL_PASSWORD, // App password (not real password)
+          pass: config.EMAIL_PASSWORD,
         },
       });
     } else if (emailProvider === 'smtp') {
-      // Custom SMTP configuration
       this.transporter = nodemailer.createTransport({
         host: config.SMTP_HOST,
         port: config.SMTP_PORT || 587,
@@ -36,15 +34,15 @@ export class EmailService {
         },
       });
     } else if (emailProvider === 'sendgrid') {
-      // SendGrid configuration (requires sendgrid package)
-      const sgTransport = require('nodemailer-sendgrid-transport');
-      this.transporter = nodemailer.createTransport(
-        sgTransport({
-          auth: {
-            api_key: config.SENDGRID_API_KEY,
-          },
-        })
-      );
+      // SendGrid works perfectly via standard SMTP
+      this.transporter = nodemailer.createTransport({
+        host: 'smtp.sendgrid.net',
+        port: 587,
+        auth: {
+          user: 'apikey',
+          pass: config.SENDGRID_API_KEY,
+        },
+      });
     }
 
     return this.transporter;
