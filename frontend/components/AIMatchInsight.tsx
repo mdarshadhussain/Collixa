@@ -63,9 +63,9 @@ export default function AIMatchInsight({ type, itemId, itemTitle, itemDescriptio
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="p-6 md:p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/20 rounded-[2rem] shadow-xl relative overflow-hidden group"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-6 md:p-8 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-[2.5rem] shadow-sm relative overflow-hidden group"
     >
       <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
          <Sparkles size={80} className="text-[var(--color-accent)]" />
@@ -104,15 +104,15 @@ export default function AIMatchInsight({ type, itemId, itemTitle, itemDescriptio
               </button>
            </div>
          ) : matchResult ? (
-           <div className="space-y-4">
-              <p className="text-xs font-serif font-black italic text-[var(--color-text-primary)]">
+            <div className="space-y-6">
+              <p className="text-sm md:text-base font-serif font-black italic text-[var(--color-text-primary)] leading-relaxed border-l-4 border-[var(--color-accent)]/30 pl-4 py-1">
                  "{matchResult.verdict}"
               </p>
-              <div className="space-y-2">
+              <div className="space-y-3">
                  {matchResult.reasons.map((reason, i) => (
-                   <div key={i} className="flex gap-2 items-start">
-                      <CheckCircle2 size={12} className="text-[var(--color-accent)] mt-0.5 shrink-0" />
-                      <p className="text-[10px] text-[var(--color-text-secondary)] font-medium leading-relaxed">{reason}</p>
+                   <div key={i} className="flex gap-3 items-start p-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border)]/50 rounded-2xl">
+                      <CheckCircle2 size={14} className="text-[var(--color-accent)] mt-0.5 shrink-0" />
+                      <p className="text-[11px] md:text-xs text-[var(--color-text-secondary)] font-medium leading-relaxed">{reason}</p>
                    </div>
                  ))}
               </div>
