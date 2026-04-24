@@ -85,7 +85,7 @@ export default function CreditsPage() {
   const nextTier = TIERS[TIERS.indexOf(currentTier) + 1]
 
   return (
-    <div className="max-w-[1500px] mx-auto space-y-12 pb-20 mt-4 px-2 md:px-0">
+    <div className="max-w-[1500px] mx-auto space-y-12 pb-20 mt-0 px-2 md:px-0">
       
       {/* ─── WALLET HERO ─── */}
       <section className="relative overflow-hidden rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-8 md:p-16 border border-white/5 shadow-2xl">

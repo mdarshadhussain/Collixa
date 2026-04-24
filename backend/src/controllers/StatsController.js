@@ -192,7 +192,7 @@ export class StatsController {
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) {
         throw error;

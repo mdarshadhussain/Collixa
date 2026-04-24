@@ -1,7 +1,7 @@
 {
-  "name": "intent-marketplace-server",
+  "name": "collixa-server",
   "version": "1.0.0",
-  "description": "Express backend for Intent Marketplace authentication & API",
+  "description": "Express backend for collixa authentication & API",
   "main": "src/server.js",
   "type": "module",
   "engines": {

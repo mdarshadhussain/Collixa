@@ -37,7 +37,7 @@ export default function LandingPage() {
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false)
 
   return (
-    <div className="landing-page-scope min-h-screen bg-[var(--lp-bg)] text-[var(--lp-text)] cursor-none">
+    <div className="landing-page-scope min-h-screen bg-[var(--lp-bg)] text-[var(--lp-text)] cursor-none pt-20">
       <CustomCursor />
       <Header />
       <HeroSection />

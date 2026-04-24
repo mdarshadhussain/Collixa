@@ -35,6 +35,7 @@ interface UIConversation {
   isSender?: boolean
   role?: 'ADMIN' | 'MEMBER'
   admin_id?: string
+  intent_id?: number | null
 }
 
 export default function ChatPage() {
@@ -54,6 +55,10 @@ export default function ChatPage() {
   const [searchedUser, setSearchedUser] = useState<any>(null)
   const [isSearchingUser, setIsSearchingUser] = useState(false)
   const [newChatFeedback, setNewChatFeedback] = useState<{type: 'success'|'error', text: string} | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState<'GROUPS' | 'DIRECT'>('GROUPS')
+  const [groupFilter, setGroupFilter] = useState<'ALL' | 'INTENT' | 'SKILL'>('ALL')
+  const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
   
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean, 
@@ -128,7 +133,8 @@ export default function ChatPage() {
               chatStatus: 'ACCEPTED',
               chatType: 'GROUP',
               role: roleMap[conv.id] || 'MEMBER',
-              admin_id: conv.admin_id
+              admin_id: conv.admin_id,
+              intent_id: conv.intent_id
             }
           }
 
@@ -148,7 +154,8 @@ export default function ChatPage() {
             chatStatus: (conv.status as 'PENDING' | 'ACCEPTED') || 'ACCEPTED',
             chatType: 'DIRECT',
             isSender: isUserP1,
-            admin_id: conv.admin_id
+            admin_id: conv.admin_id,
+            intent_id: conv.intent_id
           }
         })
         
@@ -178,6 +185,37 @@ export default function ChatPage() {
     }
 
     loadConversations()
+
+    // Handle invite from URL if present
+    const inviteId = searchParams.get('invite')
+    if (inviteId && user) {
+      const handleInvite = async () => {
+        try {
+          const { data: sender } = await supabase.from('users').select('name').eq('id', inviteId).single()
+          if (sender && window.confirm(`Accept chat invitation from ${sender.name}?`)) {
+            setIsAcceptingInvite(true)
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chat/accept-invite`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+              },
+              body: JSON.stringify({ senderId: inviteId })
+            })
+            const data = await res.json()
+            if (data.success) {
+              loadConversations()
+              router.push(`/chat?id=${data.data.id}`)
+            }
+          }
+        } catch (err) {
+          console.error('Invite handling failed:', err)
+        } finally {
+          setIsAcceptingInvite(false)
+        }
+      }
+      handleInvite()
+    }
 
     const convoChannel = supabase.channel(`conversations_usr_${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
@@ -380,7 +418,7 @@ export default function ChatPage() {
     if (!locationSearchQuery.trim()) return
     setIsSearchingLocationSearch(true)
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearchQuery)}`)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearchQuery)}&addressdetails=1&limit=20&extratags=1&dedupe=1`)
       const data = await res.json()
       setLocationResults(data)
     } catch (err) {
@@ -391,12 +429,13 @@ export default function ChatPage() {
   }
 
   const selectLocation = async (lat: string, lon: string, display_name: string) => {
-    if (!user || !selectedConversation) return
+    if (!user || !selectedConversation || isSendingLocation) return
+    setIsSendingLocation(true)
     try {
       await messageService.sendMessage(
         selectedConversation.id,
         user.id,
-        display_name,
+        `📍 ${display_name}`,
         'location',
         { latitude: parseFloat(lat), longitude: parseFloat(lon) }
       )
@@ -405,11 +444,13 @@ export default function ChatPage() {
       setLocationResults([])
     } catch (err) {
       console.error(err)
+    } finally {
+      setIsSendingLocation(false)
     }
   }
 
   const handleSendLocation = () => {
-    if (!selectedConversation || !user) return
+    if (!selectedConversation || !user || isSendingLocation) return
     
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser')
@@ -421,14 +462,35 @@ export default function ChatPage() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords
+        
+        let address = `📍 Shared a location`
+        try {
+          // Fetch place name using Nominatim Reverse Geocoding
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`)
+          const data = await res.json()
+          if (data && data.display_name) {
+             // Extract a shorter version of the address if possible (e.g. road + city)
+             const addr = data.address;
+             const shortAddress = [addr.road, addr.suburb, addr.city, addr.town, addr.village]
+               .filter(Boolean)
+               .slice(0, 2)
+               .join(', ') || data.display_name;
+             
+             address = `📍 ${shortAddress}`;
+          }
+        } catch (err) {
+          console.error('Reverse geocoding failed:', err)
+        }
+
         try {
           await messageService.sendMessage(
             selectedConversation.id, 
             user.id, 
-            `📍 Shared a location`, 
+            address, 
             'location', 
             { latitude, longitude }
           )
+          setShowPlusMenu(false)
         } catch (err) {
           console.error('Failed to send location:', err)
         } finally {
@@ -495,13 +557,28 @@ export default function ChatPage() {
     if (!searchedUser || !user) return
     setIsSearchingUser(true)
     try {
-      const conversation = await conversationService.getOrCreateDirectConversation(user.id, searchedUser.id)
-      if (conversation) {
-        setIsNewChatModalOpen(false)
-        setMobileShowConversations(false)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chat/invite`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({ email: searchedUser.email })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setNewChatFeedback({ type: 'success', text: 'Request sent! They will see it in their action center.' })
+        // Clear query and user
         setNewChatEmail('')
         setSearchedUser(null)
-        router.push(`/chat?id=${conversation.id}`)
+        
+        // Wait for user to read before closing (or let them close manually)
+        setTimeout(() => {
+          setIsNewChatModalOpen(false)
+          setNewChatFeedback(null)
+        }, 4000)
+      } else {
+        setNewChatFeedback({ type: 'error', text: data.error || data.message || 'Failed to send invite.' })
       }
     } catch (err) {
       console.error(err)
@@ -514,28 +591,102 @@ export default function ChatPage() {
   const handleClearChat = async () => {
     if (!selectedConversation) return
     setIsChatMenuOpen(false)
-    if (!window.confirm('Warning: Clearing this chat will permanently remove all messages on both sending and receiving sides. Continue?')) return
-    const success = await conversationService.clearChat(selectedConversation.id)
-    if (success) {
-      setMessages([])
-      setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, lastMessage: '' } : c))
+    setConfirmModal({
+      isOpen: true,
+      title: 'Clear Archive?',
+      message: 'Warning: Clearing this node will permanently remove all messages on both sending and receiving sides. This cannot be undone.',
+      mode: 'danger',
+      onConfirm: async () => {
+        const success = await conversationService.clearChat(selectedConversation.id)
+        if (success) {
+          setMessages([])
+          setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, lastMessage: '' } : c))
+        }
+        setConfirmModal(prev => ({ ...prev, isOpen: false }))
+      }
+    })
+  }
+
+  const handleStartDirectChat = async (targetUserId: string) => {
+    if (!user) return
+    setIsSearchingUser(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chat/conversations/direct`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({ userId: targetUserId })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setShowMembersModal(false)
+        router.push(`/chat?id=${data.data.id}`)
+        // The URL change will trigger the useEffect to load the conversation
+      }
+    } catch (err) {
+      console.error('Failed to start direct chat:', err)
+    } finally {
+      setIsSearchingUser(false)
     }
   }
 
   const handleDeleteConversation = async () => {
     if (!selectedConversation) return
     setIsChatMenuOpen(false)
-    const mode = selectedConversation.chatType === 'GROUP' ? 'leave this group' : 'delete this user'
-    if (!window.confirm(`Are you sure you want to permanently ${mode} from your list?`)) return
-    if (!user) return
-    const success = await conversationService.leaveConversation(selectedConversation.id, user.id)
-    if (success) {
-      setConversations(prev => prev.filter(c => c.id !== selectedConversation.id))
-      setSelectedConversation(null)
-      setMobileShowConversations(true)
-      router.push('/chat')
-    }
+    const modeText = selectedConversation.chatType === 'GROUP' ? 'leave this intent group' : 'delete this connection'
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Sever Connection?',
+      message: `Are you sure you want to permanently ${modeText}? Your message history will be archived but you will no longer be a participant.`,
+      mode: 'warning',
+      onConfirm: async () => {
+        if (!user) return
+        const success = await conversationService.leaveConversation(selectedConversation.id, user.id)
+        if (success) {
+          setConversations(prev => prev.filter(c => c.id !== selectedConversation.id))
+          setSelectedConversation(null)
+          setMobileShowConversations(true)
+          router.push('/chat')
+        }
+        setConfirmModal(prev => ({ ...prev, isOpen: false }))
+      }
+    })
   }
+
+  const ConversationItem = ({ conv }: { conv: UIConversation }) => (
+    <button
+      onClick={() => {
+        setSelectedConversation(conv)
+        setMobileShowConversations(false)
+      }}
+      className={`w-full text-left p-6 border-b border-[var(--color-border)] hover:bg-[var(--color-accent-soft)]/20 transition-all group relative ${
+        selectedConversation?.id === conv.id ? 'bg-[var(--color-accent-soft)]/20 border-l-4 border-l-[var(--color-accent)]' : ''
+      }`}
+    >
+      <div className="flex items-center gap-4">
+        <div className="relative">
+          <Avatar name={conv.name} src={conv.avatar} size="md" className="ring-2 ring-transparent group-hover:ring-[var(--color-accent-soft)] transition-all" />
+          {conv.status === 'online' && (
+            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-4 border-[var(--color-bg-secondary)]"></div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-sm font-black tracking-tight group-hover:text-[var(--color-accent)] transition-colors">{conv.name}</span>
+            {conv.unread > 0 && (
+              <span className="px-2 py-0.5 min-w-[1.25rem] text-center text-[8px] font-black bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-full">
+                {conv.unread}
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-[var(--color-text-secondary)] truncate font-medium opacity-60 italic">{conv.lastMessage}</p>
+        </div>
+      </div>
+    </button>
+  )
 
   return (
     <>
@@ -546,64 +697,97 @@ export default function ChatPage() {
                 mobileShowConversations ? 'flex' : 'hidden md:flex'
               }`}
             >
-              <div className="p-8 border-b border-[var(--color-border)]">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-3xl font-serif font-black tracking-tighter">
-                    <Typewriter text="Messages." speed={0.06} delay={0.2} />
-                  </h2>
-                  <button onClick={() => setIsNewChatModalOpen(true)} className="p-3 bg-[var(--color-accent-soft)] text-[var(--color-accent)] rounded-2xl hover:bg-[var(--color-accent)] hover:text-[var(--color-inverse-text)] transition-all">
-                    <Plus size={20} />
+              <div className="p-6 space-y-6 border-b border-[var(--color-border)]">
+                {/* Top Search + Plus Icon */}
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search node..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 bg-[var(--color-bg-primary)]/50 border border-[var(--color-border)] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => setIsNewChatModalOpen(true)} 
+                    className="p-3 bg-[var(--color-accent-soft)] text-[var(--color-accent)] rounded-2xl hover:bg-[var(--color-accent)] hover:text-white transition-all shadow-lg active:scale-95"
+                  >
+                    <Plus size={18} />
                   </button>
                 </div>
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={18} />
-                  <input
-                    type="text"
-                    placeholder="Search messages..."
-                    className="w-full pl-12 pr-4 py-4 bg-[var(--color-bg-primary)]/50 border border-[var(--color-border)] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all"
-                  />
+
+                {/* Tabs for Groups/Direct */}
+                <div className="flex p-1 bg-[var(--color-bg-primary)]/50 border border-[var(--color-border)] rounded-2xl">
+                  <button 
+                    onClick={() => setActiveTab('GROUPS')}
+                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'GROUPS' ? 'bg-[var(--color-accent)] text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]'}`}
+                  >
+                    Groups
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('DIRECT')}
+                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'DIRECT' ? 'bg-[var(--color-accent)] text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]'}`}
+                  >
+                    Direct
+                  </button>
                 </div>
+
+                {/* Optional Group Filter Dropdown */}
+                {activeTab === 'GROUPS' && (
+                  <div className="flex items-center justify-between px-2">
+                    <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">Filter Type</span>
+                    <select 
+                      value={groupFilter}
+                      onChange={(e) => setGroupFilter(e.target.value as any)}
+                      className="bg-transparent text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] outline-none cursor-pointer"
+                    >
+                      <option value="ALL">All Nodes</option>
+                      <option value="INTENT">Intents</option>
+                      <option value="SKILL">Tribes</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {conversations.length === 0 ? (
-                  <div className="p-8 text-center text-[var(--color-text-secondary)]">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">No matches found.</p>
-                  </div>
-                ) : (
-                  conversations.map((conv) => (
-                    <button
-                      key={conv.id}
-                      onClick={() => {
-                        setSelectedConversation(conv)
-                        setMobileShowConversations(false)
-                      }}
-                      className={`w-full text-left p-6 border-b border-[var(--color-border)] hover:bg-[var(--color-accent-soft)]/20 transition-all group relative ${
-                        selectedConversation?.id === conv.id ? 'bg-[var(--color-accent-soft)]/20 border-l-4 border-l-[var(--color-accent)]' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="relative">
-                          <Avatar name={conv.name} src={conv.avatar} size="md" className="ring-2 ring-transparent group-hover:ring-[var(--color-accent-soft)] transition-all" />
-                          {conv.status === 'online' && (
-                            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-4 border-[var(--color-bg-secondary)]"></div>
-                          )}
+                {(() => {
+                  const filtered = conversations.filter(c => {
+                    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                         c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
+                    if (!matchesSearch) return false;
+                    
+                    if (activeTab === 'DIRECT') return c.chatType === 'DIRECT';
+                    
+                    // Group filtering
+                    if (c.chatType !== 'GROUP') return false;
+                    if (groupFilter === 'ALL') return true;
+                    
+                    // Intents have an intent_id associated with them
+                    if (groupFilter === 'INTENT') return c.intent_id !== null && c.intent_id !== undefined;
+                    
+                    // Tribes (Skills) are groups without a specific intent_id
+                    if (groupFilter === 'SKILL') return c.intent_id === null || c.intent_id === undefined;
+                    
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-12 text-center">
+                        <div className="w-12 h-12 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl flex items-center justify-center mx-auto mb-4 opacity-20">
+                          <MessageCircle size={20} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-sm font-black tracking-tight group-hover:text-[var(--color-accent)] transition-colors">{conv.name}</span>
-                            {conv.unread > 0 && (
-                              <span className="px-2 py-0.5 min-w-[1.25rem] text-center text-[8px] font-black bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-full">
-                                {conv.unread}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-[var(--color-text-secondary)] truncate font-medium opacity-60 italic">{conv.lastMessage}</p>
-                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Empty Node Archive.</p>
                       </div>
-                    </button>
-                  ))
-                )}
+                    );
+                  }
+
+                  return filtered.map(conv => (
+                    <ConversationItem key={conv.id} conv={conv} />
+                  ));
+                })()}
               </div>
             </div>
 
@@ -717,7 +901,8 @@ export default function ChatPage() {
                                     </div>
                                     <div>
                                       <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Location Shared</p>
-                                      <p className="text-xs font-bold">{msg.metadata?.latitude?.toFixed(4)}, {msg.metadata?.longitude?.toFixed(4)}</p>
+                                      <p className="text-xs font-bold leading-tight mb-0.5">{msg.content.replace('📍 ', '')}</p>
+                                      <p className="text-[9px] opacity-40 font-medium">{msg.metadata?.latitude?.toFixed(4)}, {msg.metadata?.longitude?.toFixed(4)}</p>
                                     </div>
                                   </div>
                                   <a 
@@ -850,13 +1035,14 @@ export default function ChatPage() {
                               setShowPlusMenu(false)
                               handleSendLocation()
                             }}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group"
+                            disabled={isSendingLocation}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <div className="p-2 bg-green-500/10 text-green-500 rounded-xl group-hover:bg-green-500 group-hover:text-white transition-all">
-                              <MapPin size={18} />
+                              {isSendingLocation ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
                             </div>
                             <div className="text-left">
-                              <p className="text-xs font-black tracking-tight">Current location</p>
+                              <p className="text-xs font-black tracking-tight">{isSendingLocation ? 'Sending...' : 'Current location'}</p>
                               <p className="text-[9px] opacity-40">Share GPS coords</p>
                             </div>
                           </button>
@@ -868,7 +1054,8 @@ export default function ChatPage() {
                               setShowPlusMenu(false)
                               setShowLocationSearch(true)
                             }}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group"
+                            disabled={isSendingLocation}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group disabled:opacity-50"
                           >
                             <div className="p-2 bg-purple-500/10 text-purple-500 rounded-xl group-hover:bg-purple-500 group-hover:text-white transition-all">
                               <Search size={18} />
@@ -976,6 +1163,7 @@ export default function ChatPage() {
                     <input
                       type="email"
                       placeholder="e.g. peer@collixa.com"
+                      autoFocus
                       value={newChatEmail}
                       onChange={(e) => setNewChatEmail(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSearchUser()}
@@ -984,11 +1172,22 @@ export default function ChatPage() {
                   </div>
                 </>
               ) : (
-                <div className="p-4 border border-[var(--color-border)] rounded-2xl bg-[var(--color-bg-primary)] flex items-center gap-4">
-                  <Avatar name={searchedUser.name} src={searchedUser.avatar_url} size="md" />
-                  <div>
-                    <h4 className="font-black text-sm tracking-tight">{searchedUser.name}</h4>
-                    <p className="text-[10px] text-[var(--color-text-secondary)]">{searchedUser.email}</p>
+                <div className="space-y-4">
+                  <div className="p-4 border border-[var(--color-border)] rounded-2xl bg-[var(--color-bg-primary)] flex items-center justify-between group">
+                    <div className="flex items-center gap-4">
+                      <Avatar name={searchedUser.name} src={searchedUser.avatar_url} size="md" />
+                      <div>
+                        <h4 className="font-black text-sm tracking-tight">{searchedUser.name}</h4>
+                        <p className="text-[10px] text-[var(--color-text-secondary)]">{searchedUser.email}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setSearchedUser(null)}
+                      className="p-2 hover:bg-[var(--color-bg-secondary)] rounded-xl text-[var(--color-accent)] opacity-40 hover:opacity-100 transition-all flex flex-col items-center gap-1"
+                    >
+                      <ArrowLeft size={14} />
+                      <span className="text-[7px] font-black uppercase tracking-widest">Change</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -1036,21 +1235,25 @@ export default function ChatPage() {
                   <div className="flex justify-center py-8"><Loader2 className="animate-spin text-[var(--color-accent)]" /></div>
                 ) : (
                   participants.map(p => (
-                    <div key={p.id} className="flex flex-col gap-2 p-3 bg-[var(--color-bg-primary)] rounded-2xl border border-[var(--color-border)] group">
-                       <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                             <Avatar name={p.name} src={p.avatar_url ? storageService.getPublicUrl(p.avatar_url) : undefined} size="sm" />
-                             <div>
-                                <p className="text-sm font-black tracking-tight flex items-center gap-2">
-                                  {p.name} {p.id === user?.id && <span className="opacity-40 font-normal">(You)</span>}
-                                </p>
-                                <div className="flex items-center gap-2">
-                                   <Badge variant={p.role === 'ADMIN' ? 'blue' : 'sage'}>{p.role || 'MEMBER'}</Badge>
-                                   {p.title && <span className="text-[8px] font-black uppercase tracking-widest opacity-40">{p.title}</span>}
-                                </div>
-                             </div>
-                          </div>
-                       </div>
+                    <div 
+                       key={p.id} 
+                       className={`flex flex-col gap-2 p-3 bg-[var(--color-bg-primary)] rounded-2xl border border-[var(--color-border)] group ${p.id !== user?.id ? 'cursor-pointer hover:border-[var(--color-accent)] transition-all' : ''}`}
+                       onClick={() => p.id !== user?.id && handleStartDirectChat(p.id)}
+                     >
+                        <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                              <Avatar name={p.name} src={p.avatar_url ? storageService.getPublicUrl(p.avatar_url) : undefined} size="sm" />
+                              <div>
+                                 <p className="text-sm font-black tracking-tight flex items-center gap-2 group-hover:text-[var(--color-accent)] transition-colors">
+                                   {p.name} {p.id === user?.id && <span className="opacity-40 font-normal">(You)</span>}
+                                 </p>
+                                 <div className="flex items-center gap-2">
+                                    <Badge variant={p.role === 'ADMIN' ? 'blue' : 'sage'}>{p.role || 'MEMBER'}</Badge>
+                                    {p.title && <span className="text-[8px] font-black uppercase tracking-widest opacity-40">{p.title}</span>}
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
                        {selectedConversation?.role === 'ADMIN' && p.id !== user?.id && (user?.id === selectedConversation?.admin_id || p.id !== selectedConversation?.admin_id) && (
                           <div className="flex gap-2 pt-2 border-t border-[var(--color-border)]">
                             {p.role !== 'ADMIN' ? (
@@ -1124,7 +1327,7 @@ export default function ChatPage() {
                       value={locationSearchQuery}
                       onChange={(e) => setLocationSearchQuery(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearchLocation()}
-                      placeholder="Type a city, street, or landmark..."
+                      placeholder="Search for cafes, malls, restaurants or addresses..."
                       className="w-full pl-14 pr-6 py-5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-sm focus:border-[var(--color-accent)] transition-all outline-none"
                     />
                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 opacity-40" size={20} />
@@ -1149,7 +1352,8 @@ export default function ChatPage() {
                           <button 
                             key={i}
                             onClick={() => selectLocation(loc.lat, loc.lon, loc.display_name)}
-                            className="w-full text-left p-4 hover:bg-[var(--color-bg-primary)] rounded-2xl border border-transparent hover:border-[var(--color-border)] transition-all group"
+                            disabled={isSendingLocation}
+                            className="w-full text-left p-4 hover:bg-[var(--color-bg-primary)] rounded-2xl border border-transparent hover:border-[var(--color-border)] transition-all group disabled:opacity-50"
                           >
                              <div className="flex gap-4 items-center">
                                 <div className="p-3 bg-black/5 rounded-xl group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all">
@@ -1157,7 +1361,10 @@ export default function ChatPage() {
                                 </div>
                                 <div>
                                    <p className="text-sm font-bold truncate max-w-md">{loc.display_name}</p>
-                                   <p className="text-[10px] opacity-40 font-black uppercase tracking-widest">Lat: {parseFloat(loc.lat).toFixed(4)}, Lon: {parseFloat(loc.lon).toFixed(4)}</p>
+                                   <p className="text-[10px] opacity-40 font-black uppercase tracking-widest">
+                                      {loc.type && loc.type !== 'yes' ? `${loc.type.replace('_', ' ')} • ` : ''}
+                                      Lat: {parseFloat(loc.lat).toFixed(4)}, Lon: {parseFloat(loc.lon).toFixed(4)}
+                                   </p>
                                 </div>
                              </div>
                           </button>

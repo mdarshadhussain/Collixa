@@ -24,8 +24,12 @@ export class AchievementController {
   static async getAllAchievements(req, res, next) {
     try {
       const userId = req.user.id;
+      
+      // Auto-award any missing achievements before fetching list
+      await AchievementService.checkAndAwardAchievements(userId).catch(err => console.error('Auto-award failed:', err));
+      
       const achievements = await AchievementService.getAllAchievementsWithProgress(userId);
-
+      
       res.status(200).json({
         success: true,
         data: achievements

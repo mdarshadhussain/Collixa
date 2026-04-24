@@ -197,6 +197,7 @@ function CreateIntentContent() {
         // Only set status to 'looking' for new posts
         ...(!editId && { status: 'looking' }),
         created_by: user?.id || '',
+        collaborator_limit: Number(formData.collaborator_limit),
         ...(attachmentPath && { attachment_name: attachmentPath })
       }
 
@@ -247,7 +248,7 @@ function CreateIntentContent() {
   if (authLoading) return null
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 mt-0">
         <main className="flex-1 max-w-4xl">
           
           <div className="mb-6 md:mb-8 space-y-3 md:space-y-4 bg-[var(--color-bg-secondary)]/70 border border-[var(--color-border)] rounded-2xl md:rounded-[2rem] p-4 sm:p-5 md:p-8">

@@ -27,6 +27,8 @@ export const initializeDatabase = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS recommendations_updated_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS cached_roadmap JSONB;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS roadmap_updated_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS cached_matches JSONB;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS matches_updated_at TIMESTAMP WITH TIME ZONE;
 
       CREATE TABLE IF NOT EXISTS sessions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -177,6 +179,12 @@ export const initializeDatabase = async () => {
       -- Ensure intents status check constraint allows 'in_progress'
       ALTER TABLE intents DROP CONSTRAINT IF EXISTS intents_status_check;
       ALTER TABLE intents ADD CONSTRAINT intents_status_check CHECK (status IN ('pending', 'looking', 'in_progress', 'completed', 'rejected'));
+
+      -- Tribe Group Support
+      ALTER TABLE skills ADD COLUMN IF NOT EXISTS max_members INTEGER DEFAULT 5;
+      ALTER TABLE skills ADD COLUMN IF NOT EXISTS conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL;
+      ALTER TABLE skills ADD COLUMN IF NOT EXISTS schedule JSONB DEFAULT '[]';
+      ALTER TABLE skills ADD COLUMN IF NOT EXISTS meeting_link TEXT;
     `;
 
     if (!supabaseAdmin) {

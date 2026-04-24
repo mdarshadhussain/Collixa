@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AIMatchInsight from '@/components/AIMatchInsight'
-import { Intent, User, intentService, conversationService, userService, storageService } from '@/lib/supabase'
+import { Intent, User, intentService, conversationService, userService, storageService, API_URL } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 import {
   MessageSquare,
@@ -95,7 +95,7 @@ export default function IntentDetailPage() {
   const checkIfReviewed = async () => {
     if (!user || !intent) return
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/reviews/user/${intent.collaborator_id || ''}`)
+      const response = await fetch(`${API_URL}/api/reviews/user/${user.id}`)
       const data = await response.json()
       if (data.success) {
         const alreadyReviewed = data.data.some((r: any) => r.intent_id === intent.id && r.reviewer_id === user.id)
@@ -171,7 +171,10 @@ export default function IntentDetailPage() {
       setIsAccepting(requestId)
       const res = await intentService.rejectCollaborationRequest(requestId)
       notify.success(res.message || "Request rejected")
-      fetchRequests()
+      await Promise.all([
+        fetchIntent(),
+        fetchRequests()
+      ])
     } catch (err: any) {
       notify.error(err.message || "Failed to reject request")
     } finally {
@@ -185,9 +188,13 @@ export default function IntentDetailPage() {
       setIsAccepting(requestId)
       const res = await intentService.acceptCollaborationRequest(requestId)
       notify.success(res.message || "Request accepted!")
-      fetchIntent()
-      fetchRequests()
-      fetchCollaborators()
+      
+      // Refresh all data to ensure counters and UI are in sync
+      await Promise.all([
+        fetchIntent(),
+        fetchRequests(),
+        fetchCollaborators()
+      ])
     } catch (err: any) {
       notify.error(err.message || "Failed to accept request")
     } finally {
@@ -210,10 +217,10 @@ export default function IntentDetailPage() {
     }
   }
 
-  const handleReviewSubmit = async (rating: number, comment: string) => {
+  const handleReviewSubmit = async (rating: number, comment: string, revieweeId?: string) => {
     if (!user || !intent) return
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/reviews`, {
+      const response = await fetch(`${API_URL}/api/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +229,8 @@ export default function IntentDetailPage() {
         body: JSON.stringify({
           intentId: intent.id,
           rating,
-          comment
+          comment,
+          revieweeId
         })
       })
 
@@ -689,8 +697,10 @@ export default function IntentDetailPage() {
           isOpen={showReviewModal}
           onClose={() => setShowReviewModal(false)}
           onSubmit={handleReviewSubmit}
+          isOwner={isOwner}
+          collaborators={collaborators}
           intentTitle={intent.title}
-          partnerName={(isOwner ? collaborators[0]?.user?.name : owner?.name) || 'Partner'}
+          partnerName={(isOwner ? collaborators[0]?.name : owner?.name) || 'Partner'}
         />
       )}
     </>

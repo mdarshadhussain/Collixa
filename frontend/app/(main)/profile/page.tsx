@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, 
-  ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus, Sparkles 
+  ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus, Sparkles, Target
 } from 'lucide-react'
 import Button from '@/components/Button'
 import Badge from '@/components/Badge'
@@ -75,6 +75,7 @@ export default function ProfilePage() {
   const [showShareModal, setShowShareModal] = useState(false)
   const [roadmap, setRoadmap] = useState<any[] | null>(null)
   const [isFallbackRoadmap, setIsFallbackRoadmap] = useState(false)
+  const [showRoadmap, setShowRoadmap] = useState(false)
   const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false)
 
   const handleGenerateRoadmap = async () => {
@@ -97,6 +98,7 @@ export default function ProfilePage() {
       if (response.ok && data.roadmap) {
         setRoadmap(data.roadmap)
         setIsFallbackRoadmap(data.isFallback || false)
+        setShowRoadmap(true) // Open it when explicitly generated
         if (data.isFallback) {
           notify.success('Showing standard roadmap (AI Limit)')
         } else {
@@ -143,7 +145,7 @@ export default function ProfilePage() {
   }, [searchParams, router])
 
   useEffect(() => {
-    if (user) {
+    if (user && !isEditing) {
       setEditForm({
         name: user.name || '',
         bio: user.bio || '',
@@ -157,7 +159,7 @@ export default function ProfilePage() {
       const userAvatar = user.avatar_url ? (user.avatar_url.startsWith('http') ? user.avatar_url : storageService.getPublicUrl(user.avatar_url)) : null
       setAvatarPreview(userAvatar)
     }
-  }, [user])
+  }, [user, isEditing])
 
   // 1. Load cached roadmap if it matches current goal
   useEffect(() => {
@@ -362,7 +364,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <div className="space-y-12">
+      <div className="space-y-12 mt-0">
         <main className="flex-1">
 
           <div className="grid grid-cols-1 gap-8">
@@ -437,18 +439,20 @@ export default function ProfilePage() {
                         </div>
                         <div className="text-left">
                           <label className="editorial-label">Gender Identity</label>
-                          <select
-                            value={editForm.gender}
-                            onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
-                            className="editorial-input appearance-none bg-[var(--color-bg-primary)]"
-                          >
-                            <option value="">Select Identity</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Non-binary">Non-binary</option>
-                            <option value="Fluid">Gender Fluid</option>
-                            <option value="Hidden">Prefer not to say</option>
-                          </select>
+                          <div className="editorial-select-wrapper">
+                            <select
+                              value={editForm.gender}
+                              onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                              className="editorial-select"
+                            >
+                              <option value="">Select Identity</option>
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                              <option value="Non-binary">Non-binary</option>
+                              <option value="Fluid">Gender Fluid</option>
+                              <option value="Hidden">Prefer not to say</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                       <div className="text-left">
@@ -504,7 +508,7 @@ export default function ProfilePage() {
                 ) : (
                   <>
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
-                      <div className="flex-1 space-y-8">
+                      <div className="flex-1 space-y-3">
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                           <div className="relative group shrink-0">
                             <Avatar
@@ -541,23 +545,24 @@ export default function ProfilePage() {
 
                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-3">
                               <p className="text-[9px] md:text-[10px] font-medium tracking-[0.1em] text-[var(--color-accent)] opacity-60 lowercase font-mono">{profileUser?.email || 'community member'}</p>
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm shrink-0">
-                                  <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                                  <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
-                                </div>
-                                {profileUser?.bio && (
-                                  <p className="text-[10px] text-[var(--color-text-secondary)] font-medium italic opacity-70 truncate max-w-[200px] md:max-w-xs">
-                                    "{profileUser.bio}"
-                                  </p>
-                                )}
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm shrink-0">
+                                <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                                <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
                               </div>
                             </div>
+
                           </div>
                         </div>
 
+                        {profileUser?.bio && (
+                          <div className="border-l-2 border-[var(--color-accent)]/20 pl-6 py-1 bg-[var(--color-bg-primary)]/30 rounded-r-2xl">
+                            <p className="text-[10px] md:text-xs text-[var(--color-text-primary)] font-medium italic opacity-80 leading-relaxed">
+                              "{profileUser.bio}"
+                            </p>
+                          </div>
+                        )}
 
-                        <div className="py-2">
+                        <div className="pt-1">
                           {profileUser?.interests?.length > 0 && (
                             <div className="flex flex-wrap justify-center md:justify-start gap-2">
                               {profileUser.interests.map((interest: string, idx: number) => (
@@ -594,17 +599,34 @@ export default function ProfilePage() {
                           )}
 
                           {isOwnProfile && (
-                            <div className="pt-2 mt-2 border-t border-[var(--color-border)]/5">
-                              <button
-                                onClick={handleGenerateRoadmap}
-                                disabled={isGeneratingRoadmap}
-                                className="w-full py-2.5 bg-[var(--color-accent)] text-black rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
-                              >
-                                {isGeneratingRoadmap ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                                <span className="text-[8px] font-black uppercase tracking-[0.2em]">
-                                  {roadmap ? 'Update Roadmap' : 'Generate AI Roadmap'}
-                                </span>
-                              </button>
+                            <div className="pt-4 mt-2 border-t border-[var(--color-border)]/5">
+                              <div className="flex items-stretch rounded-xl overflow-hidden shadow-lg border border-[var(--color-border)] bg-[var(--color-bg-primary)]">
+                                <button
+                                  onClick={() => setShowRoadmap(!showRoadmap)}
+                                  className={`flex-[2] py-3 px-4 transition-all flex items-center gap-3 font-black uppercase tracking-[0.15em] text-[9px]
+                                    ${showRoadmap 
+                                      ? 'bg-[var(--color-accent)] text-black' 
+                                      : 'text-[var(--color-text-primary)] hover:bg-[var(--color-accent-soft)]/10'
+                                    }`}
+                                >
+                                  <Target size={14} />
+                                  <span>{roadmap ? (showRoadmap ? 'Hide Strategy' : 'View Strategy') : 'AI Roadmap'}</span>
+                                </button>
+                                
+                                <div className="w-[1px] bg-[var(--color-border)]" />
+                                
+                                <button
+                                  onClick={handleGenerateRoadmap}
+                                  disabled={isGeneratingRoadmap}
+                                  title={roadmap ? "Update Strategy" : "Generate Strategy"}
+                                  className="flex-1 py-3 px-4 bg-[var(--color-bg-secondary)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-black transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+                                >
+                                  {isGeneratingRoadmap ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                  <span className="text-[9px] font-black uppercase tracking-[0.15em]">
+                                    {roadmap ? 'Update' : 'Generate'}
+                                  </span>
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -616,7 +638,7 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div className="bg-[var(--color-bg-primary)] p-5 rounded-2xl border border-[var(--color-border)] text-center flex flex-col justify-center aspect-square transition-all hover:border-[var(--color-accent)]/30 group">
                             <p className="text-[7px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-1 opacity-50 group-hover:opacity-100 transition-opacity">Reviews</p>
-                            <p className="text-2xl font-serif font-black">{profileUser?.total_reviews ?? 0}</p>
+                            <p className="text-2xl font-serif font-black">{Math.max(reviews.length, profileUser?.total_reviews ?? 0)}</p>
                           </div>
                           <div className="bg-[var(--color-bg-primary)] p-5 rounded-2xl border border-[var(--color-border)] text-center flex flex-col justify-center aspect-square transition-all hover:border-[var(--color-accent)]/30 group">
                             <p className="text-[7px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] mb-1 opacity-50 group-hover:opacity-100 transition-opacity">Credits</p>
@@ -630,7 +652,7 @@ export default function ProfilePage() {
                               onClick={() => setShowQrModal(true)}
                               className="w-full py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[var(--color-accent-soft)]/10 transition-all flex items-center justify-center gap-3"
                             >
-                              <QrCode size={16} /> View My Pass
+                              <QrCode size={16} /> View Profile QR
                             </button>
                             <button
                               onClick={() => setIsEditing(true)}
@@ -651,15 +673,25 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {roadmap && (
+              {showRoadmap && roadmap && (
                 <div className="mt-8 p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/20 rounded-[3rem] shadow-2xl relative">
                   <div className="flex items-center justify-between mb-12">
                     <div>
                       <h3 className="text-3xl font-serif font-black tracking-tight">AI Generated Roadmap</h3>
                     </div>
-                    <button onClick={() => setRoadmap(null)} className="p-2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors">
-                      <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={handleGenerateRoadmap}
+                        disabled={isGeneratingRoadmap}
+                        className="flex items-center gap-2 px-4 py-2 bg-[var(--color-accent-soft)]/10 text-[var(--color-accent)] text-[8px] font-black uppercase tracking-widest rounded-full border border-[var(--color-accent)]/20 hover:bg-[var(--color-accent)] hover:text-black transition-all"
+                      >
+                        {isGeneratingRoadmap ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                        Update
+                      </button>
+                      <button onClick={() => setShowRoadmap(false)} className="p-2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors">
+                        <X size={20} />
+                      </button>
+                    </div>
                   </div>
                   <LearningPathRoadmap steps={roadmap} isFallback={isFallbackRoadmap} />
                 </div>

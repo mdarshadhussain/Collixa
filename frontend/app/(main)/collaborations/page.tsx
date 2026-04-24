@@ -48,16 +48,31 @@ export default function IntentsPage() {
     fetchIntents()
   }, [])
 
-  // Filter logic
-  const filteredIntents = intents.filter((intent) => {
-    const matchesSearch = intent.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (intent.description && intent.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    
-    const matchesCategory = filterCategory === 'All' || 
-      (intent.category && intent.category.toLowerCase() === filterCategory.toLowerCase());
-    
-    return matchesSearch && matchesCategory
-  })
+  // Filter and Sort logic
+  const filteredIntents = intents
+    .filter((intent) => {
+      const matchesSearch = intent.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (intent.description && intent.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      
+      const matchesCategory = filterCategory === 'All' || 
+        (intent.category && intent.category.toLowerCase() === filterCategory.toLowerCase());
+      
+      return matchesSearch && matchesCategory
+    })
+    .sort((a, b) => {
+      // Priority 1: Status 'looking' and NOT full
+      const aIsAvailable = a.status === 'looking' && !(a as any).is_full;
+      const bIsAvailable = b.status === 'looking' && !(b as any).is_full;
+      
+      if (aIsAvailable && !bIsAvailable) return -1;
+      if (!aIsAvailable && bIsAvailable) return 1;
+      
+      // Priority 2: Status 'in_progress'
+      if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
+      if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
+
+      return 0;
+    })
 
   return (
     <>
@@ -78,7 +93,7 @@ export default function IntentsPage() {
         </div>
 
         {/* Header Area */}
-        <div className="flex flex-col gap-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2.5rem] p-6 sm:p-8 md:p-10 shadow-xl shadow-[var(--color-accent)]/5 group overflow-hidden relative -mt-6 md:-mt-12">
+        <div className="flex flex-col gap-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[2.5rem] p-6 sm:p-8 md:p-10 shadow-xl shadow-[var(--color-accent)]/5 group overflow-hidden relative mt-0">
           <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
              <Plus size={120} className="text-[var(--color-accent)]" />
           </div>
@@ -118,7 +133,7 @@ export default function IntentsPage() {
               </button>
               <button 
                 onClick={() => router.push('/create')}
-                className="flex-1 md:flex-none px-8 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-2xl group/btn"
+                className="flex-1 md:flex-none px-8 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-2xl group/btn"
               >
                 Post Intent <Plus size={18} className="group-hover:rotate-90 transition-transform" />
               </button>
@@ -132,7 +147,7 @@ export default function IntentsPage() {
             <button
               key={cat}
                onClick={() => setFilterCategory(cat)}
-              className={`px-8 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap border ${
+              className={`px-8 py-3.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap border ${
                 filterCategory === cat 
                 ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] border-[var(--color-inverse-bg)] shadow-lg shadow-[var(--color-text-primary)]/10' 
                 : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] opacity-60 border-[var(--color-border)] hover:opacity-100 hover:border-[var(--color-accent-soft)]'
@@ -152,43 +167,53 @@ export default function IntentsPage() {
           </div>
         ) : filteredIntents.length > 0 ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-            {filteredIntents.map((intent) => (
-              <div
-                key={intent.id}
-                onClick={() => router.push(`/intent/${intent.id}`)}
-                className="group bg-[var(--color-bg-secondary)] rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer"
-              >
-                {/* Card Image */}
-                <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">
-                   {intent.attachment_name ? (
-                     <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
-                   ) : (
-                     <div className="w-full h-full flex items-center justify-center text-black/10 font-serif text-2xl font-black italic bg-[var(--color-bg-secondary)]">COLLIXA</div>
-                   )}
-                   <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <ArrowUpRight size={20} className="text-white drop-shadow-lg" />
-                   </div>
-                </div>
-
-                {/* Card Content */}
-                <div className="p-5">
-                   <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-2 block">{intent.category || 'General'}</span>
-                   <h3 className="text-lg font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors mb-4">
-                     {intent.title}
-                   </h3>
-                   
-                   <div className="flex items-center justify-between text-[var(--color-text-secondary)]">
-                      <div className="flex items-center gap-2">
-                         <MapPin size={12} className="text-[var(--color-accent)]" />
-                         <span className="text-[9px] uppercase font-bold tracking-wider">{intent.location || 'Remote'}</span>
+            {filteredIntents.map((intent) => {
+               const isInactive = (intent as any).is_full || intent.status === 'completed';
+               
+               return (
+                 <div
+                   key={intent.id}
+                   onClick={() => router.push(`/intent/${intent.id}`)}
+                   className={`group bg-[var(--color-bg-secondary)] rounded-[2rem] overflow-hidden border-0 hover:shadow-2xl transition-all duration-700 cursor-pointer ${isInactive ? 'opacity-80' : ''}`}
+                 >
+                   {/* Card Image */}
+                   <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">
+                      {intent.attachment_name ? (
+                        <img 
+                          src={storageService.getPublicUrl(intent.attachment_name)} 
+                          className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${isInactive ? 'grayscale group-hover:grayscale-0' : ''}`} 
+                        />
+                      ) : (
+                        <div className={`w-full h-full flex items-center justify-center text-black/10 font-serif text-2xl font-black italic bg-[var(--color-bg-secondary)] ${isInactive ? 'grayscale group-hover:grayscale-0' : ''}`}>COLLIXA</div>
+                      )}
+                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                         <ArrowUpRight size={20} className="text-white drop-shadow-lg" />
                       </div>
-                      <Badge variant="sage" className="text-[8px] font-black bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]">
-                        {intent.status === 'looking' ? 'Open' : 'Active'}
-                      </Badge>
                    </div>
-                </div>
-              </div>
-            ))}
+ 
+                   {/* Card Content */}
+                   <div className="p-5">
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-2 block">{intent.category || 'General'}</span>
+                      <h3 className="text-lg font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors mb-4">
+                        {intent.title}
+                      </h3>
+                      
+                      <div className="flex items-center justify-between text-[var(--color-text-secondary)]">
+                         <div className="flex items-center gap-2">
+                            <MapPin size={12} className="text-[var(--color-accent)]" />
+                            <span className="text-[9px] uppercase font-bold tracking-wider">{intent.location || 'Remote'}</span>
+                         </div>
+                         <Badge 
+                           variant={intent.status === 'completed' ? 'accent' : (intent as any).is_full ? 'outline' : 'sage'} 
+                           className={`text-[8px] font-black ${intent.status === 'completed' ? '' : (intent as any).is_full ? 'border-red-500/50 text-red-500' : 'bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]'}`}
+                         >
+                           {intent.status === 'completed' ? 'Completed' : (intent as any).is_full ? 'Full' : intent.status === 'in_progress' ? 'Active' : 'Open'}
+                         </Badge>
+                      </div>
+                   </div>
+                 </div>
+               );
+             })}
           </div>
         ) : (
           <div className="text-center py-40">

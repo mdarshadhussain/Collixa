@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { storageService } from '@/lib/supabase'
 import type { Intent } from '@/lib/supabase'
 import { notify } from '@/lib/utils'
+import ConfirmationModal from '@/components/ConfirmationModal'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -24,6 +25,8 @@ export default function MyIntentsPage() {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [deletingId, setDeletingId] = useState<string | number | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [intentToDelete, setIntentToDelete] = useState<string | number | null>(null)
 
   const fetchMyIntents = async () => {
     if (!loading) setRefreshing(true)
@@ -65,13 +68,18 @@ export default function MyIntentsPage() {
     }
   }, [token])
 
-  const handleDelete = async (e: React.MouseEvent, intentId: number | string) => {
+  const handleDeleteClick = (e: React.MouseEvent, intentId: number | string) => {
     e.stopPropagation()
-    if (!confirm('Are you sure you want to delete this intent?')) return
+    setIntentToDelete(intentId)
+    setShowDeleteConfirm(true)
+  }
 
-    setDeletingId(intentId)
+  const executeDelete = async () => {
+    if (!intentToDelete) return
+
+    setDeletingId(intentToDelete)
     try {
-      const response = await fetch(`${API_URL}/api/intents/${intentId}`, {
+      const response = await fetch(`${API_URL}/api/intents/${intentToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -79,7 +87,7 @@ export default function MyIntentsPage() {
       })
 
       if (response.ok) {
-        setIntents((prev) => prev.filter((i) => i.id !== intentId))
+        setIntents((prev) => prev.filter((i) => i.id !== intentToDelete))
         notify.success('Intent deleted successfully')
       } else {
         const data = await response.json()
@@ -90,12 +98,14 @@ export default function MyIntentsPage() {
       console.error(err)
     } finally {
       setDeletingId(null)
+      setShowDeleteConfirm(false)
+      setIntentToDelete(null)
     }
   }
 
   return (
     <>
-      <div className="space-y-8 md:space-y-12">
+      <div className="space-y-8 md:space-y-12 mt-0">
         
         {/* Header Area */}
         <div className="flex flex-col md:flex-row justify-between md:items-end gap-5 md:gap-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl md:rounded-[3rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-[var(--color-accent)]/5">
@@ -116,7 +126,7 @@ export default function MyIntentsPage() {
             </button>
             <Link
               href="/create"
-              className="flex-1 md:flex-none px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl"
+              className="flex-1 md:flex-none px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-xl"
             >
               Post Intent <Plus size={16} />
             </Link>
@@ -127,7 +137,7 @@ export default function MyIntentsPage() {
         <div className="flex gap-4 border-b border-[var(--color-border)] px-4">
           <button
             onClick={() => setActiveTab('active')}
-            className={`pb-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all relative ${
+            className={`pb-4 text-[10px] font-bold uppercase tracking-[0.2em] transition-all relative ${
               activeTab === 'active' ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] opacity-50 hover:opacity-100'
             }`}
           >
@@ -136,7 +146,7 @@ export default function MyIntentsPage() {
           </button>
           <button
             onClick={() => setActiveTab('past')}
-            className={`pb-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all relative ${
+            className={`pb-4 text-[10px] font-bold uppercase tracking-[0.2em] transition-all relative ${
               activeTab === 'past' ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] opacity-50 hover:opacity-100'
             }`}
           >
@@ -173,7 +183,7 @@ export default function MyIntentsPage() {
                   className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative cursor-pointer"
                 >
                    {intent.attachment_name ? (
-                     <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
+                     <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110" />
                    ) : (
                      <div className="w-full h-full flex items-center justify-center text-black/10 font-serif text-2xl font-black italic bg-[var(--color-bg-secondary)]">COLLIXA</div>
                    )}
@@ -238,14 +248,14 @@ export default function MyIntentsPage() {
                        >
                          <Edit size={14} /> Edit
                        </button>
-                       <button
-                         onClick={(e) => handleDelete(e, intent.id)}
-                         disabled={deletingId === intent.id}
-                         className="flex items-center justify-center gap-2 py-3 bg-red-500/5 text-red-500 border border-red-500/10 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white rounded-xl transition-all disabled:opacity-50"
-                       >
-                         {deletingId === intent.id ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />} 
-                         Delete
-                       </button>
+                        <button
+                          onClick={(e) => handleDeleteClick(e, intent.id)}
+                          disabled={deletingId === intent.id}
+                          className="flex items-center justify-center gap-2 py-3 bg-red-500/5 text-red-500 border border-red-500/10 text-[9px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white rounded-xl transition-all disabled:opacity-50"
+                        >
+                          {deletingId === intent.id ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />} 
+                          Delete
+                        </button>
                       </div>
                     )}
                 </div>
@@ -264,6 +274,21 @@ export default function MyIntentsPage() {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setIntentToDelete(null)
+        }}
+        onConfirm={executeDelete}
+        title="Delete Intent?"
+        message="This action is permanent. All collaboration requests and data associated with this intent will be lost forever."
+        confirmText="Destroy Intent"
+        cancelText="Keep Intent"
+        mode="danger"
+        loading={!!deletingId}
+      />
     </>
   )
 }

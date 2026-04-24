@@ -19,6 +19,46 @@ router.get(
 );
 
 /**
+ * GET /api/skills/:id
+ * Get specific skill details
+ */
+router.get(
+  '/:id',
+  [
+    param('id').isUUID().withMessage('Invalid skill ID'),
+  ],
+  authMiddleware,
+  SkillController.getSkillDetail
+);
+
+/**
+ * POST /api/skills/:id/notices
+ * Post a notice to a tribe (Expert only)
+ */
+router.post(
+  '/:id/notices',
+  authMiddleware,
+  [
+    param('id').isUUID().withMessage('Invalid skill ID'),
+    body('content').notEmpty().withMessage('Notice content is required'),
+  ],
+  SkillController.createNotice
+);
+
+/**
+ * DELETE /api/skills/notices/:noticeId
+ * Delete a notice (Expert only)
+ */
+router.delete(
+  '/notices/:noticeId',
+  authMiddleware,
+  [
+    param('noticeId').isUUID().withMessage('Invalid notice ID'),
+  ],
+  SkillController.deleteNotice
+);
+
+/**
  * POST /api/skills
  * Add a new skill (protected)
  */

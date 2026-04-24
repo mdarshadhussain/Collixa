@@ -1,6 +1,6 @@
 interface BadgeProps {
   children: React.ReactNode
-  variant?: 'sage' | 'gray' | 'blue' | 'green' | 'red' | 'accent' | 'outline'
+  variant?: 'sage' | 'gray' | 'blue' | 'green' | 'red' | 'accent' | 'outline' | 'secondary'
   className?: string
 }
 
@@ -17,6 +17,7 @@ export default function Badge({
     green: 'bg-green-50 text-green-700 border border-green-200',
     red: 'bg-red-50 text-red-700 border border-red-200',
     outline: 'bg-transparent border border-[var(--color-border)]',
+    secondary: 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]',
   }
 
   return (

@@ -102,11 +102,11 @@ export default function Header() {
   return (
     <motion.header 
       initial={{ y: 0 }}
-      animate={{ y: isVisible ? 0 : -100 }}
+      animate={{ y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className={`sticky top-0 z-[100] w-full transition-all duration-500 ${headerBackground} ${headerTextColor}`}
+      className={`fixed top-0 left-0 right-0 z-[100] w-full transition-all duration-500 ${headerBackground} ${headerTextColor}`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 w-full flex justify-between items-center py-3 md:py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 w-full flex justify-between items-center py-2 md:py-4">
         
         {/* ─── LOGO ─── */}
         <Link href="/" className="flex items-center gap-3 sm:gap-4 group">

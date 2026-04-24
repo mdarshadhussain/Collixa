@@ -85,7 +85,11 @@ export class AIService {
       const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] || text;
       return JSON.parse(jsonStr);
     } catch (error) {
-      console.warn('[AIService] Match Error (Falling back to heuristic):', error.message);
+      if (error.message?.includes('429') || error.status === 429) {
+        console.warn('[AIService] Match Error: Quota Exceeded (429). Returning heuristic fallback.');
+      } else {
+        console.warn('[AIService] Match Error (Falling back to heuristic):', error.message);
+      }
       
       const sourceSkills = (source.interests || []).map(i => i.toLowerCase());
       const targetTags = (target.description || '').toLowerCase();
@@ -160,7 +164,11 @@ export class AIService {
       const steps = JSON.parse(jsonStr);
       return { steps, isFallback: false };
     } catch (error) {
-      console.warn('[AIService] Roadmap Error (Falling back to static template):', error);
+      if (error.message?.includes('429') || error.status === 429) {
+        console.warn('[AIService] Roadmap Error: Quota Exceeded (429). Returning static template.');
+      } else {
+        console.warn('[AIService] Roadmap Error (Falling back to static template):', error);
+      }
       return { steps: fallbackRoadmap, isFallback: true };
     }
   }

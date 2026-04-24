@@ -53,9 +53,9 @@ export class NotificationService {
     return await this.send(
       providerId,
       'SKILL_REQUEST',
-      'New Tribal Request',
-      `${requesterName} wants to exchange skills for ${skillName}.`,
-      '/dashboard?tab=requests'
+      'Tribe Admission Request',
+      `${requesterName} wants to join your "${skillName}" Tribe.`,
+      '/skills?tab=academy'
     );
   }
 
@@ -63,9 +63,9 @@ export class NotificationService {
     return await this.send(
       requesterId,
       accepted ? 'REQUEST_ACCEPTED' : 'REQUEST_REJECTED',
-      accepted ? 'Request Accepted! 🏹' : 'Request Registry',
-      `${providerName} has ${accepted ? 'accepted' : 'declined'} your request for ${skillName}.`,
-      accepted ? '/skills' : null
+      accepted ? 'Admitted to Tribe! 🏹' : 'Admission Update',
+      `${providerName} has ${accepted ? 'accepted' : 'declined'} your request for "${skillName}".`,
+      accepted ? '/skills?tab=enrollments' : null
     );
   }
 
@@ -74,9 +74,9 @@ export class NotificationService {
     return await this.send(
       requesterId,
       'REQUEST_ACCEPTED',
-      'Session Scheduled',
-      `${providerName} scheduled your ${skillName} session for ${formatted}.`,
-      '/skills'
+      'Class Session Scheduled',
+      `${providerName} scheduled your "${skillName}" session for ${formatted}.`,
+      '/skills?tab=enrollments'
     );
   }
 

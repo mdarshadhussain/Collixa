@@ -29,7 +29,7 @@ export class SkillExchangeModel {
       .from('skill_exchanges')
       .select(`
         *,
-        skill:skills(name, category),
+        skill:skills(id, name, category, meeting_link, conversation_id, description, level, schedule, duration, max_members),
         requester:users!skill_exchanges_requester_id_fkey(id, name, avatar_url),
         provider:users!skill_exchanges_provider_id_fkey(id, name, avatar_url)
       `)

@@ -56,7 +56,7 @@ export default function Sidebar() {
   return (
     <>
     <div className="hidden lg:block w-72 shrink-0" />
-    <aside className="w-72 border border-[var(--color-border)] hidden lg:flex flex-col p-8 rounded-[2.5rem] fixed top-28 h-[calc(100vh-8rem)] bg-[var(--color-bg-secondary)]/50 backdrop-blur-md shadow-xl shadow-black/5 overflow-y-auto">
+    <aside className="w-72 border border-[var(--color-border)] hidden lg:flex flex-col p-8 rounded-[2.5rem] fixed top-20 h-[calc(100vh-6rem)] bg-[var(--color-bg-secondary)]/50 backdrop-blur-md shadow-xl shadow-black/5 overflow-y-auto">
       <div className="flex flex-col min-h-full">
         <div className="space-y-2">
           <nav className="space-y-3">

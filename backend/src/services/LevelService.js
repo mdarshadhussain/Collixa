@@ -176,6 +176,21 @@ export class LevelService {
       percentage
     };
   }
+
+  /**
+   * Get limits for a tier
+   * @param {string} tier 
+   * @returns {Object} { maxIntents, maxSkills }
+   */
+  static getTierLimits(tier) {
+    switch (tier) {
+      case 'Oracle':   return { maxIntents: 20, maxSkills: 20 };
+      case 'Luminary': return { maxIntents: 10, maxSkills: 10 };
+      case 'Architect': return { maxIntents: 5, maxSkills: 5 };
+      case 'Nomad':    
+      default:         return { maxIntents: 2, maxSkills: 2 };
+    }
+  }
 }
 
 export default LevelService;

@@ -47,7 +47,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         - Consistent max-width (1536px) to prevent horizontal "jumping"
         - Relative positioning for fixed Sidebar alignment
       */}
-      <div className="flex flex-1 max-w-[1536px] mx-auto w-full px-4 sm:px-6 lg:px-12 py-4 md:py-8 gap-8 relative overflow-hidden">
+      <div className="flex flex-1 max-w-[1536px] mx-auto w-full px-4 sm:px-6 lg:px-12 pb-4 md:pb-8 pt-20 gap-8 relative overflow-hidden">
         
         {/* Sidebar - Mounted once and shared across all (main) routes */}
         <Sidebar />

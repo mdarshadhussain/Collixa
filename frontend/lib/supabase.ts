@@ -597,9 +597,32 @@ export const messageService = {
       return await response.json()
     } catch (err) {
       console.error('Error scheduling meeting:', err)
-      throw err
+      return { success: false, error: 'Failed to schedule meeting' }
     }
   },
+
+  /**
+   * Get or create a direct conversation between two users
+   */
+  async getOrCreateDirectConversation(userId1: string, userId2: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/conversations/direct`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId: userId2 })
+      })
+      const result = await response.json()
+      if (result.success) return result.data
+      throw new Error(result.error || 'Failed to initialize chat')
+    } catch (err) {
+      console.error('Error in getOrCreateDirectConversation:', err)
+      return null
+    }
+  }
 }
 
 // Conversation Functions
@@ -712,17 +735,18 @@ export const conversationService = {
 
   // Leave a conversation (removes from mapped participants but preserves chat)
   async leaveConversation(conversationId: number, userId: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('conversation_participants')
-      .delete()
-      .match({ conversation_id: conversationId, user_id: userId })
-
-    if (error) {
-      console.error('Error leaving conversation:', error)
+    try {
+      const token = localStorage.getItem('auth_token')
+      // Important: We call the backend DELETE /participants endpoint so that DIRECT chats get fully deleted
+      const response = await fetch(`${API_URL}/api/chat/${conversationId}/participants/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      return response.ok
+    } catch (err) {
+      console.error('Error leaving conversation:', err)
       return false
     }
-
-    return true
   },
 
   // Accept a chat request (Legacy - if status ever added back)
@@ -873,6 +897,64 @@ export const skillService = {
   },
 
   /**
+   * Get skill details by ID
+   */
+  async getSkillDetail(id: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error fetching skill detail:', err)
+      return { success: false, error: 'Failed to fetch skill details' }
+    }
+  },
+
+  /**
+   * Post a notice to a tribe
+   */
+  async createNotice(skillId: string, content: string, type: string = 'info') {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills/${skillId}/notices`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content, type })
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error posting notice:', err)
+      return { success: false, error: 'Failed to post notice' }
+    }
+  },
+
+  /**
+   * Delete a notice
+   */
+  async deleteNotice(noticeId: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/skills/notices/${noticeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error deleting notice:', err)
+      return { success: false, error: 'Failed to delete notice' }
+    }
+  },
+
+  /**
    * Add a new skill for current user
    */
   async addSkill(skillData: any) {
@@ -973,6 +1055,20 @@ export const skillService = {
   },
 
   /**
+   * Get incoming requests (Alias for getMyExchanges for consistent expert dashboard API)
+   */
+  async getIncomingRequests() {
+    return this.getMyExchanges()
+  },
+
+  /**
+   * Get sessions for the expert (Alias for sessionService.getMySessions)
+   */
+  async getUserSessions() {
+    return sessionService.getMySessions()
+  },
+
+  /**
    * Provider accepts/rejects exchange request
    */
   async updateExchangeStatus(exchangeId: string, status: 'ACCEPTED' | 'REJECTED' | 'SCHEDULED' | 'PENDING') {
@@ -1037,6 +1133,24 @@ export const sessionService = {
     } catch (err) {
       console.error('Error completing session:', err)
       return { success: false, error: 'Failed to complete session' }
+    }
+  },
+
+  async completeRecurringSession(exchangeId: string, scheduledTime: string) {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/sessions/recurring/complete`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ exchangeId, scheduledTime })
+      })
+      return await response.json()
+    } catch (err) {
+      console.error('Error completing recurring session:', err)
+      return { success: false, error: 'Failed to complete recurring session' }
     }
   }
 }

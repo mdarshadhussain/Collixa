@@ -3,6 +3,17 @@ import NotificationService from './NotificationService.js';
 
 const getClient = () => supabaseAdmin || supabase;
 
+/**
+ * Force refresh Supabase schema cache (PostgREST)
+ */
+const refreshSchema = async () => {
+  try {
+    await getClient().rpc('notify_pgrst_schema_reload');
+  } catch (err) {
+    // RPC might not exist, ignore
+  }
+};
+
 export class ChatService {
   /**
    * Send a message and notify recipient
@@ -107,21 +118,52 @@ export class ChatService {
       }
     }
 
-    // 2. Remove participant
-    const { error } = await getClient()
-      .from('conversation_participants')
-      .delete()
-      .eq('conversation_id', conversationId)
-      .eq('user_id', userId);
+    // 2. Check if this is a DIRECT chat and if we should delete the whole record
+    const { data: conversation } = await getClient()
+      .from('conversations')
+      .select('type')
+      .eq('id', conversationId)
+      .single();
 
-    if (error) throw error;
+    if (conversation?.type === 'DIRECT') {
+      // 2a. Delete all messages first
+      await getClient()
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversationId);
 
-    // 3. Add system message
-    try {
-      const { data: user } = await getClient().from('users').select('name').eq('id', userId).single();
-      await this.sendMessage(conversationId, actorId, `[SYSTEM]: ${user?.name || 'User'} has left the conversation`, 'system');
-    } catch (err) {
-      console.error('Failed to send system message on departure:', err);
+      // 2b. Delete all participants
+      await getClient()
+        .from('conversation_participants')
+        .delete()
+        .eq('conversation_id', conversationId);
+
+      // 2c. Delete the conversation record
+      const { error: deleteError } = await getClient()
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+      
+      if (deleteError) {
+        console.error('Delete error for DIRECT chat:', deleteError);
+        throw deleteError;
+      }
+    } else {
+      // For GROUP chats, just remove the participant
+      const { error } = await getClient()
+        .from('conversation_participants')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId);
+      if (error) throw error;
+
+      // 3. Add system message (GROUP only)
+      try {
+        const { data: user } = await getClient().from('users').select('name').eq('id', userId).single();
+        await this.sendMessage(conversationId, actorId, `[SYSTEM]: ${user?.name || 'User'} has left the conversation`, 'system');
+      } catch (err) {
+        console.error('Failed to send system message on departure:', err);
+      }
     }
 
     return true;
@@ -188,6 +230,254 @@ export class ChatService {
 
     if (error) throw error;
     return true;
+  }
+
+  /**
+   * Send a direct collaboration request to a user by email
+   */
+  static async createDirectRequest(senderId, recipientEmail) {
+    // 1. Look up user by email
+    const { data: recipient, error: userError } = await getClient()
+      .from('users')
+      .select('id, name')
+      .eq('email', recipientEmail)
+      .single();
+
+    if (userError || !recipient) {
+      throw new Error('User not found with this email address');
+    }
+
+    if (recipient.id === senderId) {
+      throw new Error('You cannot invite yourself');
+    }
+
+    // 2. Check if an ACCEPTED conversation already exists
+    const { data: existing } = await getClient()
+      .from('conversations')
+      .select('id')
+      .eq('type', 'DIRECT')
+      .eq('status', 'ACCEPTED')
+      .or(`participant_1.eq.${senderId},participant_2.eq.${senderId}`)
+      .or(`participant_1.eq.${recipient.id},participant_2.eq.${recipient.id}`)
+      .maybeSingle();
+
+    if (existing) {
+      // Check if they are actually participants
+      const { data: pCount } = await getClient()
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', existing.id)
+        .in('user_id', [senderId, recipient.id]);
+
+      if (pCount && pCount.length === 2) {
+        throw new Error('Chat already exists with this person');
+      } else {
+        // Zombie conversation detected (record exists but users are not participants)
+        // Clean it up so we can start fresh
+        await this.removeParticipant(existing.id, senderId, senderId);
+      }
+    }
+
+    // 3. (REMOVED) - We no longer send a separate notification. 
+    // The Action Center handles the request itself.
+
+    // 4. Create a PENDING conversation so it shows in the Action Center
+    const { data: conversation, error: insertError } = await getClient()
+      .from('conversations')
+      .insert([{
+        type: 'DIRECT',
+        participant_1: senderId,
+        participant_2: recipient.id,
+        status: 'PENDING',
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Failed to create pending conversation record:', insertError);
+    } else {
+      // 5. CRITICAL: Add participants so they can actually SEE the conversation in their lists
+      await getClient().from('conversation_participants').insert([
+        { conversation_id: conversation.id, user_id: senderId, role: 'MEMBER' },
+        { conversation_id: conversation.id, user_id: recipient.id, role: 'MEMBER' }
+      ]);
+
+      // 6. Send a kickoff system message
+      await this.sendMessage(
+        conversation.id,
+        senderId,
+        `Collaboration request initiated.`,
+        'system'
+      );
+    }
+
+    return { success: true, message: 'Invitation sent' };
+  }
+
+  /**
+   * Accept a direct chat invitation
+   */
+  static async acceptDirectRequest(senderId, recipientId) {
+    // 1. Find or Create the conversation record
+    const { data: existing } = await getClient()
+      .from('conversations')
+      .select('id')
+      .eq('type', 'DIRECT')
+      .or(`participant_1.eq.${senderId},participant_2.eq.${senderId}`)
+      .or(`participant_1.eq.${recipientId},participant_2.eq.${recipientId}`)
+      .maybeSingle();
+
+    let conversation;
+    let convError;
+
+    if (existing) {
+      // Update existing PENDING record
+      const { data: updated, error: updateError } = await getClient()
+        .from('conversations')
+        .update({
+          status: 'ACCEPTED',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      conversation = updated;
+      convError = updateError;
+    } else {
+      // Create fresh record (fallback)
+      const { data: created, error: createError } = await getClient()
+        .from('conversations')
+        .insert([{
+          type: 'DIRECT',
+          participant_1: senderId,
+          participant_2: recipientId,
+          status: 'ACCEPTED',
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      conversation = created;
+      convError = createError;
+    }
+
+    if (convError) throw convError;
+
+    // 2. Add participants
+    await getClient().from('conversation_participants').insert([
+      { conversation_id: conversation.id, user_id: senderId, role: 'MEMBER' },
+      { conversation_id: conversation.id, user_id: recipientId, role: 'MEMBER' }
+    ]);
+
+    // 3. Send system message
+    const { data: sender } = await getClient().from('users').select('name').eq('id', senderId).single();
+    const { data: recipient } = await getClient().from('users').select('name').eq('id', recipientId).single();
+
+    await this.sendMessage(
+      conversation.id,
+      senderId,
+      `[SYSTEM]: Collaboration started between ${sender?.name} and ${recipient?.name}.`,
+      'system'
+    );
+
+    return conversation;
+  }
+
+  /**
+   * Get or create a direct conversation
+   */
+  static async getOrCreateDirectConversation(userId1, userId2) {
+    // 1. Check if an ACCEPTED conversation already exists
+    const { data: existing, error: findError } = await supabaseAdmin
+      .from('conversations')
+      .select('*')
+      .eq('type', 'DIRECT')
+      .eq('status', 'ACCEPTED')
+      .or(`participant_1.eq.${userId1},participant_2.eq.${userId1}`)
+      .or(`participant_1.eq.${userId2},participant_2.eq.${userId2}`)
+      .maybeSingle();
+
+    if (findError?.message?.includes('schema cache')) {
+      await refreshSchema();
+      return this.getOrCreateDirectConversation(userId1, userId2);
+    }
+
+    if (existing) {
+      // Check if both are actually participants
+      const { data: pCount } = await supabaseAdmin
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', existing.id)
+        .in('user_id', [userId1, userId2]);
+
+      if (pCount && pCount.length === 2) {
+        return existing;
+      } else {
+        // Clean up zombie record
+        await this.removeParticipant(existing.id, userId1, userId1);
+      }
+    }
+
+    // 2. If not exists, check if a PENDING one exists and promote it
+    const { data: pending } = await supabaseAdmin
+      .from('conversations')
+      .select('*')
+      .eq('type', 'DIRECT')
+      .eq('status', 'PENDING')
+      .or(`participant_1.eq.${userId1},participant_2.eq.${userId1}`)
+      .or(`participant_1.eq.${userId2},participant_2.eq.${userId2}`)
+      .maybeSingle();
+
+    if (pending) {
+       const { data: promoted, error: updateError } = await supabaseAdmin
+         .from('conversations')
+         .update({ status: 'ACCEPTED', updated_at: new Date().toISOString() })
+         .eq('id', pending.id)
+         .select()
+         .single();
+       
+       if (updateError?.message?.includes('schema cache')) {
+         await refreshSchema();
+         return this.getOrCreateDirectConversation(userId1, userId2);
+       }
+       return promoted;
+    }
+
+    // 3. Create fresh accepted conversation
+    const { data: conversation, error: createError } = await supabaseAdmin
+      .from('conversations')
+      .insert([{
+        type: 'DIRECT',
+        participant_1: userId1,
+        participant_2: userId2,
+        status: 'ACCEPTED',
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (createError) throw createError;
+
+    // 4. Add participants
+    await supabaseAdmin.from('conversation_participants').insert([
+      { conversation_id: conversation.id, user_id: userId1, role: 'MEMBER' },
+      { conversation_id: conversation.id, user_id: userId2, role: 'MEMBER' }
+    ]);
+
+    // 5. Kickoff message
+    try {
+      await supabaseAdmin.from('messages').insert([{ 
+        conversation_id: conversation.id, 
+        sender_id: userId1, 
+        content: `[SYSTEM]: Chat initialized.`,
+        type: 'system',
+        is_read: false 
+      }]);
+    } catch (msgErr) {
+      console.warn('Failed to send kickoff message:', msgErr);
+    }
+
+    return conversation;
   }
 }
 

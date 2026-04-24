@@ -127,11 +127,11 @@ export default function RewardsPage() {
     },
   ]
 
-  const xpLeft = gamification ? gamification.nextThreshold - user.xp : 0
+  const xpLeft = gamification ? gamification.nextThreshold - (user?.xp || 0) : 0
 
   return (
     <>
-      <div className="max-w-[1400px] mx-auto space-y-12 pb-24 mt-4 px-2 md:px-0">
+      <div className="max-w-[1400px] mx-auto space-y-12 pb-24 mt-0 px-2 md:px-0">
         
         {/* ─── INTERACTIVE XP HERO ─── */}
         <section className="relative overflow-hidden rounded-[2.5rem] md:rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-8 md:p-12 lg:p-14 shadow-2xl shadow-black/40 border border-white/5">
@@ -214,7 +214,7 @@ export default function RewardsPage() {
                          </div>
                          <div className="bg-[var(--color-accent)]/5 p-4 rounded-2xl border border-[var(--color-accent)]/20 text-center">
                             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] mb-1">To Next Level</p>
-                            <p className="text-xl font-black text-white italic">{xpLeft} <span className="text-[var(--color-accent)] font-serif">XP remaining</span></p>
+                            <p className="text-xl font-black text-white italic">{(gamification?.nextThreshold || 0) - (user?.xp || 0)} <span className="text-[var(--color-accent)] font-serif">XP remaining</span></p>
                          </div>
                          <p className="text-[8px] text-center text-white/20 font-medium uppercase tracking-widest">Global Ranking: #124</p>
                       </motion.div>

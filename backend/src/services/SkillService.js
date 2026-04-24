@@ -1,17 +1,82 @@
 import SkillModel from '../models/Skill.js';
 import SkillExchangeModel from '../models/SkillExchange.js';
 import NotificationService from './NotificationService.js';
+import LevelService from './LevelService.js';
 
 export class SkillService {
   /**
    * List a new skill
    */
   static async addSkill(userId, skillData) {
-    return await SkillModel.create({
+    // 1. Check limits
+    const { data: user, error: userError } = await SkillModel.getClient()
+      .from('users')
+      .select('level, tier')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) throw new Error('User not found');
+
+    const { count, error: countError } = await SkillModel.getClient()
+      .from('skills')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (countError) throw new Error('Failed to verify tribe limits');
+
+    const limits = LevelService.getTierLimits(user.tier);
+    if (count >= limits.maxSkills) {
+      throw new Error(`Limit reached! Your ${user.tier} rank allows listing only ${limits.maxSkills} tribes. Reach the next level to unlock more!`);
+    }
+
+    const skill = await SkillModel.create({
       user_id: userId,
       status: 'active',
+      max_members: skillData.max_members || 5,
+      schedule: skillData.schedule || [],
+      meeting_link: skillData.meeting_link || `https://meet.jit.si/CollixaTribe_${userId}_${Date.now()}`,
       ...skillData
     });
+
+    // AUTOMATION: Create a Permanent Tribe Group Chat
+    try {
+      const { data: conversation, error: convError } = await SkillModel.getClient()
+        .from('conversations')
+        .insert([{
+          type: 'GROUP',
+          title: `Tribe: ${skill.name}`,
+          admin_id: userId,
+          last_message: 'Tribe Group Created'
+        }])
+        .select()
+        .single();
+
+      if (!convError && conversation) {
+        // Add expert as ADMIN
+        await SkillModel.getClient().from('conversation_participants').insert([
+          { conversation_id: conversation.id, user_id: userId, role: 'ADMIN' }
+        ]);
+
+        // Link conversation to skill
+        await SkillModel.update(skill.id, { conversation_id: conversation.id });
+
+        // Send welcome message
+        const { ChatService } = await import('./ChatService.js');
+        await ChatService.sendMessage(
+          conversation.id,
+          userId,
+          `Welcome to the "${skill.name}" Tribe! This is your permanent classroom group.`,
+          'system'
+        );
+      }
+    } catch (err) {
+      console.error('Failed to create tribe group chat:', err);
+    }
+
+    // Award XP for creating a tribe
+    LevelService.awardXP(userId, 30, 'Created a Tribe').catch(console.error);
+
+    return skill;
   }
 
   /**
@@ -31,7 +96,18 @@ export class SkillService {
     const skill = await SkillModel.getById(skillId);
     
     if (skill.user_id === requesterId) {
-      throw new Error('You cannot request an exchange for your own skill.');
+      throw new Error('You cannot join your own tribe.');
+    }
+
+    // Check if tribe is full
+    const { count, error: countError } = await SkillModel.getClient()
+      .from('skill_exchanges')
+      .select('*', { count: 'exact', head: true })
+      .eq('skill_id', skillId)
+      .eq('status', 'ACCEPTED');
+
+    if (!countError && count >= (skill.max_members || 5)) {
+      throw new Error('This tribe has reached its maximum number of students.');
     }
 
     const exchange = await SkillExchangeModel.createRequest({
@@ -73,7 +149,7 @@ export class SkillService {
     }
 
     if (existing.provider_id !== userId) {
-      throw new Error('Only the skill provider can update this request');
+      throw new Error('Only the tribe admin can update this request');
     }
 
     if (existing.status !== 'PENDING' && (status === 'ACCEPTED' || status === 'REJECTED')) {
@@ -85,58 +161,41 @@ export class SkillService {
     // Notify requester
     try {
       if (status === 'ACCEPTED' || status === 'REJECTED') {
-        const { data: exchange } = await client
-          .from('skill_exchanges')
-          .select('requester_id, skill_id, provider_id')
-          .eq('id', exchangeId)
+        const { data: skill } = await client
+          .from('skills')
+          .select('id, name, conversation_id, user_id')
+          .eq('id', existing.skill_id)
           .single();
         
-        const { data: provider } = await client.from('users').select('name').eq('id', exchange.provider_id).single();
-        const { data: skill } = await client.from('skills').select('name').eq('id', exchange.skill_id).single();
+        const { data: provider } = await client.from('users').select('name').eq('id', existing.provider_id).single();
         
         await NotificationService.notifyRequestResponse(
-          exchange.requester_id, 
+          existing.requester_id, 
           provider?.name || 'A provider', 
-          skill?.name || 'skill',
+          skill?.name || 'tribe',
           status === 'ACCEPTED'
         );
 
-        // AUTOMATION: Create a Direct Chat for Accepted Tribe Exchanges
-        if (status === 'ACCEPTED') {
+        // AUTOMATION: Add student to the Tribe Group Chat
+        if (status === 'ACCEPTED' && skill.conversation_id) {
           try {
-            // 1. Create the conversation
-            const { data: conversation, error: convError } = await client
-              .from('conversations')
-              .insert([{
-                type: 'DIRECT',
-                participant_1: exchange.provider_id,
-                participant_2: exchange.requester_id,
-                title: `Tribe: ${skill?.name || 'Collaboration'}`
-              }])
-              .select()
-              .single();
+            // 1. Add to participants
+            await client.from('conversation_participants').upsert([
+              { conversation_id: skill.conversation_id, user_id: existing.requester_id, role: 'MEMBER' }
+            ]);
 
-            if (!convError && conversation) {
-              // 2. Add participants
-              await client.from('conversation_participants').insert([
-                { conversation_id: conversation.id, user_id: exchange.provider_id, role: 'ADMIN' },
-                { conversation_id: conversation.id, user_id: exchange.requester_id, role: 'MEMBER' }
-              ]);
-
-              // 3. Send system message
-              const { data: requester } = await client.from('users').select('name').eq('id', exchange.requester_id).single();
-              const { data: prov } = await client.from('users').select('name').eq('id', exchange.provider_id).single();
-              
-              const { ChatService } = await import('./ChatService.js');
-              await ChatService.sendMessage(
-                conversation.id,
-                exchange.provider_id,
-                `[SYSTEM]: Tribe collaboration started! You can now chat and schedule meetings for "${skill?.name || 'this skill'}".`,
-                'system'
-              );
-            }
+            // 2. Send system message to group
+            const { data: student } = await client.from('users').select('name').eq('id', existing.requester_id).single();
+            
+            const { ChatService } = await import('./ChatService.js');
+            await ChatService.sendMessage(
+              skill.conversation_id,
+              skill.user_id,
+              `${student?.name} has joined the Tribe!`,
+              'system'
+            );
           } catch (err) {
-            console.error('Failed to auto-create tribe chat:', err);
+            console.error('Failed to add student to tribe group chat:', err);
           }
         }
       }
@@ -174,6 +233,61 @@ export class SkillService {
       throw new Error('You are not authorized to delete this skill');
     }
     return await SkillModel.delete(skillId);
+  }
+
+  /**
+   * Get skill details with collaborator list
+   */
+  static async getSkillWithCollaborators(skillId) {
+    const skill = await SkillModel.getById(skillId);
+    if (!skill) throw new Error('Tribe not found');
+
+    const members = await SkillModel.getMembers(skillId);
+    const notices = await SkillModel.getNotices(skillId);
+    
+    return {
+      ...skill,
+      members: members.map(m => m.user),
+      notices
+    };
+  }
+
+  /**
+   * Create a notice for a tribe
+   */
+  static async createNotice(userId, skillId, content, type) {
+    const skill = await SkillModel.getById(skillId);
+    if (skill.user_id !== userId) {
+      throw new Error('Only the tribe leader can post notices');
+    }
+    return await SkillModel.addNotice(skillId, userId, content, type);
+  }
+
+  /**
+   * Delete a notice
+   */
+  static async deleteNotice(userId, noticeId) {
+    // 1. Get notice to check skill ownership
+    const { data: notice, error } = await SkillModel.getClient()
+      .from('skill_notices')
+      .select('skill_id')
+      .eq('id', noticeId)
+      .single();
+    
+    if (error || !notice) throw new Error('Notice not found');
+
+    const skill = await SkillModel.getById(notice.skill_id);
+    if (skill.user_id !== userId) {
+      throw new Error('Only the tribe leader can delete notices');
+    }
+
+    const { error: deleteError } = await SkillModel.getClient()
+      .from('skill_notices')
+      .delete()
+      .eq('id', noticeId);
+
+    if (deleteError) throw deleteError;
+    return true;
   }
 }
 

@@ -48,6 +48,18 @@ export class AuthService {
     };
 
     const user = await UserModel.create(userData);
+    
+    // Award 100 welcome credits
+    try {
+      const CreditService = (await import('./CreditService.js')).default;
+      await CreditService.addCredits(user.id, 100, 'BONUS');
+      
+      // Trigger achievement check for welcome credits
+      const AchievementService = (await import('./AchievementService.js')).default;
+      AchievementService.checkAndAwardAchievements(user.id).catch(err => console.error('Achievement check failed:', err));
+    } catch (creditErr) {
+      console.warn('⚠️  Welcome credits failed:', creditErr.message);
+    }
 
     // Generate JWT token
     const token = generateToken({
@@ -135,7 +147,7 @@ export class AuthService {
   static async updateProfile(userId, updates) {
     console.log(`[AuthService] Updating profile for user ${userId}:`, updates);
     // Don't allow updating sensitive fields
-    const allowedFields = ['name', 'avatar_url', 'bio', 'location', 'age', 'gender', 'interests', 'target_goal', 'cached_recommendations', 'recommendations_updated_at', 'cached_roadmap', 'roadmap_updated_at'];
+    const allowedFields = ['name', 'avatar_url', 'bio', 'location', 'age', 'gender', 'interests', 'target_goal', 'cached_recommendations', 'recommendations_updated_at', 'cached_roadmap', 'roadmap_updated_at', 'cached_matches', 'matches_updated_at'];
     const safeUpdates = {};
 
     allowedFields.forEach((field) => {
@@ -371,6 +383,18 @@ export class AuthService {
         role: 'VERIFIED_USER',
       };
       user = await UserModel.create(userData);
+      
+      // Award 100 welcome credits
+      try {
+        const CreditService = (await import('./CreditService.js')).default;
+        await CreditService.addCredits(user.id, 100, 'BONUS');
+        
+        // Trigger achievement check for welcome credits
+        const AchievementService = (await import('./AchievementService.js')).default;
+        AchievementService.checkAndAwardAchievements(user.id).catch(err => console.error('Achievement check failed:', err));
+      } catch (creditErr) {
+        console.warn('⚠️  Welcome credits failed:', creditErr.message);
+      }
     } else if (user.role === 'USER') {
       // Since Google verified the email, bump them to verified
       user = await UserModel.update(user.id, {

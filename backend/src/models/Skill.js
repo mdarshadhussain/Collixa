@@ -19,30 +19,27 @@ export class SkillModel {
         .single();
 
       if (error) {
-        // Fallback: If 'status' column is missing in DB schema, retry without it
-        if (error.message && error.message.includes("column 'status' of relation 'skills' does not exist")) {
-           const { status, ...rest } = skillData;
-           const { data: retryData, error: retryError } = await getClient()
-             .from('skills')
-             .insert([rest])
-             .select()
-             .single();
+        // Handle missing columns in schema surgically
+        if (error.message && (error.message.includes("in the schema cache") || error.message.includes("does not exist"))) {
+           const match = error.message.match(/column "(.*?)"/i) || error.message.match(/column '(.*?)'/i);
+           const missingColumn = match ? match[1] : null;
            
-           if (retryError) throw new Error(`Failed to create skill (fallback): ${retryError.message}`);
-           return retryData;
-        }
-        
-        // Handle Supabase/PostgREST schema cache issues specifically
-        if (error.message && error.message.includes("'status' column of 'skills' in the schema cache")) {
-           const { status, ...rest } = skillData;
-           const { data: retryData, error: retryError } = await getClient()
-             .from('skills')
-             .insert([rest])
-             .select()
-             .single();
-           
-           if (retryError) throw new Error(`Failed to create skill (cache retry): ${retryError.message}`);
-           return retryData;
+           if (missingColumn && skillData[missingColumn] !== undefined) {
+             console.warn(`[SkillModel] Stripping missing column: ${missingColumn}`);
+             const { [missingColumn]: _, ...remainingData } = skillData;
+             return this.create(remainingData); // Recursive retry with one less column
+           } else {
+             // If we can't identify the column or it's not in our list, try the broad fallback
+             const { duration, status, max_members, schedule, meeting_link, conversation_id, start_date, ...rest } = skillData;
+             const { data: retryData, error: retryError } = await getClient()
+               .from('skills')
+               .insert([rest])
+               .select()
+               .single();
+             
+             if (retryError) throw new Error(`Failed to create skill (schema fallback): ${retryError.message}`);
+             return retryData;
+           }
         }
 
         throw new Error(`Failed to create skill: ${error.message}`);
@@ -145,18 +142,64 @@ export class SkillModel {
   }
 
   /**
+   * Get all members of a skill (accepted exchanges)
+   */
+  static async getMembers(id) {
+    const { data, error } = await getClient()
+      .from('skill_exchanges')
+      .select(`
+        id,
+        status,
+        user:users!skill_exchanges_requester_id_fkey(id, name, avatar_url, email)
+      `)
+      .eq('skill_id', id)
+      .eq('status', 'ACCEPTED');
+
+    if (error) throw new Error(`Failed to fetch skill members: ${error.message}`);
+    return data || [];
+  }
+
+  /**
    * Update skill
    */
   static async update(id, updates) {
-    const { data, error } = await getClient()
-      .from('skills')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      const { data, error } = await getClient()
+        .from('skills')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) throw new Error(`Failed to update skill: ${error.message}`);
-    return data;
+      if (error) {
+        // Handle missing columns in updates surgically
+        if (error.message && (error.message.includes("in the schema cache") || error.message.includes("does not exist"))) {
+           const match = error.message.match(/column "(.*?)"/i) || error.message.match(/column '(.*?)'/i);
+           const missingColumn = match ? match[1] : null;
+
+           if (missingColumn && updates[missingColumn] !== undefined) {
+             console.warn(`[SkillModel] Stripping missing column from update: ${missingColumn}`);
+             const { [missingColumn]: _, ...remainingUpdates } = updates;
+             return this.update(id, remainingUpdates); // Recursive retry
+           } else {
+             const { duration, status, max_members, schedule, meeting_link, conversation_id, start_date, ...rest } = updates;
+             const { data: retryData, error: retryError } = await getClient()
+               .from('skills')
+               .update(rest)
+               .eq('id', id)
+               .select()
+               .single();
+             
+             if (retryError) throw new Error(`Failed to update skill (schema fallback): ${retryError.message}`);
+             return retryData;
+           }
+        }
+        throw new Error(`Failed to update skill: ${error.message}`);
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
   }
 
   /**
@@ -202,6 +245,45 @@ export class SkillModel {
       avg_rating: ratingsMap[item.id]?.avg_rating || 0,
       review_count: ratingsMap[item.id]?.review_count || 0
     }));
+  }
+
+  /**
+   * Get notices for a skill
+   */
+  static async getNotices(skillId) {
+    const { data, error } = await getClient()
+      .from('skill_notices')
+      .select(`
+        *,
+        author:users(id, name, avatar_url)
+      `)
+      .eq('skill_id', skillId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (error.message.includes('relation "skill_notices" does not exist')) return [];
+      throw new Error(`Failed to fetch notices: ${error.message}`);
+    }
+    return data || [];
+  }
+
+  /**
+   * Add a notice to a skill
+   */
+  static async addNotice(skillId, authorId, content, type = 'info') {
+    const { data, error } = await getClient()
+      .from('skill_notices')
+      .insert([{
+        skill_id: skillId,
+        author_id: authorId,
+        content,
+        type
+      }])
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to add notice: ${error.message}`);
+    return data;
   }
 }
 

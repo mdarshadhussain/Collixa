@@ -53,4 +53,22 @@ router.patch('/:conversationId/participants/role', authMiddleware, ChatControlle
  */
 router.delete('/:conversationId/participants/:userId', authMiddleware, ChatController.removeParticipant);
 
+/**
+ * POST /api/chat/invite
+ * Send a direct chat invitation by email
+ */
+router.post('/invite', authMiddleware, ChatController.inviteUser);
+
+/**
+ * POST /api/chat/accept-invite
+ * Accept a direct chat invitation
+ */
+router.post('/accept-invite', authMiddleware, ChatController.acceptInvite);
+
+/**
+ * POST /api/chat/conversations/direct
+ * Get or create a direct conversation
+ */
+router.post('/conversations/direct', authMiddleware, ChatController.getOrCreateDirectConversation);
+
 export default router;

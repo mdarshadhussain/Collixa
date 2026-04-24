@@ -96,6 +96,51 @@ export class ChatController {
       next(error);
     }
   }
+
+  /**
+   * Invite user by email
+   */
+  static async inviteUser(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await ChatService.createDirectRequest(req.user.id, email);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Accept invitation
+   */
+  static async acceptInvite(req, res, next) {
+    try {
+      const { senderId } = req.body;
+      const conversation = await ChatService.acceptDirectRequest(senderId, req.user.id);
+      res.status(200).json({
+        success: true,
+        data: conversation
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get or create a direct conversation
+   */
+  static async getOrCreateDirectConversation(req, res, next) {
+    try {
+      const { userId } = req.body;
+      const conversation = await ChatService.getOrCreateDirectConversation(req.user.id, userId);
+      res.status(200).json({
+        success: true,
+        data: conversation
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default ChatController;

@@ -71,16 +71,20 @@ export class IntentModel {
       throw new Error(`Failed to fetch intents: ${error.message}`);
     }
 
-    // Filter out intents that have reached their collaborator limit
-    const filteredData = (data || []).filter(intent => {
+    // Map through and add accepted count for frontend logic
+    const processedData = (data || []).map(intent => {
       const acceptedCount = (intent.collaboration_requests || [])
         .filter(r => r.status === 'ACCEPTED').length;
       const limit = intent.collaborator_limit || 1;
-      return acceptedCount < limit;
+      return {
+        ...intent,
+        accepted_count: acceptedCount,
+        is_full: acceptedCount >= limit
+      };
     });
 
     // Enrich with user data
-    return await enrichIntentsWithUsers(filteredData);
+    return await enrichIntentsWithUsers(processedData);
   }
 
   /**

@@ -77,8 +77,27 @@ export class AIController {
         IntentService.getIntentById(intentId)
       ]);
 
+      // 1. Check Cache Validity
+      const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+      const now = new Date();
+      const cachedMatches = user.cached_matches ? (typeof user.cached_matches === 'string' ? JSON.parse(user.cached_matches) : user.cached_matches) : {};
+      const cacheKey = `intent_${intentId}`;
+
+      if (cachedMatches[cacheKey] && user.matches_updated_at && (now - new Date(user.matches_updated_at) < CACHE_TTL)) {
+        console.log(`[AIController] Serving cached match for intent ${intentId}`);
+        return res.status(200).json({ success: true, data: cachedMatches[cacheKey] });
+      }
+
+      // 2. Generate fresh match
       const match = await AIService.calculateMatch(user, intent);
       
+      // 3. Update Cache
+      cachedMatches[cacheKey] = match;
+      AuthService.updateProfile(userId, {
+        cached_matches: cachedMatches,
+        matches_updated_at: now.toISOString()
+      }).catch(err => console.warn('[AIController] Match cache save failed:', err.message));
+
       res.status(200).json({ success: true, data: match });
     } catch (error) {
       next(error);
@@ -102,8 +121,27 @@ export class AIController {
       // In the future, we could fetch full objects if itemId is provided
       // but passing them from frontend is faster for initial display.
 
+      // 1. Check Cache Validity
+      const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+      const now = new Date();
+      const cachedMatches = user.cached_matches ? (typeof user.cached_matches === 'string' ? JSON.parse(user.cached_matches) : user.cached_matches) : {};
+      const cacheKey = `${type}_${itemId || itemTitle}`;
+
+      if (cachedMatches[cacheKey] && user.matches_updated_at && (now - new Date(user.matches_updated_at) < CACHE_TTL)) {
+        console.log(`[AIController] Serving cached match for ${type} ${itemId || itemTitle}`);
+        return res.status(200).json({ success: true, data: cachedMatches[cacheKey] });
+      }
+
+      // 2. Generate fresh match
       const match = await AIService.calculateMatch(user, targetData, type);
       
+      // 3. Update Cache
+      cachedMatches[cacheKey] = match;
+      AuthService.updateProfile(userId, {
+        cached_matches: cachedMatches,
+        matches_updated_at: now.toISOString()
+      }).catch(err => console.warn('[AIController] Match cache save failed:', err.message));
+
       res.status(200).json({ success: true, data: match });
     } catch (error) {
       console.error('[AIController] Match error:', error);
@@ -133,13 +171,17 @@ export class AIController {
       // We check if cached_roadmap exists AND if it was generated for the SAME goal
       const cached = user.cached_roadmap ? (typeof user.cached_roadmap === 'string' ? JSON.parse(user.cached_roadmap) : user.cached_roadmap) : null;
       
-      if (cached && cached.goal === goal) {
+      if (cached && cached.goal === goal && !cached.isFallback) {
         console.log(`[AIController] Serving cached roadmap for goal: "${goal}"`);
         return res.status(200).json({ 
           success: true, 
           roadmap: cached.steps,
-          isFallback: cached.isFallback || false 
+          isFallback: false 
         });
+      }
+
+      if (cached && cached.goal === goal && cached.isFallback) {
+        console.log(`[AIController] Cached roadmap for "${goal}" is a fallback. Attempting fresh generation...`);
       }
 
       console.log(`[AIController] Cache invalid or missing. Generating fresh dynamic roadmap...`);

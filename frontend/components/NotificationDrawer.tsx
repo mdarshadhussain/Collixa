@@ -8,7 +8,7 @@ import { supabase, API_URL } from '@/lib/supabase'
 
 interface Notification {
   id: string
-  type: 'SKILL_REQUEST' | 'REQUEST_ACCEPTED' | 'REQUEST_REJECTED' | 'NEW_MESSAGE' | 'ACHIEVEMENT_UNLOCKED'
+  type: 'SKILL_REQUEST' | 'REQUEST_ACCEPTED' | 'REQUEST_REJECTED' | 'NEW_MESSAGE' | 'ACHIEVEMENT_UNLOCKED' | 'CHAT_INVITE'
   title: string
   content: string
   link: string
@@ -102,6 +102,7 @@ export default function NotificationDrawer({ isOpen, onClose }: NotificationDraw
       case 'REQUEST_REJECTED': return <X size={16} className="text-red-500" />
       case 'NEW_MESSAGE': return <MessageCircle size={16} className="text-blue-500" />
       case 'ACHIEVEMENT_UNLOCKED': return <Zap size={16} className="text-purple-500" />
+      case 'CHAT_INVITE': return <MessageCircle size={16} className="text-[var(--color-accent)]" />
       default: return <Bell size={16} className="text-[var(--color-accent)]" />
     }
   }

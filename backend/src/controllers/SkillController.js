@@ -114,6 +114,55 @@ export class SkillController {
       next(error);
     }
   }
+
+  /**
+   * Get skill detail
+   */
+  static async getSkillDetail(req, res, next) {
+    try {
+      const { id } = req.params;
+      const skill = await SkillService.getSkillWithCollaborators(id);
+      res.status(200).json({
+        success: true,
+        data: skill
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Post a notice to a tribe
+   */
+  static async createNotice(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { content, type } = req.body;
+      const notice = await SkillService.createNotice(req.user.id, id, content, type);
+      res.status(201).json({
+        success: true,
+        data: notice
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete a notice
+   */
+  static async deleteNotice(req, res, next) {
+    try {
+      const { noticeId } = req.params;
+      await SkillService.deleteNotice(req.user.id, noticeId);
+      res.status(200).json({
+        success: true,
+        message: 'Notice deleted successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default SkillController;

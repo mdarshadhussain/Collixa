@@ -84,15 +84,18 @@ export default function DashboardPage() {
           if (convos && authUser) {
             const pending = convos.filter((c: any) => {
               const p1Id = typeof c.participant_1 === 'object' ? c.participant_1?.id : c.participant_1;
-              const isP1 = p1Id === authUser.id;
-              return c.status === 'PENDING' && !isP1;
+              const p2Id = typeof c.participant_2 === 'object' ? c.participant_2?.id : c.participant_2;
+              
+              // Only show if PENDING and we are the recipient (the one who needs to act)
+              const isSender = p1Id === authUser.id;
+              return c.status === 'PENDING' && !isSender;
             }).map((c: any) => {
               const p1 = typeof c.participant_1 === 'object' ? c.participant_1 : null
               const p2 = typeof c.participant_2 === 'object' ? c.participant_2 : null
               const other = p1?.id === authUser.id ? p2 : p1
               return {
                 id: c.id,
-                name: other?.name || 'User',
+                name: other?.name || 'New User',
                 avatar: other?.avatar_url || ''
               }
             })
@@ -144,7 +147,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="max-w-[1500px] mx-auto space-y-12 pb-20 mt-4 px-2 md:px-0">
+      <div className="max-w-[1500px] mx-auto space-y-12 pb-20 mt-0 px-2 md:px-0">
 
         {/* ─── PERSONAL HUB HERO ─── */}
         <section className="relative overflow-hidden rounded-3xl md:rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-8 md:p-14 border border-white/5 shadow-2xl shadow-black/30">
@@ -192,7 +195,7 @@ export default function DashboardPage() {
               >
                 <Zap size={24} className="text-[var(--color-accent)] mb-3 group-hover:scale-110 transition-transform" />
                 <h3 className="text-4xl font-black">{authUser.credits || 0}</h3>
-                <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1">Credits</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1 text-center">Credits</p>
               </div>
               <div 
                 onClick={() => router.push('/collaborations')}
@@ -200,7 +203,7 @@ export default function DashboardPage() {
               >
                 <Clock size={24} className="text-white/60 mb-3 group-hover:rotate-12 transition-transform" />
                 <h3 className="text-4xl font-black">{activeSessionsCount}</h3>
-                <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1">Active Sessions</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1 text-center">Active Sessions</p>
               </div>
             </div>
           </div>
@@ -238,10 +241,10 @@ export default function DashboardPage() {
                     <Users size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate">Tribe Exchange</p>
-                    <p className="text-[10px] text-[var(--color-text-secondary)] truncate">Needs Attention</p>
+                    <p className="text-sm font-bold truncate">Tribe Join Request</p>
+                    <p className="text-[10px] text-[var(--color-text-secondary)] truncate">Manage Admissions</p>
                   </div>
-                  <button onClick={() => router.push(`/skills`)} className="bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-3 rounded-xl group-hover:bg-[var(--color-accent)] transition-colors"><ArrowUpRight size={16} /></button>
+                  <button onClick={() => router.push(`/skills?tab=academy`)} className="bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-3 rounded-xl group-hover:bg-[var(--color-accent)] transition-colors"><ArrowUpRight size={16} /></button>
                 </div>
               ))}
               {pendingCollaborationRequests.map(req => (
@@ -319,7 +322,7 @@ export default function DashboardPage() {
                   {authUser.is_genesis_completed ? "Identity Verified" : "Next Milestone: 50 Credits"}
                 </p>
               </div>
-              <button onClick={() => router.push('/profile')} className="mt-8 w-full py-4 bg-white/5 text-white/80 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-white/10 hover:text-white transition-all backdrop-blur-sm relative z-10 flex items-center justify-center gap-2">View Full Roadmap <ArrowUpRight size={14} /></button>
+              <button onClick={() => router.push('/rewards')} className="mt-8 w-full py-4 bg-white/5 text-white/80 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-white/10 hover:text-white transition-all backdrop-blur-sm relative z-10 flex items-center justify-center gap-2">View Full Roadmap <ArrowUpRight size={14} /></button>
             </div>
           </section>
         </div>
@@ -411,8 +414,9 @@ export default function DashboardPage() {
           )}
         </section>
 
+ 
         {/* ─── DISCOVERY SECTION (Explore Hub) ─── */}
-        <section className="pt-12">
+        <section className="">
           <div className="flex items-center gap-4 mb-10 px-2 lg:px-0">
             <CompassIcon size={24} className="text-[var(--color-accent)]" />
             <div>
@@ -452,6 +456,52 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <MapPin size={12} className="text-[var(--color-accent)]" />
                       <span className="text-[9px] uppercase font-bold tracking-widest">{intent.location?.split(',')[0] || 'Remote'}</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ─── TRIBE DISCOVERY (Learn from Network) ─── */}
+        <section className="">
+          <div className="flex items-center gap-4 mb-10 px-2 lg:px-0">
+            <Zap size={24} className="text-[var(--color-accent)]" />
+            <div>
+              <h2 className="text-3xl font-serif font-black tracking-tighter">Learn from Network</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mt-1">Acquire new skills from top mentors</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {(sections?.trendingTribes || []).slice(0, 4).map((tribe, i) => (
+              <motion.div
+                key={tribe.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => router.push(`/profile?uid=${tribe.user_id}`)}
+                className="group bg-[var(--color-inverse-bg)] rounded-[2rem] overflow-hidden border border-white/5 hover:border-[var(--color-accent)]/30 hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col"
+              >
+                <div className="p-8 flex flex-col items-center text-center space-y-4">
+                  <div className="relative">
+                    <Avatar src={tribe.user?.avatar_url} name={tribe.user?.name} size="lg" className="ring-4 ring-white/5 group-hover:ring-[var(--color-accent)]/30 transition-all" />
+                    <div className="absolute -bottom-2 -right-2 bg-[var(--color-accent)] text-black p-1.5 rounded-full shadow-lg">
+                      <Star size={10} className="fill-black" />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-serif font-black text-white leading-tight group-hover:text-[var(--color-accent)] transition-colors">
+                      {tribe.name}
+                    </h3>
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40 mt-2">Shared by {tribe.user?.name}</p>
+                  </div>
+
+                  <div className="pt-4 w-full">
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-[9px] font-bold text-white/60 group-hover:bg-[var(--color-accent)] group-hover:text-black transition-all">
+                      View Profile & Learn
                     </div>
                   </div>
                 </div>

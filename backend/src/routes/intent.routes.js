@@ -11,6 +11,8 @@ const router = express.Router();
  */
 router.get('/stats', StatsController.getPlatformStats);
 router.get('/hub/sections', StatsController.getHubSections);
+router.get('/hub/gamification', authMiddleware, StatsController.getGamificationProgress);
+router.get('/hub/gamification/history', authMiddleware, StatsController.getXPHistory);
 
 
 /**

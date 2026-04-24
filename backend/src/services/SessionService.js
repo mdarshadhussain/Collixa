@@ -136,6 +136,48 @@ export class SessionService {
 
     return await SessionModel.update(session.id, updates);
   }
+
+  /**
+   * Complete a recurring session (creates a session record and confirms it)
+   */
+  static async completeRecurringSession(userId, payload) {
+    const { exchangeId, scheduledTime } = payload;
+    const client = SkillExchangeModel.getClient();
+
+    const { data: exchange, error } = await client
+      .from('skill_exchanges')
+      .select('id, requester_id, provider_id, status')
+      .eq('id', exchangeId)
+      .single();
+
+    if (error || !exchange) throw new Error('Skill exchange not found');
+    if (exchange.status !== 'ACCEPTED') throw new Error('Tribe is not active');
+
+    // Check if a session already exists for this exact time
+    const { data: existing } = await client
+      .from('sessions')
+      .select('id')
+      .eq('request_id', exchangeId)
+      .eq('scheduled_time', scheduledTime)
+      .maybeSingle();
+
+    let session;
+    if (existing) {
+      session = existing;
+    } else {
+      // Create a new session record for this recurring slot
+      session = await SessionModel.create({
+        request_id: exchangeId,
+        sender_id: exchange.requester_id,
+        receiver_id: exchange.provider_id,
+        scheduled_time: scheduledTime,
+        status: 'SCHEDULED'
+      });
+    }
+
+    // Now call the standard completeSession logic to confirm it for this user
+    return await this.completeSession(userId, session.id);
+  }
 }
 
 export default SessionService;

@@ -38,6 +38,25 @@ export class SessionController {
       next(error);
     }
   }
+
+  static async completeRecurring(req, res, next) {
+    try {
+      const session = await SessionService.completeRecurringSession(req.user.id, req.body);
+      
+      // Check for achievements
+      AchievementService.checkAndAwardAchievements(req.user.id).catch(console.error);
+      if (session.sender_id !== req.user.id) {
+        AchievementService.checkAndAwardAchievements(session.sender_id).catch(console.error);
+      }
+      if (session.receiver_id !== req.user.id) {
+        AchievementService.checkAndAwardAchievements(session.receiver_id).catch(console.error);
+      }
+
+      res.status(200).json({ success: true, data: session });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default SessionController;

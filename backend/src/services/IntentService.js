@@ -10,6 +10,28 @@ export class IntentService {
    * @returns {Promise<Object>} Created intent
    */
   static async createIntent(data, userId) {
+    // 1. Fetch user to check limits
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('level, tier')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) throw new Error('User not found');
+
+    // 2. Check current intent count
+    const { count, error: countError } = await supabase
+      .from('intents')
+      .select('*', { count: 'exact', head: true })
+      .eq('created_by', userId);
+
+    if (countError) throw new Error('Failed to verify intent limits');
+
+    const limits = LevelService.getTierLimits(user.tier);
+    if (count >= limits.maxIntents) {
+      throw new Error(`Limit reached! Your ${user.tier} rank allows only ${limits.maxIntents} active intents. Gain more XP to level up!`);
+    }
+
     // Data is already validated in the route
     const intentData = {
       ...data,
@@ -129,15 +151,24 @@ export class IntentService {
     }
 
     const creatorId = typeof intent.created_by === 'object' ? intent.created_by.id : intent.created_by;
-    const collaboratorId = intent.collaborator_id;
+    
+    // Multi-collaborator check
+    const collaborators = await IntentModel.getCollaborators(intentId);
+    const collaboratorIds = collaborators.map(c => String(c.id || c.user?.id));
+    const isCollaborator = collaboratorIds.includes(String(userId));
 
-    if (String(userId) !== String(creatorId) && String(userId) !== String(collaboratorId)) {
+    if (String(userId) !== String(creatorId) && !isCollaborator) {
       throw new Error('Only participants can confirm completion');
     }
 
     const updates = { updated_at: new Date().toISOString() };
     const isCreator = String(userId) === String(creatorId);
-    const partnerId = isCreator ? collaboratorId : creatorId;
+    
+    // For notifications, we need a partnerId. 
+    // In a multi-collaborator scenario, we might want to notify the owner (if collaborator confirms) 
+    // or all collaborators (if owner confirms).
+    // For now, let's keep it simple: if collaborator confirms, notify owner. If owner confirms, notify all collaborators.
+    const partnersToNotify = isCreator ? collaboratorIds : [creatorId];
 
     if (isCreator) {
       if (intent.creator_confirmed_at) throw new Error('You have already confirmed completion');
@@ -158,7 +189,7 @@ export class IntentService {
 
     const updatedIntent = await IntentModel.update(intentId, updates);
 
-    // NOTIFICATION: Notify partner
+    // NOTIFICATION: Notify partners
     try {
       const type = willBeCompleted ? 'INTENT_COMPLETED' : 'INTENT_PARTIAL_COMPLETION';
       const title = willBeCompleted ? 'Connection Completed! 🤝' : 'Partner Sign-off';
@@ -166,34 +197,35 @@ export class IntentService {
         ? `Your partnership on "${intent.title}" is officially completed. 5 credits awarded!`
         : `Your partner has marked "${intent.title}" as completed. Waiting for your signature.`;
       
-      await supabase.from('notifications').insert([{
-        user_id: partnerId,
-        type,
-        title,
-        content,
-        link: `/intent/${intentId}`,
-        is_read: false,
-        created_at: new Date().toISOString()
-      }]);
+      await Promise.all(partnersToNotify.map(pid => 
+        supabase.from('notifications').insert([{
+          user_id: pid,
+          type,
+          title,
+          content,
+          link: `/intent/${intentId}`,
+          is_read: false,
+          created_at: new Date().toISOString()
+        }])
+      ));
     } catch (err) {
-      console.error('Failed to send completion notification:', err);
+      console.error('Failed to send completion notifications:', err);
     }
 
     // REWARDS: Award credits and XP on final completion
     if (willBeCompleted) {
       const CreditService = (await import('./CreditService.js')).default;
       
-      // Award 5 credits to both
-      await Promise.all([
-        CreditService.addCredits(creatorId, 5, 'EARN').catch(e => console.error('Credit award failed:', e)),
-        CreditService.addCredits(collaboratorId, 5, 'EARN').catch(e => console.error('Credit award failed:', e))
-      ]);
+      // Award 5 credits to EVERYONE involved
+      const allParticipants = [creatorId, ...collaboratorIds];
+      await Promise.all(allParticipants.map(pid => 
+        CreditService.addCredits(pid, 5, 'EARN').catch(e => console.error('Credit award failed:', e))
+      ));
 
-      // Award 100 XP to both
-      await Promise.all([
-        LevelService.awardXP(creatorId, 100),
-        LevelService.awardXP(collaboratorId, 100)
-      ]);
+      // Award 100 XP to EVERYONE involved
+      await Promise.all(allParticipants.map(pid => 
+        LevelService.awardXP(pid, 100)
+      ));
     }
 
     return updatedIntent;
@@ -289,7 +321,26 @@ export class IntentService {
       updated_at: new Date().toISOString(),
     };
 
-    return await IntentModel.createRequest(requestData);
+    const request = await IntentModel.createRequest(requestData);
+
+    // NOTIFICATION: Notify intent owner
+    try {
+      const { data: requester } = await supabase.from('users').select('name').eq('id', userId).single();
+      
+      await supabase.from('notifications').insert([{
+        user_id: creatorId,
+        type: 'COLLABORATION_REQUEST',
+        title: 'New Collaboration Request! 🚀',
+        content: `${requester?.name || 'Someone'} wants to collaborate on "${intent.title}"`,
+        link: `/intent/${intentId}`,
+        is_read: false,
+        created_at: new Date().toISOString()
+      }]);
+    } catch (err) {
+      console.error('Failed to send collaboration request notification:', err);
+    }
+
+    return request;
   }
 
   /**
@@ -396,6 +447,21 @@ export class IntentService {
       console.error('Failed to auto-add user to group chat:', err);
     }
 
+    // NOTIFICATION: Notify requester
+    try {
+      await supabase.from('notifications').insert([{
+        user_id: request.user_id,
+        type: 'REQUEST_ACCEPTED',
+        title: 'Request Accepted! 🎉',
+        content: `Your request to join "${request.intent.title}" has been accepted.`,
+        link: `/intent/${request.intent_id}`,
+        is_read: false,
+        created_at: new Date().toISOString()
+      }]);
+    } catch (err) {
+      console.error('Failed to send acceptance notification:', err);
+    }
+
     return updatedRequest;
   }
 
@@ -426,7 +492,26 @@ export class IntentService {
       throw new Error(`Cannot reject a ${request.status} request`);
     }
 
-    return await IntentModel.updateRequest(requestId, 'REJECTED');
+    const updatedRequest = await IntentModel.updateRequest(requestId, 'REJECTED');
+
+    // NOTIFICATION: Notify requester
+    try {
+      const { data: intent } = await supabase.from('intents').select('title').eq('id', request.intent_id).single();
+      
+      await supabase.from('notifications').insert([{
+        user_id: request.user_id,
+        type: 'REQUEST_REJECTED',
+        title: 'Request Declined',
+        content: `Your request to join "${intent?.title}" was not accepted at this time.`,
+        link: `/intent/${request.intent_id}`,
+        is_read: false,
+        created_at: new Date().toISOString()
+      }]);
+    } catch (err) {
+      console.error('Failed to send rejection notification:', err);
+    }
+
+    return updatedRequest;
   }
 
   /**

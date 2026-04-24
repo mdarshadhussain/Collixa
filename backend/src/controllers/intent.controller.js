@@ -16,7 +16,7 @@ export class IntentController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { title, description, category, location, timeline, budget, goal, attachment_name } = req.body;
+      const { title, description, category, location, timeline, budget, goal, attachment_name, collaborator_limit } = req.body;
       const userId = req.user.id; // From authMiddleware
 
       const intentData = {
@@ -27,6 +27,7 @@ export class IntentController {
         timeline,
         budget,
         goal,
+        collaborator_limit: collaborator_limit ? parseInt(collaborator_limit) : 1
       };
 
       if (attachment_name) {
