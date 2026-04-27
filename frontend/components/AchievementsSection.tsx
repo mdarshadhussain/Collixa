@@ -1,14 +1,28 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Lock, Star, Target, Trophy, Briefcase, MessageSquare, Megaphone, Share2, PiggyBank, Award, Compass, Loader2, X, Footprints, Lightbulb, Crown, Users, Wrench, CheckCircle2 } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Lock, Star, Target, Trophy, Briefcase, MessageSquare, Megaphone, Share2, PiggyBank, Award, Compass, Loader2, X, Footprints, Lightbulb, Crown, Users, Wrench, CheckCircle2, Handshake, PenLine, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { API_URL } from '@/lib/supabase'
 
 const iconMap: { [key: string]: React.ElementType } = {
-  Footprints, Lightbulb, Crown, Star, Handshake: Users, Target,
-  Trophy, Wrench, Toolbox: Briefcase, MessageSquare, Megaphone,
-  Share2, PiggyBank, Award, Compass
+  Footprints,
+  Lightbulb,
+  Crown,
+  Star,
+  Handshake,
+  Target,
+  Trophy,
+  Wrench,
+  Briefcase,
+  MessageSquare,
+  Megaphone,
+  Share2,
+  PiggyBank,
+  Award,
+  Compass,
+  Users,
+  PenLine
 }
 
 interface Achievement {
@@ -87,8 +101,8 @@ const BadgeGraphic = ({ isUnlocked, color, icon: Icon, shapeIdx }: any) => {
   };
 
   return (
-    <div className="relative w-20 h-24 flex items-center justify-center mb-2">
-      <svg width="80" height="90" viewBox="0 0 80 90" className="drop-shadow-xl">
+    <div className="relative w-24 h-24 flex items-center justify-center mb-2 mx-auto">
+      <svg width="90" height="90" viewBox="0 0 80 90" className="drop-shadow-xl overflow-visible">
         <defs>
           <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={isUnlocked ? color : '#f1f5f9'} />
@@ -101,7 +115,7 @@ const BadgeGraphic = ({ isUnlocked, color, icon: Icon, shapeIdx }: any) => {
           </linearGradient>
           <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" />
-            <feOffset dx="1" dy="1.5" result="offsetblur" />
+            <feOffset dx="0" dy="2" result="offsetblur" />
             <feComponentTransfer>
               <feFuncA type="linear" slope="0.3" />
             </feComponentTransfer>
@@ -111,11 +125,13 @@ const BadgeGraphic = ({ isUnlocked, color, icon: Icon, shapeIdx }: any) => {
             </feMerge>
           </filter>
         </defs>
-        {renderShape()}
+        <g transform="translate(0, 2)">
+          {renderShape()}
+        </g>
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center pb-1">
-        <div className={`p-2 rounded-full ${isUnlocked ? 'bg-white/20' : 'bg-black/5'} backdrop-blur-[1px] shadow-inner`}>
-           <Icon size={18} color={isUnlocked ? "white" : "#94a3b8"} className="drop-shadow-md" strokeWidth={2.5} />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className={`flex items-center justify-center w-10 h-10 rounded-full ${isUnlocked ? 'bg-white/20' : 'bg-black/5'} backdrop-blur-[2px] shadow-inner`}>
+           <Icon size={20} color={isUnlocked ? "white" : "#94a3b8"} className="drop-shadow-md" strokeWidth={2.5} />
         </div>
       </div>
     </div>
@@ -168,6 +184,33 @@ export default function AchievementsSection({ userId, variant = 'full' }: { user
       .finally(() => setLoading(false))
   }, [userId])
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        const progress = (scrollLeft / (scrollWidth - clientWidth)) * 100;
+        setScrollProgress(progress);
+      }
+    };
+
+    const current = scrollRef.current;
+    current?.addEventListener('scroll', handleScroll);
+    return () => current?.removeEventListener('scroll', handleScroll);
+  }, [achievements]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 400;
+      scrollRef.current.scrollBy({ 
+        left: direction === 'left' ? -scrollAmount : scrollAmount, 
+        behavior: 'smooth' 
+      });
+    }
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <Loader2 className="animate-spin text-[var(--color-accent)]" size={28} />
@@ -176,69 +219,135 @@ export default function AchievementsSection({ userId, variant = 'full' }: { user
   if (error) return <div className="text-center py-12 text-slate-400">{error}</div>;
 
   return (
-    <div className="w-full bg-[#f8fafc] p-6 rounded-[2.5rem]">
-      {/* Header matching the image */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-black text-slate-900 mb-1 tracking-tight">Achievements</h2>
-        <p className="text-[11px] font-medium text-slate-500 tracking-tight">Unlock your achievements by completing tasks on the platform</p>
+    <div className="w-full bg-[#f8fafc] p-4 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] relative overflow-hidden group/main">
+      {/* Dynamic Background Glow */}
+      <div className="absolute top-0 right-0 w-[300px] sm:w-[400px] h-[300px] sm:h-[400px] bg-blue-500/5 rounded-full blur-[80px] sm:blur-[100px] pointer-events-none" />
+      
+      {/* Header */}
+      <div className="mb-6 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mb-1 sm:mb-2 tracking-tight">Achievements</h2>
+          <p className="text-[10px] sm:text-xs font-medium text-slate-400 tracking-tight flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Unlock milestones to earn network credits
+          </p>
+        </div>
+        
+        {/* Creative Scroll Controls */}
+        <div className="flex items-center gap-2 sm:gap-3">
+           <button 
+             onClick={() => scroll('left')}
+             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] hover:scale-110 active:scale-95 transition-all shadow-sm"
+           >
+              <ChevronLeft size={16} className="sm:w-5 sm:h-5" />
+           </button>
+           <button 
+             onClick={() => scroll('right')}
+             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] hover:scale-110 active:scale-95 transition-all shadow-sm"
+           >
+              <ChevronRight size={16} className="sm:w-5 sm:h-5" />
+           </button>
+        </div>
       </div>
 
-      {/* Grid Layout - Changed to 6 columns */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
-        {achievements.map((node, idx) => {
-          const Icon = iconMap[node.icon?.split('.')[0] || 'Target'] || Target;
-          const progress = Math.min(100, (node.progress / node.requirement) * 100);
-          
-          const cat = node.category?.toLowerCase() || 'default';
-          const color = categoryColors[cat] || categoryColors.default;
+      {/* Horizontal Scroll Container */}
+      <div className="relative">
+        <div 
+          ref={scrollRef}
+          className="flex gap-4 sm:gap-8 overflow-x-auto pb-10 sm:pb-14 pt-2 sm:pt-4 px-1 snap-x snap-mandatory hide-scrollbar scroll-smooth"
+        >
+          {achievements.map((node, idx) => {
+            const Icon = iconMap[node.icon?.split('.')[0] || 'Target'] || Target;
+            const progress = Math.min(100, (node.progress / node.requirement) * 100);
+            
+            const cat = node.category?.toLowerCase() || 'default';
+            const color = categoryColors[cat] || categoryColors.default;
 
-          return (
-            <motion.div 
-              key={node.id}
-              onClick={() => setSelectedAchievement(node)}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.04 }}
-              className="bg-white rounded-[2rem] p-5 flex flex-col items-center text-center border border-slate-100 shadow-lg shadow-slate-200/40 hover:shadow-xl hover:scale-[1.03] transition-all cursor-pointer relative group overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              
-              {/* Badge graphic scaled down */}
-              <BadgeGraphic isUnlocked={node.isUnlocked} color={color} icon={Icon} shapeIdx={idx} />
-              
-              {/* Title & Checkmark */}
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <h3 className="font-black text-slate-800 text-[13px] tracking-tight truncate max-w-full">{node.name}</h3>
-                {node.isUnlocked && (
-                  <CheckCircle2 size={12} className="text-emerald-500" strokeWidth={3} />
-                )}
-              </div>
-              
-              {/* Description smaller */}
-              <p className="text-[10px] font-medium text-slate-400 mb-4 line-clamp-2 leading-tight">
-                {node.description}
-              </p>
-              
-              {/* Progress Bar */}
-              <div className="w-full mt-auto space-y-2">
-                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                    className={`h-full rounded-full ${node.isUnlocked ? 'bg-emerald-500' : progress > 0 ? 'bg-blue-600' : 'bg-slate-300'}`} 
-                  />
+            return (
+              <motion.div 
+                key={node.id}
+                onClick={() => setSelectedAchievement(node)}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.04 }}
+                className="min-w-[calc(50%-8px)] sm:min-w-[calc(33.33%-16px)] lg:min-w-[calc(25%-18px)] bg-white rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-7 flex flex-col items-center text-center border border-slate-100 shadow-xl shadow-slate-200/30 hover:shadow-2xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-500 cursor-pointer relative group/card snap-start flex-shrink-0 overflow-hidden"
+              >
+                {/* 3D Glass Accent */}
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-slate-50/50 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none" />
+                
+                {/* Badge graphic scaled for mobile */}
+                <div className="scale-90 sm:scale-100">
+                  <BadgeGraphic isUnlocked={node.isUnlocked} color={color} icon={Icon} shapeIdx={idx} />
                 </div>
-                <div className="flex justify-end">
-                   <span className={`text-[9px] font-black tracking-tighter ${node.isUnlocked ? 'text-emerald-500' : 'text-slate-400'}`}>
-                    {node.progress}/{node.requirement}
-                  </span>
+                
+                {/* Title & Checkmark */}
+                <div className="flex items-center gap-1 mb-1 mt-2 sm:mt-3">
+                  <h3 className="font-black text-slate-800 text-[11px] sm:text-[14px] tracking-tight truncate max-w-full">{node.name}</h3>
+                  {node.isUnlocked && (
+                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                       <CheckCircle2 size={8} className="text-emerald-500" strokeWidth={3} />
+                    </div>
+                  )}
                 </div>
-              </div>
-            </motion.div>
-          );
-        })}
+                
+                {/* Description */}
+                <p className="text-[9px] sm:text-[11px] font-medium text-slate-400 mb-4 sm:mb-6 line-clamp-2 leading-tight sm:leading-relaxed h-[24px] sm:h-[32px]">
+                  {node.description}
+                </p>
+                
+                {/* Progress Bar */}
+                <div className="w-full mt-auto space-y-2 sm:space-y-3">
+                  <div className="relative h-1.5 sm:h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-50">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                      className={`h-full rounded-full ${node.isUnlocked ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]' : progress > 0 ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.3)]' : 'bg-slate-300'}`} 
+                    />
+                  </div>
+                  <div className="flex justify-between items-center px-0.5">
+                     <div className="flex items-center gap-1">
+                        <div className={`w-0.5 sm:w-1 h-0.5 sm:h-1 rounded-full ${node.isUnlocked ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        <span className="text-[7px] sm:text-[9px] font-black text-slate-300 uppercase tracking-widest">Progress</span>
+                     </div>
+                     <span className={`text-[8px] sm:text-[11px] font-black tracking-tighter ${node.isUnlocked ? 'text-emerald-500' : 'text-slate-400'}`}>
+                      {node.progress} <span className="text-slate-300">/</span> {node.requirement}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+        
+        {/* Floating Navigation Overlay */}
+        <div className="absolute inset-y-0 left-0 w-10 sm:w-20 bg-gradient-to-r from-[#f8fafc] to-transparent pointer-events-none opacity-0 group-hover/main:opacity-100 transition-opacity duration-700" />
+        <div className="absolute inset-y-0 right-0 w-10 sm:w-20 bg-gradient-to-l from-[#f8fafc] to-transparent pointer-events-none opacity-0 group-hover/main:opacity-100 transition-opacity duration-700" />
       </div>
+
+      {/* ─── THE ASCENT TRACKER ─── */}
+      <div className="mt-2 sm:mt-4 px-1 sm:px-2">
+         <div className="flex items-center gap-2 sm:gap-4">
+            <span className="text-[7px] sm:text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Start</span>
+            <div className="flex-1 h-[1px] sm:h-[2px] bg-slate-200/50 rounded-full relative overflow-hidden">
+               <motion.div 
+                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-[var(--color-accent)] to-blue-500 shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.5)]"
+                 style={{ width: `${scrollProgress}%` }}
+               />
+            </div>
+            <span className="text-[7px] sm:text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">End</span>
+         </div>
+      </div>
+
+      <style jsx global>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
 
       {/* Detail modal */}
       <AnimatePresence>
