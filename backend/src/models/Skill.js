@@ -52,8 +52,10 @@ export class SkillModel {
 
   /**
    * Get all skills with optional filters
+   * @param {Object} filters - search/category/sort filters
+   * @param {string|null} currentUserId - if provided, also include this user's pending skills
    */
-  static async getAll(filters = {}) {
+  static async getAll(filters = {}, currentUserId = null) {
     let query = getClient()
       .from('skills')
       .select(`
@@ -69,13 +71,18 @@ export class SkillModel {
       query = query.ilike('name', `%${filters.search}%`);
     }
 
+    // Status filter: show active + the current user's own pending tribes
+    if (currentUserId) {
+      // Show active OR (pending AND owned by current user)
+      query = query.or(`status.eq.active,and(status.eq.pending,user_id.eq.${currentUserId})`);
+    } else {
+      // No authenticated user — only show active
+      query = query.eq('status', 'active');
+    }
+
     let finalQuery = query;
     if (filters.sortBy === 'rating') {
-      // Note: Supabase doesn't easily sort by joined views in a single 'order' call on the main table
-      // but since we are flattening anyway, we can sort the results in memory OR try a raw order
-      // For simplicity and correctness with pagination (if added later), 
-      // we'll try to order by the skill_ratings view if possible, or just sort in memory.
-      // Since SkillModel already flattens, we can sort after retrieval.
+      // Sort by rating in memory after retrieval
     } else {
       finalQuery = finalQuery.order('created_at', { ascending: false });
     }

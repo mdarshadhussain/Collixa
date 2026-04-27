@@ -1,16 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Award, Lock, Star, Footprints, Lightbulb, Crown, Users, Target, Trophy, Wrench, Briefcase, MessageSquare, Megaphone, Share2, PiggyBank, Loader2, ArrowUpRight, X } from 'lucide-react'
+import { Lock, Star, Target, Trophy, Briefcase, MessageSquare, Megaphone, Share2, PiggyBank, Award, Compass, Loader2, X, Footprints, Lightbulb, Crown, Users, Wrench, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Badge from '@/components/Badge'
-
 import { API_URL } from '@/lib/supabase'
 
 const iconMap: { [key: string]: React.ElementType } = {
   Footprints, Lightbulb, Crown, Star, Handshake: Users, Target,
   Trophy, Wrench, Toolbox: Briefcase, MessageSquare, Megaphone,
-  Share2, PiggyBank, Award
+  Share2, PiggyBank, Award, Compass
 }
 
 interface Achievement {
@@ -24,290 +22,290 @@ interface Achievement {
   progress: number
   isUnlocked: boolean
   unlockedAt: string | null
+  accentColor?: string
+  level?: number
 }
 
-interface AchievementsSectionProps {
-  userId?: string
-  variant?: 'full' | 'summary'
+const categoryColors: { [key: string]: string } = {
+  intents: '#3b82f6', // blue
+  sessions: '#10b981', // green
+  skills: '#f59e0b', // yellow
+  social: '#8b5cf6', // purple
+  credits: '#ec4899', // pink
+  default: '#f97316' // orange
 }
 
-export default function AchievementsSection({ userId, variant = 'full' }: AchievementsSectionProps) {
+const BadgeGraphic = ({ isUnlocked, color, icon: Icon, shapeIdx }: any) => {
+  const shapes = ['circle', 'pentagon', 'hexagon', 'shield'];
+  const shape = isUnlocked ? shapes[shapeIdx % shapes.length] : 'shield';
+  
+  // High-fidelity gradients and shadows
+  const id = `gradient-${shapeIdx}`;
+  const filterId = `shadow-${shapeIdx}`;
+  const glossId = `gloss-${shapeIdx}`;
+
+  const renderShape = () => {
+    const baseColor = isUnlocked ? color : '#e2e8f0';
+    const darkColor = isUnlocked ? `${color}dd` : '#cbd5e1';
+    const lightColor = isUnlocked ? `${color}ff` : '#f1f5f9';
+
+    switch (shape) {
+      case 'circle':
+        return (
+          <g filter={`url(#${filterId})`}>
+            <circle cx="40" cy="45" r="38" fill={`url(#${id})`} stroke="white" strokeWidth="1" strokeOpacity="0.2" />
+            <circle cx="40" cy="45" r="30" fill="white" fillOpacity="0.1" />
+            <circle cx="40" cy="45" r="30" fill={`url(#${glossId})`} />
+          </g>
+        );
+      case 'pentagon':
+        return (
+          <g filter={`url(#${filterId})`}>
+            <polygon points="40,5 78,32 63,80 17,80 2,32" fill={`url(#${id})`} stroke="white" strokeWidth="1" strokeOpacity="0.2" />
+            <polygon points="40,14 70,36 58,72 22,72 10,36" fill="white" fillOpacity="0.1" />
+            <polygon points="40,14 70,36 58,72 22,72 10,36" fill={`url(#${glossId})`} />
+          </g>
+        );
+      case 'hexagon':
+        return (
+          <g filter={`url(#${filterId})`}>
+            <polygon points="40,5 75,25 75,65 40,85 5,65 5,25" fill={`url(#${id})`} stroke="white" strokeWidth="1" strokeOpacity="0.2" />
+            <polygon points="40,14 66,29 66,61 40,76 14,61 14,29" fill="white" fillOpacity="0.1" />
+            <polygon points="40,14 66,29 66,61 40,76 14,61 14,29" fill={`url(#${glossId})`} />
+          </g>
+        );
+      case 'shield':
+      default:
+        return (
+          <g filter={`url(#${filterId})`}>
+            <path d="M40 5 L75 18 L75 50 C75 72 40 85 40 85 C40 85 5 72 5 50 L5 18 Z" fill={`url(#${id})`} stroke="white" strokeWidth="1" strokeOpacity="0.2" />
+            <path d="M40 14 L66 24 L66 48 C66 65 40 75 40 75 C40 75 14 65 14 48 L14 24 Z" fill="white" fillOpacity="0.1" />
+            <path d="M40 14 L66 24 L66 48 C66 65 40 75 40 75 C40 75 14 65 14 48 L14 24 Z" fill={`url(#${glossId})`} />
+          </g>
+        );
+    }
+  };
+
+  return (
+    <div className="relative w-20 h-24 flex items-center justify-center mb-2">
+      <svg width="80" height="90" viewBox="0 0 80 90" className="drop-shadow-xl">
+        <defs>
+          <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={isUnlocked ? color : '#f1f5f9'} />
+            <stop offset="100%" stopColor={isUnlocked ? `${color}bb` : '#cbd5e1'} />
+          </linearGradient>
+          <linearGradient id={glossId} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.3" />
+            <stop offset="50%" stopColor="white" stopOpacity="0" />
+            <stop offset="100%" stopColor="black" stopOpacity="0.1" />
+          </linearGradient>
+          <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" />
+            <feOffset dx="1" dy="1.5" result="offsetblur" />
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.3" />
+            </feComponentTransfer>
+            <feMerge>
+              <feMergeNode />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        {renderShape()}
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center pb-1">
+        <div className={`p-2 rounded-full ${isUnlocked ? 'bg-white/20' : 'bg-black/5'} backdrop-blur-[1px] shadow-inner`}>
+           <Icon size={18} color={isUnlocked ? "white" : "#94a3b8"} className="drop-shadow-md" strokeWidth={2.5} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function AchievementsSection({ userId, variant = 'full' }: { userId?: string, variant?: string }) {
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
 
   useEffect(() => {
-    fetchAchievements()
+    fetch(`${API_URL}/api/achievements`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        let list = data.data || [];
+
+        // Sort: Unlocked first, then by progress percentage
+        list.sort((a: Achievement, b: Achievement) => {
+          if (a.isUnlocked !== b.isUnlocked) return a.isUnlocked ? -1 : 1;
+          const progA = a.progress / a.requirement;
+          const progB = b.progress / b.requirement;
+          return progB - progA;
+        });
+
+        // Ensure enough cards for a full grid (18 for 6x3)
+        if (list.length < 18) {
+          const padding = 18 - list.length;
+          for (let i = 0; i < padding; i++) {
+            list.push({
+              id: `mock-${i}`,
+              name: `Milestone ${list.length + 1}`,
+              description: "Keep going to unlock this milestone.",
+              icon: 'Compass',
+              requirement: 100,
+              reward: 50,
+              category: 'default',
+              progress: 0,
+              isUnlocked: false,
+              unlockedAt: null
+            });
+          }
+        }
+        setAchievements(list.slice(0, 18));
+      })
+      .catch(() => setError('Failed to load achievements'))
+      .finally(() => setLoading(false))
   }, [userId])
 
-  const fetchAchievements = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/achievements`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setAchievements(data.data)
-      } else {
-        setError('Failed to load achievements')
-      }
-    } catch (err) {
-      setError('Failed to load achievements')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const groupedAchievements = achievements.reduce((acc, achievement) => {
-    if (!acc[achievement.category]) acc[achievement.category] = []
-    acc[achievement.category].push(achievement)
-    return acc
-  }, {} as { [key: string]: Achievement[] })
-
-  const categoryLabels: { [key: string]: string } = {
-    intents: 'Intent Mastery',
-    sessions: 'Intent Sessions',
-    skills: 'Skill Sharing',
-    social: 'Community',
-    credits: 'Credit Economy'
-  }
-
-  if (loading) return <div className="flex items-center justify-center py-8"><Loader2 size={24} className="animate-spin text-[var(--color-accent)]" /></div>
-  if (error) return <div className="text-center py-8 text-[var(--color-text-secondary)]"><p>{error}</p></div>
-
-  const unlockedCount = achievements.filter(a => a.isUnlocked).length
-  const totalRewards = achievements.filter(a => a.isUnlocked).reduce((sum, a) => sum + a.reward, 0)
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="animate-spin text-[var(--color-accent)]" size={28} />
+    </div>
+  );
+  if (error) return <div className="text-center py-12 text-slate-400">{error}</div>;
 
   return (
-    <div className="space-y-12 pb-24">
-      {/* ─── SUMMARY HERO ─── */}
-      {variant === 'full' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div className="bg-[var(--color-bg-secondary)]/50 backdrop-blur-md rounded-[2.5rem] p-8 border border-[var(--color-border)] shadow-xl shadow-black/5 flex items-center gap-8 group hover:border-[var(--color-accent)] transition-all duration-500">
-              <div className="w-20 h-20 rounded-full bg-[var(--color-accent)] text-[var(--color-inverse-text)] flex items-center justify-center shadow-lg shadow-[var(--color-accent)]/20 group-hover:scale-110 transition-transform duration-500">
-                 <Award size={32} />
-              </div>
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] opacity-60">Legacy Milestone</p>
-                 <p className="text-4xl font-black text-[var(--color-text-primary)] mt-1 tracking-tighter">
-                    {unlockedCount} <span className="text-lg font-light text-[var(--color-text-secondary)] opacity-40">/ {achievements.length}</span>
-                 </p>
-                 <div className="mt-2 h-1 w-32 bg-[var(--color-border)] rounded-full overflow-hidden">
-                    <div className="h-full bg-[var(--color-accent)]" style={{ width: `${(unlockedCount / achievements.length) * 100}%` }} />
-                 </div>
-              </div>
-           </div>
-           <div className="bg-[var(--color-bg-secondary)]/50 backdrop-blur-md rounded-[2.5rem] p-8 border border-[var(--color-border)] shadow-xl shadow-black/5 flex items-center gap-8 group hover:border-amber-500/50 transition-all duration-500">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:rotate-12 transition-transform duration-500">
-                 <Star size={32} fill="currentColor" />
-              </div>
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] opacity-60">Economy Impact</p>
-                 <p className="text-4xl font-black text-[var(--color-text-primary)] mt-1 tracking-tighter">+{totalRewards.toLocaleString()} <span className="text-sm font-black uppercase tracking-widest text-amber-500">CR</span></p>
-                 <p className="text-[9px] font-medium text-[var(--color-text-secondary)] mt-1">Total value discovered from deeds</p>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* ─── ROADMAP TIMELINE ─── */}
-      <div className="relative max-w-4xl mx-auto py-12 md:py-24">
-         {/* Glowing Spine */}
-         <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-[var(--color-border)] to-transparent rounded-full md:-translate-x-1/2 shadow-[0_0_15px_rgba(255,255,255,0.05)]" />
-
-         {Object.entries(groupedAchievements).map(([category, items], catIndex) => (
-           <div key={category} className="mb-24 md:mb-32 relative space-y-8 md:space-y-12">
-              {/* Category Checkpoint Node */}
-              <div className="flex items-center justify-start md:justify-center sticky top-24 z-20">
-                 <div className="bg-[var(--color-bg-primary)] border border-[var(--color-accent)] px-8 py-3 rounded-full shadow-[0_0_30px_rgba(var(--color-accent-rgb),0.15)] flex items-center gap-3 backdrop-blur-md relative ml-[4px] md:ml-0 translate-x-0">
-                    <Crown size={16} className="text-[var(--color-accent)]" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-primary)] drop-shadow-sm">
-                      {categoryLabels[category] || category}
-                    </span>
-                 </div>
-              </div>
-
-              <div className="space-y-4 md:space-y-0 relative z-10 w-full">
-                 {items.map((achievement, i) => {
-                   const isLeft = i % 2 === 0
-                   // Extract icon safely without ext
-                   const baseIcon = achievement.icon.split('.')[0]
-                   const Icon = iconMap[baseIcon] || Target
-                   const progressPercent = Math.min(100, (achievement.progress / achievement.requirement) * 100)
-                   const isUnlocked = achievement.isUnlocked
-                   
-                   return (
-                      <div key={achievement.id} className="relative flex items-center py-4 md:py-8 w-full group">
-                         {/* The Visual Node Marker (Center point on line) */}
-                         <div 
-                           className={`absolute left-6 md:left-1/2 w-14 h-14 -translate-x-1/2 rounded-full border-[3px] flex items-center justify-center transition-all duration-500 z-20 cursor-pointer 
-                            ${isUnlocked 
-                               ? 'bg-[var(--color-bg-primary)] border-[var(--color-accent)] shadow-[0_0_40px_rgba(var(--color-accent-rgb),0.4)] md:group-hover:scale-110' 
-                               : 'bg-[var(--color-bg-primary)] border-[var(--color-border)] opacity-80 md:group-hover:border-[var(--color-accent)] md:group-hover:opacity-100 md:group-hover:scale-105'
-                            }`}
-                           onClick={() => setSelectedAchievement(achievement)}
-                         >
-                            {isUnlocked ? (
-                              <Icon size={20} className="text-[var(--color-accent)] drop-shadow-lg" />
-                            ) : (
-                              <Lock size={16} className="text-[var(--color-text-secondary)] opacity-50" />
-                            )}
-                         </div>
-
-                         {/* Interactive Details Card */}
-                         <div className={`w-full pl-[5rem] md:pl-0 md:w-1/2 flex cursor-pointer ${isLeft ? 'md:pr-16 md:justify-end' : 'md:ml-auto md:pl-16 md:justify-start'}`}>
-                            <div 
-                              onClick={() => setSelectedAchievement(achievement)}
-                              className={`p-5 md:p-6 rounded-[2rem] transition-all duration-500 w-full md:max-w-[340px] border 
-                              ${isUnlocked 
-                                ? 'bg-[var(--color-bg-secondary)] border-[var(--color-border)] hover:border-[var(--color-accent)] shadow-xl hover:shadow-[0_0_30px_rgba(var(--color-accent-rgb),0.1)]' 
-                                : 'bg-transparent border-transparent hover:bg-[var(--color-bg-secondary)] hover:border-[var(--color-border)] opacity-60 hover:opacity-100'
-                              }`}
-                            >
-                              <div className="flex flex-col space-y-3">
-                                 <div className="flex justify-between items-start gap-3">
-                                    <h5 className={`font-serif font-black text-xl leading-tight transition-colors ${isUnlocked ? 'text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}`}>
-                                      {achievement.name}
-                                    </h5>
-                                    {isUnlocked && <ArrowUpRight size={16} className="text-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />}
-                                 </div>
-                                 <p className="text-[11px] font-medium text-[var(--color-text-secondary)] line-clamp-2 leading-relaxed">
-                                   {achievement.description}
-                                 </p>
-                                 <div className="pt-2 flex items-center justify-between">
-                                    {isUnlocked ? (
-                                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-accent-soft)]/20 rounded-full">
-                                        <Star size={10} className="text-[var(--color-accent)] fill-[var(--color-accent)]" />
-                                        <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)]">+{achievement.reward} CR</span>
-                                      </div>
-                                    ) : (
-                                       <div className="w-full space-y-1.5">
-                                         <div className="flex justify-between text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)] opacity-60">
-                                           <span>Progress</span>
-                                           <span>{Math.round(progressPercent)}%</span>
-                                         </div>
-                                         <div className="h-1 bg-[var(--color-border)] rounded-full overflow-hidden">
-                                           <div className="h-full bg-[var(--color-accent)] rounded-full opacity-40 transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
-                                         </div>
-                                       </div>
-                                    )}
-                                 </div>
-                              </div>
-                            </div>
-                         </div>
-                      </div>
-                   )
-                 })}
-              </div>
-           </div>
-         ))}
-
-         {achievements.length === 0 && (
-           <div className="text-center py-24 text-[var(--color-text-secondary)] relative z-10 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-[3rem] shadow-xl">
-             <Award size={48} className="mx-auto mb-6 opacity-20" />
-             <p className="font-serif italic text-xl">The map is unchartered. No achievements to display.</p>
-           </div>
-         )}
+    <div className="w-full bg-[#f8fafc] p-6 rounded-[2.5rem]">
+      {/* Header matching the image */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-black text-slate-900 mb-1 tracking-tight">Achievements</h2>
+        <p className="text-[11px] font-medium text-slate-500 tracking-tight">Unlock your achievements by completing tasks on the platform</p>
       </div>
 
-      {/* ─── MODAL (INTERACTIVE DISCOVERY) ─── */}
+      {/* Grid Layout - Changed to 6 columns */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
+        {achievements.map((node, idx) => {
+          const Icon = iconMap[node.icon?.split('.')[0] || 'Target'] || Target;
+          const progress = Math.min(100, (node.progress / node.requirement) * 100);
+          
+          const cat = node.category?.toLowerCase() || 'default';
+          const color = categoryColors[cat] || categoryColors.default;
+
+          return (
+            <motion.div 
+              key={node.id}
+              onClick={() => setSelectedAchievement(node)}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.04 }}
+              className="bg-white rounded-[2rem] p-5 flex flex-col items-center text-center border border-slate-100 shadow-lg shadow-slate-200/40 hover:shadow-xl hover:scale-[1.03] transition-all cursor-pointer relative group overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              {/* Badge graphic scaled down */}
+              <BadgeGraphic isUnlocked={node.isUnlocked} color={color} icon={Icon} shapeIdx={idx} />
+              
+              {/* Title & Checkmark */}
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <h3 className="font-black text-slate-800 text-[13px] tracking-tight truncate max-w-full">{node.name}</h3>
+                {node.isUnlocked && (
+                  <CheckCircle2 size={12} className="text-emerald-500" strokeWidth={3} />
+                )}
+              </div>
+              
+              {/* Description smaller */}
+              <p className="text-[10px] font-medium text-slate-400 mb-4 line-clamp-2 leading-tight">
+                {node.description}
+              </p>
+              
+              {/* Progress Bar */}
+              <div className="w-full mt-auto space-y-2">
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className={`h-full rounded-full ${node.isUnlocked ? 'bg-emerald-500' : progress > 0 ? 'bg-blue-600' : 'bg-slate-300'}`} 
+                  />
+                </div>
+                <div className="flex justify-end">
+                   <span className={`text-[9px] font-black tracking-tighter ${node.isUnlocked ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    {node.progress}/{node.requirement}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Detail modal */}
       <AnimatePresence>
-         {selectedAchievement && (
-           <motion.div 
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             exit={{ opacity: 0 }}
-             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-             onClick={() => setSelectedAchievement(null)}
-           >
-              <motion.div 
-                initial={{ scale: 0.95, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 20 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl relative"
+        {selectedAchievement && (() => {
+          const a = selectedAchievement;
+          const Icon = iconMap[a.icon?.split('.')[0] || 'Target'] || Target;
+          const progress = Math.min(100, (a.progress / a.requirement) * 100);
+          
+          const cat = a.category?.toLowerCase() || 'default';
+          const color = categoryColors[cat] || categoryColors.default;
+
+          return (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedAchievement(null)}
+                className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="relative bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl z-20 border border-slate-100"
                 onClick={e => e.stopPropagation()}
               >
-                  {/* Image/Art Cover */}
-                  <div className="aspect-[16/10] bg-[var(--color-bg-primary)] relative overflow-hidden flex items-center justify-center group">
-                     {selectedAchievement.icon.includes('.png') || selectedAchievement.icon.includes('.webp') ? (
-                        <img 
-                          src={`/images/achievements/${selectedAchievement.icon}`} 
-                          alt={selectedAchievement.name} 
-                          className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${!selectedAchievement.isUnlocked && 'grayscale opacity-40'}`}
-                        />
-                     ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-accent)]/10 to-transparent flex items-center justify-center">
-                           <Target size={64} className="text-[var(--color-accent)] opacity-20" />
-                        </div>
-                     )}
+                <button
+                  onClick={() => setSelectedAchievement(null)}
+                  className="absolute top-4 right-4 text-slate-300 hover:text-slate-500 transition-colors"
+                >
+                  <X size={18} />
+                </button>
 
-                     {!selectedAchievement.isUnlocked && (
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                           <div className="bg-black/50 p-4 rounded-full border border-white/10 backdrop-blur-md text-white/80">
-                             <Lock size={24} />
-                           </div>
-                        </div>
-                     )}
+                <div className="flex flex-col items-center text-center gap-5">
+                  <BadgeGraphic isUnlocked={a.isUnlocked} color={color} icon={Icon} shapeIdx={achievements.findIndex(x => x.id === a.id)} />
 
-                     <button 
-                       onClick={() => setSelectedAchievement(null)}
-                       className="absolute top-4 right-4 p-2 bg-black/40 backdrop-blur-md rounded-full text-white/70 hover:bg-black/60 transition-colors border border-white/10"
-                     >
-                        <X size={16} />
-                     </button>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">{a.name}</h3>
+                    <p className="text-sm text-slate-500 mt-1 leading-relaxed">{a.description}</p>
                   </div>
 
-                  {/* Body Content */}
-                  <div className="p-8 md:p-10 text-center space-y-6">
-                     <div className="space-y-3">
-                        <span className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--color-bg-primary)] rounded-full border border-[var(--color-border)] text-[8px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)]">
-                          {categoryLabels[selectedAchievement.category] || selectedAchievement.category}
-                        </span>
-                        <h2 className="text-3xl font-serif font-black text-[var(--color-text-primary)] tracking-tight">
-                          {selectedAchievement.name}
-                        </h2>
-                        <p className="text-[var(--color-text-secondary)] leading-relaxed font-medium">
-                          {selectedAchievement.description}
-                        </p>
-                     </div>
-
-                     <div className="pt-6 border-t border-[var(--color-border)] w-full">
-                        {selectedAchievement.isUnlocked ? (
-                           <div className="bg-[var(--color-accent-soft)]/10 border border-[var(--color-accent)]/20 rounded-2xl p-6 flex flex-col items-center justify-center gap-2">
-                             <div className="flex items-center gap-3 text-[var(--color-accent)]">
-                               <Star size={24} fill="currentColor" />
-                               <span className="text-3xl font-black tabular-nums translate-y-px">+{selectedAchievement.reward}</span>
-                             </div>
-                             <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] opacity-80">Credits Awarded</p>
-                           </div>
-                        ) : (
-                           <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-6">
-                              <div className="flex justify-between items-end mb-3">
-                                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">Requirement Unmet</p>
-                                 <p className="text-xl font-black text-[var(--color-text-primary)]">
-                                   {selectedAchievement.progress} <span className="text-[10px] text-[var(--color-text-secondary)]">/ {selectedAchievement.requirement}</span>
-                                 </p>
-                              </div>
-                              <div className="h-2 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden shadow-inner">
-                                <div 
-                                   className="h-full bg-[var(--color-text-secondary)] opacity-40 rounded-full" 
-                                   style={{ width: `${Math.min(100, (selectedAchievement.progress / selectedAchievement.requirement) * 100)}%` }} 
-                                />
-                              </div>
-                              <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)] flex items-center justify-center gap-1 opacity-50">
-                                <Lock size={12} /> Reward Locked
-                              </p>
-                           </div>
-                        )}
-                     </div>
+                  {/* Progress detail */}
+                  <div className="w-full space-y-2">
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>Progress</span>
+                      <span className="font-semibold text-slate-600">{a.progress} / {a.requirement}</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full transition-all duration-1000"
+                        style={{ backgroundColor: color, width: `${progress}%` }}
+                      />
+                    </div>
                   </div>
+
+                  {/* Reward */}
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 w-full">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Reward</p>
+                    <p className="text-lg font-bold text-slate-800">+{a.reward} Credits</p>
+                  </div>
+                </div>
               </motion.div>
-           </motion.div>
-         )}
+            </div>
+          );
+        })()}
       </AnimatePresence>
     </div>
-  )
+  );
 }

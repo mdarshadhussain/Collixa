@@ -384,7 +384,7 @@ function CreateIntentContent() {
                     </div>
 
                     {/* Location & Deadline Row */}
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-3">
                         <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
                           <MapPin size={16} className="text-[var(--color-accent)]" /> Location
@@ -411,7 +411,7 @@ function CreateIntentContent() {
                     </div>
 
                     {/* Budget & Attachment Row */}
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-3">
                         <label className="text-base md:text-lg font-serif font-bold italic text-[var(--color-text-primary)] flex items-center gap-2">
                           <DollarSign size={16} className="text-[var(--color-accent)]" /> Budget / Exchange

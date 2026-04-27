@@ -318,58 +318,22 @@ export class ChatService {
   /**
    * Accept a direct chat invitation
    */
-  static async acceptDirectRequest(senderId, recipientId) {
-    // 1. Find or Create the conversation record
-    const { data: existing } = await getClient()
+  static async acceptDirectRequest(conversationId, recipientId) {
+    const { data: conversation, error: updateError } = await getClient()
       .from('conversations')
-      .select('id')
-      .eq('type', 'DIRECT')
-      .or(`participant_1.eq.${senderId},participant_2.eq.${senderId}`)
-      .or(`participant_1.eq.${recipientId},participant_2.eq.${recipientId}`)
-      .maybeSingle();
+      .update({
+        status: 'ACCEPTED',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId)
+      .select()
+      .single();
 
-    let conversation;
-    let convError;
+    if (updateError || !conversation) throw updateError || new Error('Conversation not found');
 
-    if (existing) {
-      // Update existing PENDING record
-      const { data: updated, error: updateError } = await getClient()
-        .from('conversations')
-        .update({
-          status: 'ACCEPTED',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existing.id)
-        .select()
-        .single();
-      conversation = updated;
-      convError = updateError;
-    } else {
-      // Create fresh record (fallback)
-      const { data: created, error: createError } = await getClient()
-        .from('conversations')
-        .insert([{
-          type: 'DIRECT',
-          participant_1: senderId,
-          participant_2: recipientId,
-          status: 'ACCEPTED',
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-      conversation = created;
-      convError = createError;
-    }
+    const senderId = conversation.participant_1 === recipientId ? conversation.participant_2 : conversation.participant_1;
 
-    if (convError) throw convError;
-
-    // 2. Add participants
-    await getClient().from('conversation_participants').insert([
-      { conversation_id: conversation.id, user_id: senderId, role: 'MEMBER' },
-      { conversation_id: conversation.id, user_id: recipientId, role: 'MEMBER' }
-    ]);
-
-    // 3. Send system message
+    // Send system message
     const { data: sender } = await getClient().from('users').select('name').eq('id', senderId).single();
     const { data: recipient } = await getClient().from('users').select('name').eq('id', recipientId).single();
 
@@ -380,7 +344,39 @@ export class ChatService {
       'system'
     );
 
+    // Notify requester
+    try {
+      await NotificationService.notifyRequestResponse(senderId, recipient?.name || 'A user', 'direct chat', true);
+    } catch (e) { console.error('Failed to notify requester:', e); }
+
     return conversation;
+  }
+
+  /**
+   * Reject a direct chat invitation
+   */
+  static async rejectDirectRequest(conversationId, recipientId) {
+    const { data: conversation, error: updateError } = await getClient()
+      .from('conversations')
+      .update({
+        status: 'REJECTED',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId)
+      .select()
+      .single();
+
+    if (updateError || !conversation) throw updateError || new Error('Conversation not found');
+
+    const senderId = conversation.participant_1 === recipientId ? conversation.participant_2 : conversation.participant_1;
+    const { data: recipient } = await getClient().from('users').select('name').eq('id', recipientId).single();
+
+    // Notify requester
+    try {
+      await NotificationService.notifyRequestResponse(senderId, recipient?.name || 'A user', 'direct chat', false);
+    } catch (e) { console.error('Failed to notify requester:', e); }
+
+    return true;
   }
 
   /**

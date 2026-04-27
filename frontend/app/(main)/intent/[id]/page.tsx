@@ -325,7 +325,7 @@ export default function IntentDetailPage() {
   return (
     <>
       <div className="space-y-6 md:space-y-12">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 pt-2 pb-6 md:pt-4 md:pb-12 md:px-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-6 md:pt-4 md:pb-12 md:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-12">
 
             {/* Left Column: Essential Details */}
@@ -368,7 +368,7 @@ export default function IntentDetailPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-4 border-l border-[var(--color-border)] pl-4 sm:pl-6">
+                  <div className="flex flex-wrap items-center gap-4 border-l-0 sm:border-l border-[var(--color-border)] pl-0 sm:pl-6">
                     <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
                       <MapPin size={12} className="text-[var(--color-accent)]" />
                       <span className="text-[9px] font-bold uppercase tracking-widest">{intent.location || 'Remote'}</span>
@@ -428,7 +428,7 @@ export default function IntentDetailPage() {
                       <div className="flex items-center gap-2">
                         {intent.status === 'looking' ? (
                           isParticipant ? (
-                            <Button variant="accent" onClick={() => router.push('/chat')}>
+                            <Button variant="accent" onClick={() => router.push(`/chat?id=${intent.conversation_id || ''}`)}>
                               <MessageCircle size={16} /> Chat Room
                             </Button>
                           ) : (
@@ -451,7 +451,7 @@ export default function IntentDetailPage() {
                               >
                                 {isConfirming ? <Loader2 className="animate-spin" size={16} /> : hasConfirmed ? "Waiting" : "Finish"}
                               </Button>
-                              <Button variant="outline" onClick={() => router.push('/chat')}>
+                              <Button variant="outline" onClick={() => router.push(`/chat?id=${intent.conversation_id || ''}`)}>
                                 <MessageCircle size={18} />
                               </Button>
                             </div>

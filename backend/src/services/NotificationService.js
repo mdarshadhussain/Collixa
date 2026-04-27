@@ -60,12 +60,13 @@ export class NotificationService {
   }
 
   static async notifyRequestResponse(requesterId, providerName, skillName, accepted) {
+    const isChat = skillName === 'direct chat';
     return await this.send(
       requesterId,
       accepted ? 'REQUEST_ACCEPTED' : 'REQUEST_REJECTED',
-      accepted ? 'Admitted to Tribe! 🏹' : 'Admission Update',
-      `${providerName} has ${accepted ? 'accepted' : 'declined'} your request for "${skillName}".`,
-      accepted ? '/skills?tab=enrollments' : null
+      accepted ? (isChat ? 'Chat Request Accepted' : 'Admitted to Tribe! 🏹') : 'Request Update',
+      `${providerName} has ${accepted ? 'accepted' : 'declined'} your request for ${isChat ? 'a direct chat' : `"${skillName}"`}.`,
+      accepted ? (isChat ? '/chat' : '/skills?tab=enrollments') : null
     );
   }
 

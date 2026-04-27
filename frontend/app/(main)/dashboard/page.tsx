@@ -31,7 +31,7 @@ export default function DashboardPage() {
   const [pendingConversations, setPendingConversations] = useState<any[]>([])
   const [pendingExchanges, setPendingExchanges] = useState<any[]>([])
   const [pendingCollaborationRequests, setPendingCollaborationRequests] = useState<any[]>([])
-  const [activeSessionsCount, setActiveSessionsCount] = useState(0)
+  const [activeTribesCount, setActiveTribesCount] = useState(0)
   const [recommendations, setRecommendations] = useState<{ intents: any[], partners: any[] } | null>(null)
 
   const [loading, setLoading] = useState(true)
@@ -113,14 +113,13 @@ export default function DashboardPage() {
         })
         .catch(err => console.error('Exchanges fetch failed:', err))
 
-      sessionService.getMySessions()
-        .then(sessionsRes => {
-          if (sessionsRes && sessionsRes.success) {
-            const active = sessionsRes.data.filter((s: any) => s.status !== 'COMPLETED' && s.status !== 'CANCELLED')
-            setActiveSessionsCount(active.length)
+      skillService.getUserSkills(authUser.id)
+        .then(res => {
+          if (res && res.success) {
+            setActiveTribesCount(res.data.length)
           }
         })
-        .catch(err => console.error('Sessions fetch failed:', err))
+        .catch(err => console.error('Tribes fetch failed:', err))
 
       intentService.getPendingActions()
         .then(pendingActions => {
@@ -147,10 +146,10 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="max-w-[1500px] mx-auto space-y-12 pb-20 mt-0 px-2 md:px-0">
+      <div className="max-w-[1500px] mx-auto space-y-12 pb-20 mt-0 px-4 md:px-0">
 
         {/* ─── PERSONAL HUB HERO ─── */}
-        <section className="relative overflow-hidden rounded-3xl md:rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-8 md:p-14 border border-white/5 shadow-2xl shadow-black/30">
+        <section className="relative overflow-hidden rounded-3xl md:rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-6 md:p-14 border border-white/5 shadow-2xl shadow-black/30">
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[var(--color-accent)]/30 to-transparent rounded-full blur-[80px] opacity-60 pointer-events-none" />
           <div className="relative z-10 flex flex-col lg:flex-row gap-10 items-start lg:items-center justify-between">
             <div className="flex items-center gap-6">
@@ -198,12 +197,12 @@ export default function DashboardPage() {
                 <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1 text-center">Credits</p>
               </div>
               <div 
-                onClick={() => router.push('/collaborations')}
+                onClick={() => router.push('/skills?tab=academy')}
                 className="bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center flex-1 lg:min-w-[140px] hover:bg-black/60 transition-colors cursor-pointer group"
               >
-                <Clock size={24} className="text-white/60 mb-3 group-hover:rotate-12 transition-transform" />
-                <h3 className="text-4xl font-black">{activeSessionsCount}</h3>
-                <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1 text-center">Active Sessions</p>
+                <Users size={24} className="text-white/60 mb-3 group-hover:scale-110 transition-transform" />
+                <h3 className="text-4xl font-black">{activeTribesCount}</h3>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mt-1 text-center">Active Tribes</p>
               </div>
             </div>
           </div>
@@ -212,9 +211,9 @@ export default function DashboardPage() {
         {/* ─── BENTO BOX ACTION GRID ─── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-          {/* ACTION CENTER - Takes 1 column */}
-          <section className="md:col-span-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 flex flex-col">
-            <div className="flex items-center justify-between mb-8">
+          {/* ACTION CENTER - Takes 1 column, fixed height */}
+          <section className="md:col-span-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-6 md:p-8 flex flex-col" style={{ maxHeight: '320px' }}>
+            <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-serif font-black tracking-tight">Action Center</h2>
                 <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-1">Pending Inputs</p>
@@ -224,7 +223,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="flex-1 space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar min-h-0">
               {pendingConversations.map(conv => (
                 <div key={conv.id} className="flex items-center gap-4 bg-[var(--color-bg-primary)] p-4 rounded-2xl border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 transition-colors group">
                   <Avatar src={conv.avatar} name={conv.name} size="sm" />
@@ -232,7 +231,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-bold truncate">{conv.name}</p>
                     <p className="text-[10px] font-bold text-[var(--color-accent)]">Message Request</p>
                   </div>
-                  <button onClick={() => router.push(`/chat`)} className="bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-3 rounded-xl group-hover:bg-[var(--color-accent)] transition-colors"><ArrowUpRight size={16} /></button>
+                  <button onClick={() => router.push(`/chat?id=${conv.id}`)} className="bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-3 rounded-xl group-hover:bg-[var(--color-accent)] transition-colors"><ArrowUpRight size={16} /></button>
                 </div>
               ))}
               {pendingExchanges.map(ex => (
@@ -348,7 +347,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : recommendations && (recommendations.intents.length > 0 || recommendations.partners.length > 0) ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {recommendations.intents.map((intent: any, i: number) => (
                 <motion.div
                   key={`rec-intent-${intent.id}`}
@@ -356,14 +355,14 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
                   onClick={() => router.push(`/intent/${intent.id}`)}
-                  className="group bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/10 p-6 rounded-[2.5rem] hover:border-[var(--color-accent)]/40 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5 transition-all cursor-pointer relative overflow-hidden"
+                  className="group bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/10 p-4 sm:p-6 rounded-[2.5rem] hover:border-[var(--color-accent)]/40 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5 transition-all cursor-pointer relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 p-4">
-                    <div className="bg-[var(--color-accent)] text-black text-[8px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
-                      <Sparkles size={10} /> 95% Match
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">{intent.category || 'Potential Fit'}</span>
+                    <div className="bg-[var(--color-accent)] text-black text-[7px] font-black px-2 py-1 rounded-full flex items-center gap-1 shadow-lg shrink-0">
+                      <Sparkles size={8} /> 95% Match
                     </div>
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] mb-3 block">{intent.category || 'Potential Fit'}</span>
                   <h3 className="text-xl font-serif font-black leading-tight mb-4 group-hover:text-[var(--color-accent)] transition-colors line-clamp-2">{intent.title}</h3>
                   <div className="flex items-center gap-3">
                     <Avatar size="sm" src={storageService.getPublicUrl(intent.creator_avatar)} name={intent.creator_name} />
@@ -379,17 +378,17 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: (i + 3) * 0.1 }}
                   onClick={() => router.push(`/profile?uid=${partner.user_id}`)}
-                  className="group bg-[var(--color-inverse-bg)] border border-white/5 p-6 rounded-[2.5rem] hover:border-[var(--color-accent)]/40 transition-all cursor-pointer relative overflow-hidden flex items-center gap-4"
+                  className="group bg-[var(--color-inverse-bg)] border border-white/5 p-4 sm:p-6 rounded-[2.5rem] hover:border-[var(--color-accent)]/40 transition-all cursor-pointer relative overflow-hidden flex flex-col items-center text-center"
                 >
-                  <div className="absolute top-2 right-4">
-                    <span className="text-[6px] font-black uppercase tracking-widest text-[var(--color-accent)]">Suggested Partner</span>
+                  <div className="absolute top-3 right-3 z-10">
+                    <span className="bg-white/10 backdrop-blur-md border border-white/10 text-white text-[6px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-full shadow-lg">Suggested</span>
                   </div>
-                  <Avatar size="lg" src={partner.user?.avatar_url} name={partner.user?.name} className="ring-2 ring-[var(--color-accent)]/30 group-hover:ring-[var(--color-accent)] transition-all" />
+                  <Avatar size="lg" src={partner.user?.avatar_url} name={partner.user?.name} className="ring-2 ring-white/10 group-hover:ring-[var(--color-accent)] transition-all mb-4" />
                   <div>
-                    <h3 className="text-lg font-serif font-black text-white leading-tight">{partner.user?.name}</h3>
-                    <p className="text-[9px] font-bold text-[var(--color-accent)] uppercase tracking-widest mt-1">Specialist in {partner.name}</p>
-                    <div className="flex gap-1 mt-2">
-                      {[1, 2, 3].map(s => <Star key={s} size={8} className="text-yellow-500 fill-yellow-500" />)}
+                    <h3 className="text-sm font-serif font-black text-white leading-tight mb-2 truncate max-w-full px-2">{partner.user?.name}</h3>
+                    <p className="text-[7px] font-bold text-[var(--color-accent)] uppercase tracking-widest line-clamp-2 min-h-[1rem]">{partner.name}</p>
+                    <div className="flex justify-center gap-1 mt-3">
+                      {[1, 2, 3].map(s => <Star key={s} size={6} className="text-yellow-500 fill-yellow-500" />)}
                     </div>
                   </div>
                 </motion.div>
@@ -425,7 +424,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {(sections?.newArrivals || []).slice(0, 4).map((intent, i) => (
               <motion.div
                 key={intent.id}
@@ -436,6 +435,9 @@ export default function DashboardPage() {
                 className="group bg-[var(--color-bg-secondary)] rounded-[2rem] overflow-hidden border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5 transition-all duration-500 cursor-pointer flex flex-col"
               >
                 <div className="aspect-[4/3] bg-[var(--color-bg-primary)] overflow-hidden relative">
+                  <div className="absolute top-3 left-3 z-10">
+                    <span className="bg-[var(--color-accent)] text-black text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-full shadow-xl">New</span>
+                  </div>
                   {intent.attachment_name ? (
                     <img src={storageService.getPublicUrl(intent.attachment_name)} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" alt={intent.title} />
                   ) : (
@@ -446,13 +448,13 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="p-6 flex-1 flex flex-col">
+                <div className="p-4 sm:p-6 flex-1 flex flex-col">
                   <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-3 block">{intent.category || 'General'}</span>
                   <h3 className="text-lg font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors mb-auto">
                     {intent.title}
                   </h3>
 
-                  <div className="flex items-center justify-between text-[var(--color-text-secondary)] mt-6 pt-4 border-t border-[var(--color-border)]">
+                  <div className="flex items-center justify-between text-[var(--color-text-secondary)] mt-4 pt-3 border-t border-[var(--color-border)]">
                     <div className="flex items-center gap-2">
                       <MapPin size={12} className="text-[var(--color-accent)]" />
                       <span className="text-[9px] uppercase font-bold tracking-widest">{intent.location?.split(',')[0] || 'Remote'}</span>
@@ -474,7 +476,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {(sections?.trendingTribes || []).slice(0, 4).map((tribe, i) => (
               <motion.div
                 key={tribe.id}
@@ -484,7 +486,7 @@ export default function DashboardPage() {
                 onClick={() => router.push(`/profile?uid=${tribe.user_id}`)}
                 className="group bg-[var(--color-inverse-bg)] rounded-[2rem] overflow-hidden border border-white/5 hover:border-[var(--color-accent)]/30 hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col"
               >
-                <div className="p-8 flex flex-col items-center text-center space-y-4">
+                <div className="p-4 sm:p-8 flex flex-col items-center text-center space-y-4">
                   <div className="relative">
                     <Avatar src={tribe.user?.avatar_url} name={tribe.user?.name} size="lg" className="ring-4 ring-white/5 group-hover:ring-[var(--color-accent)]/30 transition-all" />
                     <div className="absolute -bottom-2 -right-2 bg-[var(--color-accent)] text-black p-1.5 rounded-full shadow-lg">
@@ -492,11 +494,11 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   
-                  <div>
-                    <h3 className="text-lg font-serif font-black text-white leading-tight group-hover:text-[var(--color-accent)] transition-colors">
+                  <div className="w-full">
+                    <h3 className="text-base font-serif font-black text-white leading-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 h-[2.5rem]">
                       {tribe.name}
                     </h3>
-                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40 mt-2">Shared by {tribe.user?.name}</p>
+                    <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40 mt-3 truncate px-2">Shared by {tribe.user?.name}</p>
                   </div>
 
                   <div className="pt-4 w-full">

@@ -55,21 +55,19 @@ export default function HeroSection() {
           </div>
 
           {/* Right Column: Image */}
-          <div className="md:col-span-7 relative flex justify-end">
+          <div className="md:col-span-7 relative flex justify-end items-center">
             <motion.div
-              initial={{ opacity: 0, x: 50, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-              className="relative w-full max-w-[900px] aspect-[4/3] md:aspect-[1] flex items-center justify-center"
+              className="relative w-full h-full flex items-center justify-center"
             >
-              <div className="absolute inset-0 bg-[var(--lp-bg)] rounded-[3rem] overflow-hidden flex items-center justify-center border border-[var(--lp-text)]/5">
-                <img 
-                  src="/collixa-hero.png" 
-                  alt="Team collaborating" 
-                  className="w-full h-full object-contain object-center transform transition-transform duration-[2rem] hover:scale-105"
-                  loading="eager" // Hero image should load as soon as possible
-                />
-              </div>
+              <img 
+                src="/hero.png" 
+                alt="Creative team collaborating" 
+                className="w-full h-auto object-contain transform transition-transform duration-[2rem] hover:scale-105"
+                loading="eager"
+              />
             </motion.div>
           </div>
         </div>

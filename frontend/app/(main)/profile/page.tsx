@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Edit2, MessageCircle, Share2, Star, MapPin, Briefcase, Calendar, 
-  ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus, Sparkles, Target
+  ArrowLeft, ArrowUpRight, FileUp, Loader2, Save, X, QrCode, Copy, Plus, Sparkles, Target, Layers
 } from 'lucide-react'
 import Button from '@/components/Button'
 import Badge from '@/components/Badge'
@@ -16,7 +16,7 @@ import AchievementsSection from '@/components/AchievementsSection'
 import LearningPathRoadmap from '@/components/LearningPathRoadmap'
 import { useAuth } from '@/app/context/AuthContext'
 import { useToast } from '@/app/context/ToastContext'
-import { Intent, storageService, conversationService } from '@/lib/supabase'
+import { Intent, storageService, conversationService, skillService } from '@/lib/supabase'
 import { notify } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -181,10 +181,9 @@ export default function ProfilePage() {
   const fetchUserSkills = async (userId: string) => {
     setLoadingSkills(true)
     try {
-      const response = await fetch(`${API_URL}/api/skills/user/${userId}`)
-      const data = await response.json()
-      if (response.ok) {
-        setUserSkills(data.data || [])
+      const res = await skillService.getUserSkills(userId)
+      if (res.success) {
+        setUserSkills(res.data || [])
       }
     } catch (err) {
       console.error(err)
@@ -369,7 +368,7 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-1 gap-8">
             <div className="space-y-6">
-              <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-xl shadow-[var(--color-accent)]/5 relative overflow-hidden">
+              <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-xl shadow-[var(--color-accent)]/5 relative overflow-hidden">
 
                 {isEditing && isOwnProfile ? (
                   <div className="space-y-6">
@@ -724,14 +723,26 @@ export default function ProfilePage() {
                       myIntents.map((intent) => (
                         <div
                           key={intent.id}
-                          className="group bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 rounded-[2rem] hover:shadow-2xl transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-8"
-                          onClick={() => router.push(`/intent/${intent.id}`)}
+                          className="group bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-6 md:p-8 rounded-[2.5rem] hover:shadow-2xl transition-all cursor-pointer"
                         >
-                          <div className="space-y-4 flex-1">
-                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)]">{intent.category || 'General'}</span>
-                            <h3 className="text-2xl font-serif font-black text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{intent.title}</h3>
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
+                            <div className="space-y-4 flex-1" onClick={() => router.push(`/intent/${intent.id}`)}>
+                              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)]">{intent.category || 'General'}</span>
+                              <h3 className="text-2xl font-serif font-black text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{intent.title}</h3>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/chat?id=${(intent as any).conversation_id || ''}`);
+                                }}
+                                className="px-6 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-all shadow-sm"
+                              >
+                                <MessageCircle size={14} className="text-[var(--color-accent)]" /> Group Chat
+                              </button>
+                              <ArrowUpRight size={28} className="text-[var(--color-accent)] hidden md:block" onClick={() => router.push(`/intent/${intent.id}`)} />
+                            </div>
                           </div>
-                          <ArrowUpRight size={28} className="text-[var(--color-accent)]" />
                         </div>
                       ))
                     ) : (
@@ -748,13 +759,45 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {userSkills.length > 0 ? (
                       userSkills.map((skill) => (
-                        <div key={skill.id} className="bg-[var(--color-bg-secondary)] border p-6 rounded-[2rem]">
-                          <h4 className="text-lg font-serif font-black">{skill.name}</h4>
-                          <p className="text-[11px] text-[var(--color-text-secondary)] italic mt-2 line-clamp-3">"{skill.description}"</p>
+                        <div key={skill.id} className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-8 rounded-[2.5rem] hover:border-[var(--color-accent)] transition-all group cursor-pointer flex flex-col justify-between" onClick={() => router.push(`/skills/${skill.id}`)}>
+                          <div>
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="text-[8px] font-black uppercase tracking-[0.2em] px-3 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[var(--color-accent)]">
+                                {skill.category}
+                              </span>
+                              <span className={`text-[7px] font-black uppercase tracking-[0.3em] px-2 py-0.5 rounded-md ${
+                                skill.user_id === profileUser?.id 
+                                  ? 'bg-[var(--color-accent)] text-black' 
+                                  : 'bg-[var(--color-text-secondary)]/10 text-[var(--color-text-secondary)]'
+                              }`}>
+                                {skill.user_id === profileUser?.id ? 'Expert' : 'Member'}
+                              </span>
+                            </div>
+                            <h4 className="text-xl font-serif font-black group-hover:text-[var(--color-accent)] transition-colors">{skill.name}</h4>
+                            <p className="text-[11px] text-[var(--color-text-secondary)] italic mt-3 line-clamp-3 opacity-70">"{skill.description}"</p>
+                          </div>
+                          
+                          <div className="mt-8 pt-6 border-t border-[var(--color-border)] flex flex-col gap-4">
+                            <div className="flex items-center justify-between text-[9px] font-black uppercase opacity-60">
+                               <span>{skill.max_members || 5} Members Limit</span>
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/chat?id=${skill.conversation_id || ''}`);
+                              }}
+                              className="w-full py-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-all shadow-sm"
+                            >
+                               <MessageCircle size={14} className="text-[var(--color-accent)]" /> <span className="text-[var(--color-accent)]">Group Chat</span>
+                            </button>
+                          </div>
                         </div>
                       ))
                     ) : (
-                      <div className="col-span-full py-20 text-center italic opacity-40">No proficiency records.</div>
+                      <div className="col-span-full py-20 text-center italic opacity-40 flex flex-col items-center gap-4">
+                        <Layers size={48} className="opacity-20" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em]">No proficiency records found.</p>
+                      </div>
                     )}
                   </div>
                 )}
@@ -771,6 +814,11 @@ export default function ProfilePage() {
                               <p className="text-[8px] opacity-40 uppercase">{new Date(review.created_at).toLocaleDateString()}</p>
                             </div>
                           </div>
+                          <div className="mt-2 mb-4">
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] opacity-70">
+                              {review.type === 'INTENT' ? `Project: ${review.intent_title}` : `Tribe: ${review.skill_name}`}
+                            </span>
+                          </div>
                           <p className="text-sm italic font-medium">"{review.comment}"</p>
                         </div>
                       ))
@@ -781,7 +829,7 @@ export default function ProfilePage() {
                 )}
 
                 {activeTab === 'achievements' && (
-                  <AchievementsSection userId={profileUser?.id} />
+                  <AchievementsSection userId={profileUser?.id} variant="profile" />
                 )}
 
                 {activeTab === 'history' && isOwnProfile && (

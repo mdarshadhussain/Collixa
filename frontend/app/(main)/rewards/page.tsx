@@ -131,10 +131,10 @@ export default function RewardsPage() {
 
   return (
     <>
-      <div className="max-w-[1400px] mx-auto space-y-12 pb-24 mt-0 px-2 md:px-0">
+      <div className="max-w-[1400px] mx-auto space-y-12 pb-24 mt-0 px-4 md:px-0">
         
         {/* ─── INTERACTIVE XP HERO ─── */}
-        <section className="relative overflow-hidden rounded-[2.5rem] md:rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-8 md:p-12 lg:p-14 shadow-2xl shadow-black/40 border border-white/5">
+        <section className="relative overflow-hidden rounded-[2.5rem] md:rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-6 md:p-12 shadow-2xl shadow-black/40 border border-white/5">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-[var(--color-accent)]/10 to-transparent rounded-full blur-[120px] opacity-40 pointer-events-none" />
           
           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
@@ -245,8 +245,7 @@ export default function RewardsPage() {
            </div>
 
            <div 
-             ref={scrollContainerRef}
-             className="flex overflow-x-auto pb-12 md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 relative no-scrollbar snap-x snap-mandatory"
+             className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-4 md:px-0 relative"
            >
               <div className="hidden lg:block absolute top-[110px] left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none opacity-40" />
 
@@ -262,16 +261,16 @@ export default function RewardsPage() {
                     onClick={() => setSelectedTier(t)}
                     viewport={{ once: true }}
                     transition={{ delay: idx * 0.1 }}
-                    className={`group relative p-6 md:p-8 rounded-[2.5rem] md:rounded-[3.5rem] border transition-all duration-700 flex flex-col justify-between min-h-[220px] md:min-h-[340px] w-[280px] md:w-auto shrink-0 snap-center overflow-hidden cursor-pointer ${
+                    className={`group relative p-4 md:p-8 rounded-[2rem] md:rounded-[3.5rem] border transition-all duration-700 flex flex-col justify-between min-h-[180px] md:min-h-[340px] w-full shrink-0 overflow-hidden cursor-pointer ${
                       isActive 
                       ? 'bg-[#001233] border-[var(--color-accent)] shadow-[0_20px_50px_rgba(var(--color-accent-rgb),0.3)] ring-2 ring-[var(--color-accent)]/30 scale-[1.02] z-10' 
                       : (isAutoHighlighted ? 'bg-[#000814] border-white/20 scale-[1.01] opacity-100 shadow-xl' : 'bg-[#000814] border-white/5 opacity-85 hover:opacity-100 hover:scale-[1.02] hover:border-white/20')
                     }`}
                   >
                     {isActive && (
-                      <div className="absolute top-6 right-6 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-accent)] text-black shadow-lg shadow-[var(--color-accent)]/20 scale-110">
-                         <div className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
-                         <span className="text-[8px] font-black uppercase tracking-widest">Active Rank</span>
+                      <div className="absolute top-4 right-4 z-20 flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-accent)] text-black shadow-lg shadow-[var(--color-accent)]/20 scale-100 sm:scale-110">
+                         <div className="w-1 h-1 rounded-full bg-black animate-pulse" />
+                         <span className="text-[6px] font-black uppercase tracking-widest">Active</span>
                       </div>
                     )}
 
@@ -283,16 +282,16 @@ export default function RewardsPage() {
                     
                     <div className="space-y-4 md:space-y-6 relative z-10">
                       <div className="flex justify-between items-start">
-                         <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${(isActive || isAutoHighlighted) ? 'bg-[var(--color-accent)] text-black shadow-lg shadow-[var(--color-accent)]/30 animate-pulse' : 'bg-white/5 text-white/40 border border-white/10'}`}>
-                            <t.icon size={18} className={`md:w-[26px] md:h-[26px] ${(isActive || isAutoHighlighted) ? 'text-black' : ''}`} />
+                         <div className={`w-8 h-8 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${(isActive || isAutoHighlighted) ? 'bg-[var(--color-accent)] text-black shadow-lg shadow-[var(--color-accent)]/30 animate-pulse' : 'bg-white/5 text-white/40 border border-white/10'}`}>
+                            <t.icon size={14} className={`md:w-[26px] md:h-[26px] ${(isActive || isAutoHighlighted) ? 'text-black' : ''}`} />
                          </div>
                          {!isActive && (
-                            <Badge variant="secondary" className={`bg-white/5 border border-white/10 text-white/30 uppercase tracking-widest text-[7px] md:text-[8px] px-2 md:px-3 font-black`}>Level {t.level}</Badge>
+                            <Badge variant="secondary" className={`hidden md:flex bg-white/5 border border-white/10 text-white/30 uppercase tracking-widest text-[8px] px-3 font-black`}>Level {t.level}</Badge>
                          )}
                       </div>
 
                       <div>
-                        <h3 className={`text-xl md:text-3xl font-serif font-black italic mb-1 tracking-tighter leading-none ${(isActive || isAutoHighlighted) ? 'text-[var(--color-accent)]' : 'text-white'}`}>{t.name}</h3>
+                        <h3 className={`text-md md:text-3xl font-serif font-black italic mb-1 tracking-tighter leading-none ${(isActive || isAutoHighlighted) ? 'text-[var(--color-accent)]' : 'text-white'}`}>{t.name}</h3>
                         {isActive && (
                           <div className="flex items-center gap-1.5 mt-2">
                              <TrendingUp size={10} className="text-[var(--color-accent)]" />
@@ -301,10 +300,10 @@ export default function RewardsPage() {
                         )}
                       </div>
 
-                      <ul className="space-y-2 md:space-y-3 pt-1 md:pt-2">
-                         {t.benefits.map(b => (
-                           <li key={b} className={`flex items-center gap-3 text-[9px] md:text-[10px] font-bold leading-tight group-hover:text-white transition-colors ${(isActive || isAutoHighlighted) ? 'text-white/80' : 'text-white/40'}`}>
-                              <Zap size={8} className="text-[var(--color-accent)] shrink-0 md:w-[10px]" /> {b}
+                      <ul className="space-y-1.5 md:space-y-3 pt-1 md:pt-2">
+                         {t.benefits.slice(0, 3).map(b => (
+                           <li key={b} className={`flex items-center gap-2 text-[8px] md:text-[10px] font-bold leading-tight group-hover:text-white transition-colors ${(isActive || isAutoHighlighted) ? 'text-white/80' : 'text-white/40'}`}>
+                              <Zap size={6} className="text-[var(--color-accent)] shrink-0 md:w-[10px]" /> <span className="truncate">{b}</span>
                            </li>
                          ))}
                       </ul>
@@ -323,10 +322,9 @@ export default function RewardsPage() {
         </section>
 
         {/* ─── INVENTORY & ACTIVITY GRID ─── */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-           
-           <div className="lg:col-span-2 space-y-8">
-              <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-8 px-4">
+        <section className="space-y-8">
+           <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 px-4">
                  <div className="flex items-center gap-5">
                     <div className="p-2.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl shadow-inner">
                        <Award size={24} className="text-[var(--color-accent)]" />
@@ -341,27 +339,32 @@ export default function RewardsPage() {
                     <Badge variant="secondary" className="bg-[var(--color-accent)] text-black uppercase tracking-[0.2em] px-4 py-1.5 font-black shadow-lg text-[9px]">{user.xp || 0} XP</Badge>
                  </div>
               </div>
-              <div className="bg-[var(--color-bg-secondary)]/50 backdrop-blur-sm rounded-[3rem] p-6 md:p-10 border border-[var(--color-border)] shadow-xl shadow-black/5">
+              <div className="bg-[var(--color-bg-secondary)]/50 backdrop-blur-sm rounded-[2rem] md:rounded-[3rem] p-2 md:p-6 border border-[var(--color-border)] shadow-xl shadow-black/5">
                 <AchievementsSection userId={user.id} />
               </div>
            </div>
 
-           <div className="space-y-8 bg-[var(--color-bg-secondary)]/30 border border-[var(--color-border)] rounded-[3rem] p-8 h-fit shadow-lg">
-              <div className="space-y-1">
-                 <div className="flex items-center gap-3">
-                    <Activity size={18} className="text-[var(--color-accent)] animate-pulse" />
-                    <h3 className="text-xl font-serif font-black tracking-tight text-[var(--color-text-primary)]">Progression Log</h3>
-                 </div>
-                 <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] opacity-40">System-level event history</p>
+           <div className="space-y-8 bg-[var(--color-bg-secondary)]/30 border border-[var(--color-border)] rounded-[3rem] p-8 md:p-12 shadow-lg">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                   <div className="flex items-center gap-3">
+                      <Activity size={18} className="text-[var(--color-accent)] animate-pulse" />
+                      <h3 className="text-xl font-serif font-black tracking-tight text-[var(--color-text-primary)]">Progression Log</h3>
+                   </div>
+                   <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] opacity-40">System-level event history</p>
+                </div>
+                <div className="px-4 py-2 bg-[var(--color-accent-soft)]/10 border border-[var(--color-accent)]/20 rounded-full">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)]">Live Feed</span>
+                </div>
               </div>
 
-              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                  <AnimatePresence>
                    {xpHistory.length > 0 ? xpHistory.map((log, idx) => (
                      <motion.div
                        key={log.id}
-                       initial={{ opacity: 0, x: 20 }}
-                       animate={{ opacity: 1, x: 0 }}
+                       initial={{ opacity: 0, y: 10 }}
+                       animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: idx * 0.05 }}
                        className="p-5 rounded-2xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] flex items-center justify-between group hover:border-[var(--color-accent)]/50 transition-all shadow-sm hover:shadow-md"
                      >
@@ -378,7 +381,7 @@ export default function RewardsPage() {
                         </div>
                      </motion.div>
                    )) : (
-                     <div className="py-20 text-center space-y-6 opacity-10">
+                     <div className="col-span-full py-20 text-center space-y-6 opacity-10">
                         <Rocket size={40} className="mx-auto" />
                         <p className="text-[9px] font-black uppercase tracking-widest">Awaiting system input...</p>
                      </div>

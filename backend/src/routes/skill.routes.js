@@ -1,7 +1,7 @@
 import express from 'express';
 import { body, param, query } from 'express-validator';
 import SkillController from '../controllers/SkillController.js';
-import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { authMiddleware, optionalAuthMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -15,7 +15,32 @@ router.get(
     query('category').optional().isString(),
     query('search').optional().isString(),
   ],
+  optionalAuthMiddleware,
   SkillController.getSkills
+);
+
+/**
+ * GET /api/skills/exchanges/me
+ * Get current user's exchange requests (incoming/outgoing)
+ * MUST be before /:id to avoid being caught by the param route
+ */
+router.get(
+  '/exchanges/me',
+  authMiddleware,
+  SkillController.getMyExchanges
+);
+
+/**
+ * GET /api/skills/user/:userId
+ * Get all skills for a specific user (listed and enrolled)
+ * MUST be before /:id to avoid being caught by the param route
+ */
+router.get(
+  '/user/:userId',
+  [
+    param('userId').isUUID().withMessage('Invalid user ID'),
+  ],
+  SkillController.getUserSkills
 );
 
 /**
@@ -29,33 +54,6 @@ router.get(
   ],
   authMiddleware,
   SkillController.getSkillDetail
-);
-
-/**
- * POST /api/skills/:id/notices
- * Post a notice to a tribe (Expert only)
- */
-router.post(
-  '/:id/notices',
-  authMiddleware,
-  [
-    param('id').isUUID().withMessage('Invalid skill ID'),
-    body('content').notEmpty().withMessage('Notice content is required'),
-  ],
-  SkillController.createNotice
-);
-
-/**
- * DELETE /api/skills/notices/:noticeId
- * Delete a notice (Expert only)
- */
-router.delete(
-  '/notices/:noticeId',
-  authMiddleware,
-  [
-    param('noticeId').isUUID().withMessage('Invalid notice ID'),
-  ],
-  SkillController.deleteNotice
 );
 
 /**
@@ -89,13 +87,30 @@ router.post(
 );
 
 /**
- * GET /api/skills/exchanges/me
- * Get current user's exchange requests (incoming/outgoing)
+ * POST /api/skills/:id/notices
+ * Post a notice to a tribe (Expert only)
  */
-router.get(
-  '/exchanges/me',
+router.post(
+  '/:id/notices',
   authMiddleware,
-  SkillController.getMyExchanges
+  [
+    param('id').isUUID().withMessage('Invalid skill ID'),
+    body('content').notEmpty().withMessage('Notice content is required'),
+  ],
+  SkillController.createNotice
+);
+
+/**
+ * DELETE /api/skills/notices/:noticeId
+ * Delete a notice (Expert only)
+ */
+router.delete(
+  '/notices/:noticeId',
+  authMiddleware,
+  [
+    param('noticeId').isUUID().withMessage('Invalid notice ID'),
+  ],
+  SkillController.deleteNotice
 );
 
 /**

@@ -39,7 +39,7 @@ export default function Avatar({
   const finalSrc = src && !imgError ? src : fallbackPreset
 
   return (
-    <div className={`relative rounded-full overflow-hidden border border-[var(--color-border)] ${sizes[size]} ${className}`}>
+    <div className={`relative rounded-full overflow-hidden border border-[var(--color-border)] shrink-0 aspect-square ${sizes[size]} ${className}`}>
       <img
         src={finalSrc}
         alt={name}

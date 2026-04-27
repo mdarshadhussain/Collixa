@@ -92,7 +92,7 @@ export class SessionService {
     const now = new Date();
     const scheduledTime = new Date(session.scheduled_time);
     if (now < scheduledTime) {
-      throw new Error(`Session completion is only allowed after the scheduled time (${scheduledTime.toLocaleString()})`);
+      throw new Error(`Session completion is only allowed after the scheduled time (\${scheduledTime.toLocaleString()})`);
     }
 
     if (session.status === 'COMPLETED') {
@@ -106,11 +106,13 @@ export class SessionService {
       updates.receiver_confirmed = true;
     }
 
-    // Safety check for existing state
     const isSenderAlreadyConfirmed = session.sender_confirmed === true || updates.sender_confirmed === true;
     const isReceiverAlreadyConfirmed = session.receiver_confirmed === true || updates.receiver_confirmed === true;
 
     if (isSenderAlreadyConfirmed && isReceiverAlreadyConfirmed) {
+      console.log(`[SessionService] Both confirmed, completing session: \${sessionId}`);
+      updates.status = 'COMPLETED';
+      
       const learner = await UserModel.findById(session.sender_id);
       const teacher = await UserModel.findById(session.receiver_id);
 
@@ -121,17 +123,13 @@ export class SessionService {
         throw new Error('Learner has insufficient credits');
       }
       
-      console.log(`[SessionService] Transferring 10 credits from ${learner.id} to ${teacher.id} for session ${session.id}`);
+      console.log(`[SessionService] Transferring 10 credits from \${learner.id} to \${teacher.id} for session \${session.id}`);
       
-      // Use CreditService for consistent transaction recording and notifications
       await CreditService.deductCredits(learner.id, 10, 'SPEND');
       await CreditService.addCredits(teacher.id, 10, 'EARN', session.id);
 
-      updates.status = 'COMPLETED';
-
       // AWARD XP: Provider gets 150 XP for teaching a session
       LevelService.awardXP(teacher.id, 150).catch(err => console.error('XP Award failure (Provider):', err));
-      // Optionally give some to the learner too? Let's just do provider for now per plan.
     }
 
     return await SessionModel.update(session.id, updates);

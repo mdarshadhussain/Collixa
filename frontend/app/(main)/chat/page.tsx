@@ -30,7 +30,7 @@ interface UIConversation {
   lastMessage: string
   unread: number
   status: 'online' | 'offline'
-  chatStatus?: 'PENDING' | 'ACCEPTED'
+  chatStatus?: 'PENDING' | 'ACCEPTED' | 'REJECTED'
   chatType: 'DIRECT' | 'GROUP'
   isSender?: boolean
   role?: 'ADMIN' | 'MEMBER'
@@ -151,7 +151,7 @@ export default function ChatPage() {
             lastMessage: conv.last_message || 'New Match!',
             unread: 0,
             status: 'online',
-            chatStatus: (conv.status as 'PENDING' | 'ACCEPTED') || 'ACCEPTED',
+            chatStatus: (conv.status as 'PENDING' | 'ACCEPTED' | 'REJECTED') || 'ACCEPTED',
             chatType: 'DIRECT',
             isSender: isUserP1,
             admin_id: conv.admin_id,
@@ -163,16 +163,21 @@ export default function ChatPage() {
         
         setSelectedConversation(currentSelected => {
           if (!currentSelected && mapped.length > 0) {
-            const target = chatIdFromUrl 
-              ? mapped.find(c => c.id.toString() === chatIdFromUrl) || mapped[0]
-              : mapped[0]
-              
             if (chatIdFromUrl) {
-              setMobileShowConversations(false)
-            } else {
-              setMobileShowConversations(true)
+              const target = mapped.find(c => c.id.toString() === chatIdFromUrl);
+              if (target) {
+                // Auto-switch tabs
+                setActiveTab(target.chatType === 'GROUP' ? 'GROUPS' : 'DIRECT');
+                if (target.chatType === 'GROUP') {
+                  setGroupFilter(target.intent_id ? 'INTENT' : 'SKILL');
+                }
+                setMobileShowConversations(false);
+                return target;
+              }
             }
-            return target
+            
+            setMobileShowConversations(true);
+            return mapped[0];
           }
           if (currentSelected) {
             return mapped.find(c => c.id === currentSelected.id) || currentSelected
@@ -310,6 +315,15 @@ export default function ChatPage() {
          
          setMessages(prev => {
             if (prev.some(msg => msg.id === m.id)) return prev;
+
+            // Replace optimistic message if it matches
+            const optimisticIndex = prev.findIndex(msg => msg.isOwn && msg.content === m.content && msg.id > 1000000000000 && m.sender_id === user.id);
+            if (optimisticIndex !== -1) {
+              const newMessages = [...prev];
+              newMessages[optimisticIndex] = { ...newMessages[optimisticIndex], id: m.id };
+              return newMessages;
+            }
+
             return [...prev, {
               id: m.id,
               content: m.content,
@@ -329,7 +343,7 @@ export default function ChatPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [selectedConversation, user])
+  }, [selectedConversation?.id, selectedConversation?.name, selectedConversation?.avatar, selectedConversation?.chatType, user])
 
   const handleScheduleMeeting = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -632,6 +646,38 @@ export default function ChatPage() {
     }
   }
 
+  const handleRejectRequest = async () => {
+    if (!selectedConversation) return
+    const success = await conversationService.rejectMessageRequest(selectedConversation.id)
+    if (success) {
+      setConversations(prev => prev.filter(c => c.id !== selectedConversation.id))
+      setSelectedConversation(null)
+      setMobileShowConversations(true)
+      router.push('/chat')
+    }
+  }
+
+  const handleAcceptRequest = async () => {
+    if (!selectedConversation) return
+    const success = await conversationService.acceptMessageRequest(selectedConversation.id)
+    if (success) {
+      setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, chatStatus: 'ACCEPTED' } : c))
+      setSelectedConversation(prev => prev ? { ...prev, chatStatus: 'ACCEPTED' } : null)
+    }
+  }
+
+  const handleRemoveRejectedChat = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!selectedConversation || !user) return
+    const success = await conversationService.leaveConversation(selectedConversation.id, user.id)
+    if (success) {
+      setConversations(prev => prev.filter(c => c.id !== selectedConversation.id))
+      setSelectedConversation(null)
+      setMobileShowConversations(true)
+      router.push('/chat')
+    }
+  }
+
   const handleDeleteConversation = async () => {
     if (!selectedConversation) return
     setIsChatMenuOpen(false)
@@ -765,10 +811,10 @@ export default function ChatPage() {
                     if (groupFilter === 'ALL') return true;
                     
                     // Intents have an intent_id associated with them
-                    if (groupFilter === 'INTENT') return c.intent_id !== null && c.intent_id !== undefined;
+                    if (groupFilter === 'INTENT') return c.intent_id !== null && c.intent_id !== undefined && c.intent_id !== '';
                     
-                    // Tribes (Skills) are groups without a specific intent_id
-                    if (groupFilter === 'SKILL') return c.intent_id === null || c.intent_id === undefined;
+                    // Tribes (Skills) are groups without an intent_id
+                    if (groupFilter === 'SKILL') return !c.intent_id;
                     
                     return true;
                   });
@@ -841,10 +887,20 @@ export default function ChatPage() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 custom-scrollbar bg-[var(--color-bg-primary)]/20 relative">
-                    {selectedConversation.chatStatus === 'PENDING' ? (
+                    {selectedConversation.chatStatus === 'PENDING' || selectedConversation.chatStatus === 'REJECTED' ? (
                       <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-bg-primary)]/80 backdrop-blur-sm z-20">
                          <div className="text-center p-8 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] shadow-2xl max-w-sm w-full mx-4">
-                            {selectedConversation.isSender ? (
+                            {selectedConversation.chatStatus === 'REJECTED' ? (
+                               <>
+                                 <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                   <X size={24} />
+                                 </div>
+                                 <h3 className="text-xl font-serif font-black italic mb-2">Request Declined</h3>
+                                 <p className="text-[10px] uppercase font-black tracking-widest text-[var(--color-text-secondary)] mb-6">Chat Unavailable</p>
+                                 <p className="text-xs text-[var(--color-text-secondary)] mb-6">{selectedConversation.isSender ? `${selectedConversation.name} declined your chat request.` : `You declined the chat request from ${selectedConversation.name}.`}</p>
+                                 <button onClick={handleRemoveRejectedChat} className="w-full py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl text-[10px] uppercase font-black tracking-widest hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent)] transition-all">Remove Chat</button>
+                               </>
+                            ) : selectedConversation.isSender ? (
                               <>
                                 <h3 className="text-xl font-serif font-black italic mb-2">Request Sent</h3>
                                 <p className="text-[10px] uppercase font-black tracking-widest text-[var(--color-text-secondary)] mb-6">Awaiting Acceptance</p>
@@ -856,12 +912,8 @@ export default function ChatPage() {
                                 <h3 className="text-xl font-serif font-black italic mb-2">Message Request</h3>
                                 <p className="text-[10px] uppercase font-black tracking-widest text-[var(--color-text-secondary)] mb-6">From {selectedConversation.name}</p>
                                 <div className="space-y-3">
-                                  <button onClick={async () => {
-                                    await conversationService.acceptMessageRequest(selectedConversation.id)
-                                    setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, chatStatus: 'ACCEPTED' } : c))
-                                    setSelectedConversation(prev => prev ? { ...prev, chatStatus: 'ACCEPTED' } : null)
-                                  }} className="w-full py-3 bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-xl text-[10px] uppercase font-black tracking-widest hover:bg-[var(--color-inverse-bg)] shadow-lg transition-all">Accept Request</button>
-                                  <button onClick={handleDeleteConversation} className="w-full py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl text-[10px] uppercase font-black tracking-widest hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent)] transition-all">Decline</button>
+                                  <button onClick={handleAcceptRequest} className="w-full py-3 bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-xl text-[10px] uppercase font-black tracking-widest hover:bg-[var(--color-inverse-bg)] shadow-lg transition-all">Accept Request</button>
+                                  <button onClick={handleRejectRequest} className="w-full py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl text-[10px] uppercase font-black tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all">Decline</button>
                                 </div>
                               </>
                             )}

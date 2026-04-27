@@ -25,7 +25,7 @@ import {
   Trash2,
   Edit2
 } from 'lucide-react'
-import { skillService, conversationService, storageService } from '@/lib/supabase'
+import { skillService, sessionService, reviewService, conversationService, storageService } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
 import Avatar from '@/components/Avatar'
 import Badge from '@/components/Badge'
@@ -52,30 +52,31 @@ export default function SkillDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [incomingRequests, setIncomingRequests] = useState<any[]>([])
   const [expertSessions, setExpertSessions] = useState<any[]>([])
-  const [processingExchangeId, setProcessingExchangeId] = useState<string | null>(null)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [reviewedSessionIds, setReviewedSessionIds] = useState<string[]>([])
+  const [reviewTarget, setReviewTarget] = useState<any | null>(null)
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+  const [submittingReview, setSubmittingReview] = useState(false)
 
-  const fetchSkillDetail = useCallback(async () => {
+  const isOwner = user?.id === skill?.user_id
+  const isMember = skill?.members?.some((m: any) => m?.id === user?.id)
+  const isParticipant = isOwner || isMember
+
+  const fetchMyReviews = useCallback(async () => {
+    if (!user) return
     try {
-      setLoading(true)
-      const res = await skillService.getSkillDetail(id as string)
-      if (res.success) {
-        setSkill(res.data)
-        // If owner, fetch requests and sessions
-        if (user?.id === res.data.user_id) {
-          fetchExpertData(res.data.id)
-        }
-      } else {
-        notify.error(res.error || 'Failed to load tribe details')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/reviews/user/${user.id}`)
+      const data = await response.json()
+      if (response.ok && data.data) {
+        const myReviews = data.data.filter((r: any) => r.reviewer_id === user.id)
+        setReviewedSessionIds(myReviews.map((r: any) => r.session_id).filter(Boolean))
       }
     } catch (err) {
-      console.error(err)
-      notify.error('Connection error')
-    } finally {
-      setLoading(false)
+      console.error('Failed to fetch reviews:', err)
     }
-  }, [id, user?.id])
+  }, [user])
 
-  const fetchExpertData = async (skillId: string) => {
+  const fetchTribeData = useCallback(async (skillId: string) => {
     try {
       const [reqsRes, sessionsRes] = await Promise.all([
         skillService.getIncomingRequests(),
@@ -90,17 +91,37 @@ export default function SkillDetailPage() {
         setExpertSessions(tribeSessions)
       }
     } catch (err) {
-      console.error('Error fetching expert data:', err)
+      console.error('Error fetching tribe data:', err)
     }
-  }
+  }, [])
+
+  const fetchSkillDetail = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await skillService.getSkillDetail(id as string)
+      if (res.success) {
+        setSkill(res.data)
+        // Fetch sessions and requests for the tribe
+        fetchTribeData(res.data.id)
+        fetchMyReviews()
+      } else {
+        notify.error(res.error || 'Failed to load tribe details')
+      }
+    } catch (err) {
+      console.error(err)
+      notify.error('Connection error')
+    } finally {
+      setLoading(false)
+    }
+  }, [id, user?.id, fetchMyReviews, fetchTribeData])
 
   const handleExchangeStatus = async (requestId: string, status: 'ACCEPTED' | 'REJECTED') => {
-    setProcessingExchangeId(requestId)
+    setProcessingId(requestId)
     try {
       const res = await skillService.updateExchangeStatus(requestId, status)
       if (res.success) {
         notify.success(`Request ${status === 'ACCEPTED' ? 'accepted' : 'declined'}!`)
-        fetchExpertData(skill.id)
+        fetchTribeData(skill.id)
         fetchSkillDetail()
       } else {
         notify.error(res.error || 'Update failed')
@@ -108,9 +129,116 @@ export default function SkillDetailPage() {
     } catch (err) {
       notify.error('Connection error')
     } finally {
-      setProcessingExchangeId(null)
+      setProcessingId(null)
     }
   }
+
+  const handleCompleteSession = async (sessionId: string) => {
+    setProcessingId(sessionId)
+    try {
+      const res = await sessionService.completeSession(sessionId)
+      if (res.success) {
+        if (res.data.status === 'COMPLETED') {
+          notify.success('Session completed. Credits updated.')
+          setReviewTarget(res.data)
+        } else {
+          notify.success('Completion confirmed. Waiting for other participant.')
+        }
+        fetchTribeData(skill.id)
+      } else {
+        notify.error(res.error || 'Could not complete session')
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleCompleteRecurringSession = async (exchangeId: string, scheduledTime: string) => {
+    setProcessingId(exchangeId + scheduledTime)
+    try {
+      const res = await sessionService.completeRecurringSession(exchangeId, scheduledTime)
+      if (res.success) {
+        if (res.data.status === 'COMPLETED') {
+          notify.success('Session completed. Credits updated.')
+          setReviewTarget(res.data)
+        } else {
+          notify.success('Completion confirmed. Waiting for other participant.')
+        }
+        fetchTribeData(skill.id)
+      } else {
+        notify.error(res.error || 'Could not complete session')
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setProcessingId(null)
+    }
+  }
+  const handleSubmitReview = async () => {
+    if (!reviewTarget) return
+    setSubmittingReview(true)
+    try {
+      const res = await reviewService.submitReview({
+        sessionId: reviewTarget.id,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      })
+      if (res.success) {
+        notify.success('Feedback submitted successfully.')
+        setReviewedSessionIds((prev) => [...prev, reviewTarget.id])
+        setReviewTarget(null)
+        setReviewForm({ rating: 5, comment: '' })
+        fetchTribeData(skill.id)
+      } else {
+        notify.error(res.error || 'Could not submit feedback')
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmittingReview(false)
+    }
+  }
+
+  const renderSessionAction = (session: any) => {
+    const isMaterialized = session.id && !session.id.startsWith('teach-slot');
+    const isExpert = session.receiver_id === user?.id || isOwner;
+    const isConfirmedByMe = isExpert ? session.receiver_confirmed : session.sender_confirmed;
+    const isConfirmedByOther = isExpert ? session.sender_confirmed : session.receiver_confirmed;
+    const isCompleted = session.status === 'COMPLETED';
+    const isReviewedByMe = reviewedSessionIds.includes(session.id);
+
+    if (isCompleted) {
+      if (isReviewedByMe) return null;
+      return (
+        <button 
+          onClick={() => setReviewTarget(session)}
+          className="flex-1 py-3 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg"
+        >
+          Feedback
+        </button>
+      );
+    }
+
+    if (isConfirmedByMe && !isConfirmedByOther) {
+      return (
+        <div className="flex-1 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-[7px] font-black uppercase tracking-widest text-center flex items-center justify-center">
+          Waiting for {isExpert ? 'Student' : 'Host'}
+        </div>
+      );
+    }
+
+    return (
+      <button 
+        disabled={processingId !== null || (!isMaterialized && !session.exchangeId)}
+        onClick={() => isMaterialized ? handleCompleteSession(session.id) : handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
+        className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/5 transition-colors disabled:opacity-40"
+      >
+        {processingId === (isMaterialized ? session.id : (session.exchangeId + (new Date(session.displayTime).toISOString()))) ? '...' : (!isMaterialized && !session.exchangeId ? 'Awaiting Members' : 'Mark Done')}
+      </button>
+    );
+  };
 
   // Calculate teaching sessions specifically for this tribe
   const tribeExpertSessions = useMemo(() => {
@@ -118,7 +246,9 @@ export default function SkillDetailPage() {
     const now = new Date();
     
     // Manual sessions
-    const manualSessions = expertSessions.filter((s) => s.status !== 'COMPLETED').map(s => ({
+    const manualSessions = expertSessions.filter((s) => {
+       return s.status !== 'COMPLETED' || !reviewedSessionIds.includes(s.id);
+    }).map(s => ({
       ...s,
       type: 'MANUAL',
       displayTime: s.scheduled_time,
@@ -127,27 +257,65 @@ export default function SkillDetailPage() {
 
     // Recurring/Date-based slots from tribe schedule
     const scheduledSlots: any[] = []
+    
+    // Find the exchange ID for the current user (if student) or a representative one if owner
+    let myExchangeId = null;
+    if (isMember) {
+      myExchangeId = skill.members?.find((m: any) => m.id === user?.id)?.exchange_id;
+    } else if (isOwner) {
+      // For owner, we might need to handle multiple members, but for now we'll pick the first active exchange
+      // or use a placeholder if we want to materialize for all (requires backend change)
+      // For now, let's at least get a valid one if it exists to avoid the error
+      myExchangeId = skill.members?.[0]?.exchange_id || null;
+    }
+
     if (skill.schedule && Array.isArray(skill.schedule)) {
       skill.schedule.forEach((slot: any, idx: number) => {
         if (typeof slot === 'object' && slot.date && slot.time) {
-          const displayTime = `${slot.date}T${slot.time}:00`;
-          const sessionDate = new Date(displayTime);
+          const isoTime = new Date(`${slot.date}T${slot.time}:00`).toISOString();
+          const targetTime = new Date(isoTime).getTime();
           
-          if (sessionDate.getTime() > (now.getTime() - 3600000)) {
+          // Check if materialized for the current user
+          const materialized = expertSessions.find(s => 
+            s.exchange?.skill_id === skill.id && 
+            new Date(s.scheduled_time).getTime() === targetTime &&
+            (isOwner ? true : (s.sender_id === user?.id || s.receiver_id === user?.id))
+          );
+          
+          if (materialized) {
+            if (materialized.status === 'COMPLETED' && reviewedSessionIds.includes(materialized.id)) return;
             scheduledSlots.push({
-              id: `teach-slot-${skill.id}-${idx}`,
-              displayName: skill.user_id === user?.id ? `TEACHING: ${skill.name}` : skill.name,
-              displayTime: displayTime,
-              type: 'SCHEDULED',
-              status: 'UPCOMING'
-            })
+               ...materialized,
+               id: materialized.id,
+               displayName: isOwner ? `TEACHING: ${skill.name}` : skill.name,
+               displayTime: isoTime,
+               type: 'SCHEDULED',
+               status: materialized.status
+            });
+          } else {
+            const sessionDate = new Date(isoTime);
+            // Show slots from the last 24 hours even if past, so they can be marked as done
+            const isWithin24HoursPast = sessionDate.getTime() > (now.getTime() - 86400000);
+            const isFuture = sessionDate.getTime() > now.getTime();
+
+            if (isFuture || isWithin24HoursPast) {
+              scheduledSlots.push({
+                id: `teach-slot-${skill.id}-${idx}`,
+                exchangeId: myExchangeId,
+                displayName: isOwner ? `TEACHING: ${skill.name}` : skill.name,
+                displayTime: isoTime,
+                type: 'SCHEDULED',
+                status: 'UPCOMING',
+                isExpired: sessionDate.getTime() < (now.getTime() - 7200000) // Gray out meeting link after 2 hours past
+              })
+            }
           }
         } else if (typeof slot === 'object' && slot.day && slot.time) {
-            // Include legacy day-based slots since they repeat
             scheduledSlots.push({
               id: `teach-slot-legacy-${skill.id}-${idx}`,
-              displayName: skill.user_id === user?.id ? `TEACHING: ${skill.name}` : skill.name,
-              displayTime: slot, // Will handle special in UI
+              exchangeId: myExchangeId,
+              displayName: isOwner ? `TEACHING: ${skill.name}` : skill.name,
+              displayTime: slot,
               type: 'RECURRING',
               status: 'UPCOMING'
             })
@@ -157,12 +325,11 @@ export default function SkillDetailPage() {
 
     return [...manualSessions, ...scheduledSlots]
       .sort((a, b) => {
-        // Safe sort for objects that might be legacy
         const timeA = typeof a.displayTime === 'string' ? new Date(a.displayTime).getTime() : 0;
         const timeB = typeof b.displayTime === 'string' ? new Date(b.displayTime).getTime() : 0;
         return timeA - timeB;
       })
-  }, [skill, expertSessions, user?.id])
+  }, [skill, expertSessions, user?.id, reviewedSessionIds])
 
   useEffect(() => {
     if (id) fetchSkillDetail()
@@ -185,9 +352,6 @@ export default function SkillDetailPage() {
     )
   }
 
-  const isOwner = user?.id === skill.user_id
-  const isMember = skill.members?.some((m: any) => m.id === user?.id)
-  const isParticipant = isOwner || isMember
 
   const handleStartDirectChat = async (targetUserId: string) => {
     if (!user) return
@@ -272,7 +436,7 @@ export default function SkillDetailPage() {
               variant="outline" 
               className="rounded-full border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)]"
               onClick={() => {
-                router.push(`/chat?id=${skill.conversation_id}`)
+                router.push(`/chat?id=${skill.conversation_id || ''}`)
               }}
             >
               <MessageCircle size={18} className="mr-2" /> Group Chat
@@ -343,7 +507,7 @@ export default function SkillDetailPage() {
                 )}
 
                 <div className="space-y-4">
-                   {skill.notices?.map((notice: any) => (
+                   {skill.notices?.filter(Boolean).map((notice: any) => (
                      <div key={notice.id} className="p-6 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-[2rem] flex gap-4">
                         <div className="p-3 bg-[var(--color-bg-primary)] rounded-2xl h-fit text-[var(--color-accent)]">
                            <Megaphone size={20} />
@@ -479,20 +643,15 @@ export default function SkillDetailPage() {
                        
                        {isParticipant && (
                          <div className="flex gap-3">
-                           <button 
-                             onClick={handleStartClassroom}
-                             className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center transition-transform hover:scale-[1.02]"
-                           >
-                             {isOwner ? 'Start Meeting' : 'Join Meeting'}
-                           </button>
-                           {isOwner && (
+                           {!session.isExpired && (
                              <button 
-                               onClick={(e) => { e.stopPropagation(); notify.success('Session marked as done!'); }}
-                               className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[var(--color-bg-primary)] transition-colors"
+                               onClick={handleStartClassroom}
+                               className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center transition-transform hover:scale-[1.02]"
                              >
-                               Mark Done
+                               {isOwner ? 'Start Meeting' : 'Join Meeting'}
                              </button>
                            )}
+                            {renderSessionAction(session)}
                          </div>
                        )}
                      </div>
@@ -524,20 +683,20 @@ export default function SkillDetailPage() {
              </div>
              
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {skill.members && skill.members.length > 0 ? (
-                  skill.members.map((member: any) => (
-                    <div key={member.id} className="p-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl flex items-center justify-between group hover:border-[var(--color-accent)] transition-all">
+                {skill.members && skill.members.filter(Boolean).length > 0 ? (
+                  skill.members.filter(Boolean).map((member: any) => (
+                    <div key={member?.id} className="p-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl flex items-center justify-between group hover:border-[var(--color-accent)] transition-all">
                        <div className="flex items-center gap-3">
-                          <Avatar src={member.avatar_url} name={member.name} size="sm" />
+                          <Avatar src={member?.avatar_url} name={member?.name} size="sm" />
                           <div>
-                             <p className="text-xs font-black tracking-tight">{member.name}</p>
+                             <p className="text-xs font-black tracking-tight">{member?.name}</p>
                              <p className="text-[8px] font-bold opacity-40 uppercase">Student</p>
                           </div>
                        </div>
-                       {user?.id !== member.id && (
+                       {user?.id !== member?.id && (
                          <button 
-                           onClick={() => handleStartDirectChat(member.id)}
-                           disabled={isStartingChat === member.id}
+                           onClick={() => handleStartDirectChat(member?.id)}
+                           disabled={isStartingChat === member?.id}
                            className="p-2 text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] rounded-xl transition-all"
                          >
                             <MessageCircle size={16} />
@@ -631,14 +790,14 @@ export default function SkillDetailPage() {
                                  <div className="grid grid-cols-2 gap-2">
                                     <button 
                                        onClick={() => handleExchangeStatus(req.id, 'ACCEPTED')}
-                                       disabled={!!processingExchangeId}
+                                       disabled={!!processingId}
                                        className="py-2.5 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all disabled:opacity-50"
                                     >
-                                       {processingExchangeId === req.id ? '...' : 'Accept'}
+                                       {processingId === req.id ? '...' : 'Accept'}
                                     </button>
                                     <button 
                                        onClick={() => handleExchangeStatus(req.id, 'REJECTED')}
-                                       disabled={!!processingExchangeId}
+                                       disabled={!!processingId}
                                        className="py-2.5 border border-red-500/30 text-red-500 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-red-500/10 transition-all disabled:opacity-50"
                                     >
                                        Decline
@@ -750,6 +909,40 @@ export default function SkillDetailPage() {
         mode="danger"
         loading={!!isDeletingNotice}
       />
+
+      {reviewTarget && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setReviewTarget(null)} />
+          <div className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2rem] p-8 space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-serif font-black">Session Feedback</h3>
+              <button onClick={() => setReviewTarget(null)}><X size={16} /></button>
+            </div>
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button key={star} onClick={() => setReviewForm((p) => ({ ...p, rating: star }))} className="p-1">
+                  <Star size={24} className={star <= reviewForm.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
+                </button>
+              ))}
+            </div>
+            <textarea 
+              rows={4} 
+              placeholder="How was the session? Your feedback helps the community." 
+              value={reviewForm.comment} 
+              onChange={(e) => setReviewForm((p) => ({ ...p, comment: e.target.value }))} 
+              className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm resize-none outline-none focus:border-[var(--color-accent)] transition-colors" 
+            />
+            <Button 
+              onClick={handleSubmitReview} 
+              loading={submittingReview}
+              className="w-full py-4 text-[10px] font-black uppercase tracking-widest"
+              variant="accent"
+            >
+              Post Feedback
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

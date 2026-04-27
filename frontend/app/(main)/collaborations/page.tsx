@@ -178,6 +178,9 @@ export default function IntentsPage() {
                  >
                    {/* Card Image */}
                    <div className="aspect-[4/3] bg-[var(--color-bg-secondary)] overflow-hidden relative">
+                      <div className="absolute top-3 left-3 z-10">
+                         <span className="bg-[var(--color-accent)] text-black text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-full shadow-xl">New</span>
+                      </div>
                       {intent.attachment_name ? (
                         <img 
                           src={storageService.getPublicUrl(intent.attachment_name)} 
@@ -192,17 +195,17 @@ export default function IntentsPage() {
                    </div>
  
                    {/* Card Content */}
-                   <div className="p-5">
+                   <div className="p-4 sm:p-5">
                       <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--color-accent)] mb-2 block">{intent.category || 'General'}</span>
-                      <h3 className="text-lg font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors mb-4">
+                      <h3 className="text-base font-serif font-black text-[var(--color-text-primary)] leading-tight line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors mb-4 h-[2.5rem]">
                         {intent.title}
                       </h3>
                       
                       <div className="flex items-center justify-between text-[var(--color-text-secondary)]">
-                         <div className="flex items-center gap-2">
-                            <MapPin size={12} className="text-[var(--color-accent)]" />
-                            <span className="text-[9px] uppercase font-bold tracking-wider">{intent.location || 'Remote'}</span>
-                         </div>
+                          <div className="flex items-center gap-1.5">
+                             <MapPin size={10} className="text-[var(--color-accent)]" />
+                             <span className="text-[7px] uppercase font-bold tracking-wider truncate max-w-[50px]">{intent.location || 'Remote'}</span>
+                          </div>
                          <Badge 
                            variant={intent.status === 'completed' ? 'accent' : (intent as any).is_full ? 'outline' : 'sage'} 
                            className={`text-[8px] font-black ${intent.status === 'completed' ? '' : (intent as any).is_full ? 'border-red-500/50 text-red-500' : 'bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]'}`}

@@ -178,17 +178,18 @@ export class LevelService {
   }
 
   /**
-   * Get limits for a tier
+   * Get monthly limits for a tier (per-month caps)
+   * These values match the Rewards page UI
    * @param {string} tier 
    * @returns {Object} { maxIntents, maxSkills }
    */
   static getTierLimits(tier) {
     switch (tier) {
-      case 'Oracle':   return { maxIntents: 20, maxSkills: 20 };
-      case 'Luminary': return { maxIntents: 10, maxSkills: 10 };
-      case 'Architect': return { maxIntents: 5, maxSkills: 5 };
+      case 'Oracle':    return { maxIntents: 40, maxSkills: 12 };
+      case 'Luminary':  return { maxIntents: 30, maxSkills: 8 };
+      case 'Architect': return { maxIntents: 20, maxSkills: 5 };
       case 'Nomad':    
-      default:         return { maxIntents: 2, maxSkills: 2 };
+      default:          return { maxIntents: 10, maxSkills: 3 };
     }
   }
 }

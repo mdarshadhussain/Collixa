@@ -115,11 +115,27 @@ export class ChatController {
    */
   static async acceptInvite(req, res, next) {
     try {
-      const { senderId } = req.body;
-      const conversation = await ChatService.acceptDirectRequest(senderId, req.user.id);
+      const { conversationId } = req.body;
+      const conversation = await ChatService.acceptDirectRequest(conversationId, req.user.id);
       res.status(200).json({
         success: true,
         data: conversation
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Reject invitation
+   */
+  static async rejectInvite(req, res, next) {
+    try {
+      const { conversationId } = req.body;
+      await ChatService.rejectDirectRequest(conversationId, req.user.id);
+      res.status(200).json({
+        success: true,
+        message: 'Invitation rejected'
       });
     } catch (error) {
       next(error);

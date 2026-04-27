@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2, Users, Layers, Sparkles, BookOpen } from 'lucide-react'
+import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2, Users, Layers, Sparkles, BookOpen, Clock, MessageCircle } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import CustomDateTimePicker from '@/components/CustomDateTimePicker'
 import Card from '@/components/Card'
@@ -41,6 +41,7 @@ export default function SkillsPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewedSessionIds, setReviewedSessionIds] = useState<string[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(false)
   const [editingSkill, setEditingSkill] = useState<any | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, skillId: string}>({
@@ -106,17 +107,37 @@ export default function SkillsPage() {
     }
   }, [sessions.length])
 
+  const fetchMyReviews = useCallback(async () => {
+    if (!user) return
+    setLoadingReviews(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/reviews/user/${user.id}`)
+      const data = await response.json()
+      if (response.ok && data.data) {
+        // Find reviews where current user is the reviewer
+        const myReviews = data.data.filter((r: any) => r.reviewer_id === user.id)
+        setReviewedSessionIds(myReviews.map((r: any) => r.session_id).filter(Boolean))
+      }
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err)
+    } finally {
+      setLoadingReviews(false)
+    }
+  }, [user])
+
   useEffect(() => {
     fetchSessions()
-  }, [fetchSessions])
+    fetchMyReviews()
+  }, [fetchSessions, fetchMyReviews])
 
   useEffect(() => {
     const poll = setInterval(() => {
       fetchMyExchanges()
       fetchSessions()
+      fetchMyReviews()
     }, 8000)
     return () => clearInterval(poll)
-  }, [fetchMyExchanges, fetchSessions])
+  }, [fetchMyExchanges, fetchSessions, fetchMyReviews])
 
   const handleExchangeStatus = async (exchangeId: string, status: 'ACCEPTED' | 'REJECTED') => {
     setProcessingId(exchangeId)
@@ -230,7 +251,7 @@ export default function SkillsPage() {
     try {
       const conversation = await conversationService.getOrCreateDirectConversation(user.id, otherUserId)
       if (conversation) {
-        router.push('/chat')
+        router.push(`/chat?id=${conversation.id}`)
       }
     } catch (err) {
       console.error(err)
@@ -267,6 +288,44 @@ export default function SkillsPage() {
     setIsAddModalOpen(true)
   }
 
+  const renderSessionAction = (session: any) => {
+    const isMaterialized = session.id && !session.id.startsWith('recurring');
+    const isExpert = session.receiver_id === user?.id;
+    const isConfirmedByMe = isExpert ? session.receiver_confirmed : session.sender_confirmed;
+    const isConfirmedByOther = isExpert ? session.sender_confirmed : session.receiver_confirmed;
+    const isCompleted = session.status === 'COMPLETED';
+    const isReviewedByMe = reviewedSessionIds.includes(session.id);
+
+    if (isCompleted) {
+      if (isReviewedByMe) return null;
+      return (
+        <button 
+          onClick={() => setReviewTarget(session)}
+          className="flex-1 py-3 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg"
+        >
+          Feedback
+        </button>
+      );
+    }
+
+    if (isConfirmedByMe && !isConfirmedByOther) {
+      return (
+        <div className="flex-1 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-[7px] font-black uppercase tracking-widest text-center flex items-center justify-center">
+          Waiting for {isExpert ? 'Student' : 'Host'}
+        </div>
+      );
+    }
+
+    return (
+      <button 
+        onClick={() => isMaterialized ? handleCompleteSession(session.id) : handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
+        className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/5 transition-colors"
+      >
+        {processingId === (isMaterialized ? session.id : (session.exchangeId + session.displayTime)) ? '...' : 'Mark Done'}
+      </button>
+    );
+  };
+
   const incomingRequests = exchanges.filter((x) => x.provider_id === user?.id)
   const outgoingRequests = exchanges.filter((x) => x.requester_id === user?.id)
   // Filter my tribes (the ones I listed)
@@ -279,7 +338,10 @@ export default function SkillsPage() {
 
   // Calculate upcoming sessions including recurring ones from tribe schedules
   const upcomingSessions = useMemo(() => {
-    const manualSessions = sessions.filter((s) => s.status !== 'COMPLETED').map(s => ({
+    const manualSessions = sessions.filter((s) => {
+      // Show if not completed OR if completed but not reviewed by me yet
+      return s.status !== 'COMPLETED' || !reviewedSessionIds.includes(s.id)
+    }).map(s => ({
       ...s,
       type: 'MANUAL',
       displayTime: s.scheduled_time,
@@ -287,7 +349,6 @@ export default function SkillsPage() {
     }))
 
     const recurringSessions: any[] = []
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const now = new Date()
     
     myJoinedTribes.forEach(tribe => {
@@ -295,19 +356,37 @@ export default function SkillsPage() {
         tribe.schedule.forEach((slot: any, idx: number) => {
           if (typeof slot === 'object' && slot.date && slot.time) {
             const displayTime = `${slot.date}T${slot.time}:00`
-            const sessionDate = new Date(displayTime)
             
-            // Only show if it's in the future (or very recent)
-            if (sessionDate.getTime() > (now.getTime() - 3600000)) {
+            // Check if this recurring slot has been materialized into a session
+            const materialized = sessions.find(s => s.exchange_id === tribe.exchange_id && s.scheduled_time === displayTime);
+            
+            if (materialized) {
+               // If materialized and reviewed, skip
+               if (materialized.status === 'COMPLETED' && reviewedSessionIds.includes(materialized.id)) return;
+               
+               // Use the materialized session's data
                recurringSessions.push({
-                id: `recurring-${tribe.id}-${idx}`,
-                exchangeId: tribe.exchange_id,
-                displayName: tribe.name,
-                displayTime: displayTime,
-                meeting_link: tribe.meeting_link,
-                type: 'DATE_BASED',
-                status: 'UPCOMING'
-              })
+                 ...materialized,
+                 id: materialized.id,
+                 displayName: tribe.name,
+                 displayTime: displayTime,
+                 type: 'DATE_BASED',
+                 status: materialized.status
+               });
+            } else {
+               const sessionDate = new Date(displayTime)
+               // Only show if it's in the future (or very recent)
+               if (sessionDate.getTime() > (now.getTime() - 3600000)) {
+                  recurringSessions.push({
+                   id: `recurring-${tribe.id}-${idx}`,
+                   exchangeId: tribe.exchange_id,
+                   displayName: tribe.name,
+                   displayTime: displayTime,
+                   meeting_link: tribe.meeting_link,
+                   type: 'DATE_BASED',
+                   status: 'UPCOMING'
+                 })
+               }
             }
           }
         })
@@ -317,11 +396,13 @@ export default function SkillsPage() {
     return [...manualSessions, ...recurringSessions]
       .sort((a, b) => new Date(a.displayTime).getTime() - new Date(b.displayTime).getTime())
       .slice(0, 5) // Show only next 5
-  }, [sessions, myJoinedTribes])
+  }, [sessions, myJoinedTribes, reviewedSessionIds])
 
   // Calculate teaching sessions (for tribes I lead)
   const expertSessions = useMemo(() => {
-    const manualSessions = sessions.filter((s) => s.status !== 'COMPLETED' && s.receiver_id === user?.id).map(s => ({
+    const manualSessions = sessions.filter((s) => {
+      return (s.status !== 'COMPLETED' || !reviewedSessionIds.includes(s.id)) && s.receiver_id === user?.id
+    }).map(s => ({
       ...s,
       type: 'MANUAL',
       displayTime: s.scheduled_time,
@@ -391,7 +472,7 @@ export default function SkillsPage() {
     return [...manualSessions, ...recurringSessions]
       .sort((a, b) => new Date(a.displayTime).getTime() - new Date(b.displayTime).getTime())
       .slice(0, 5)
-  }, [sessions, myListedTribes, user?.id])
+  }, [sessions, myListedTribes, user?.id, reviewedSessionIds])
 
   const completedSessions = sessions.filter((s) => s.status === 'COMPLETED')
 
@@ -423,12 +504,12 @@ export default function SkillsPage() {
              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-primary)] opacity-40">Build your network. Share your mastery.</p>
           </div>
           
-          <div className="flex bg-[var(--color-bg-primary)] p-1.5 rounded-full border border-[var(--color-border)] shadow-inner">
+          <div className="flex flex-wrap items-center justify-center bg-[var(--color-bg-primary)] p-1.5 rounded-3xl md:rounded-full border border-[var(--color-border)] shadow-inner gap-1">
             {(['tribes', 'academy', 'enrollments'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
-                className={`px-6 py-2.5 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] transition-all ${
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap ${
                   activeTab === tab 
                   ? 'bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] shadow-lg' 
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -481,7 +562,7 @@ export default function SkillsPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
             {loading ? (
               [...Array(6)].map((_, i) => (
                 <div key={i} className="h-[300px] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2rem] animate-pulse" />
@@ -491,41 +572,60 @@ export default function SkillsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest opacity-40">No Tribes found matching your criteria</p>
               </div>
             ) : skills.map((skill) => (
-              <Card key={skill.id} className="group relative overflow-hidden flex flex-col p-6 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 hover:border-[var(--color-accent)] cursor-pointer" onClick={() => router.push(`/skills/${skill.id}`)}>
+              <Card key={skill.id} className={`group relative overflow-hidden flex flex-col p-4 sm:p-6 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 cursor-pointer ${skill.status === 'pending' ? 'border-dashed border-amber-500/40' : 'border-[var(--color-border)] hover:border-[var(--color-accent)]'}`} onClick={() => router.push(`/skills/${skill.id}`)}>
+                {/* Pending Approval Banner */}
+                {skill.status === 'pending' && (
+                  <div className="flex items-center gap-2 px-4 py-2.5 mb-4 -mx-1 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+                    <Clock size={12} className="text-amber-500 shrink-0 animate-pulse" />
+                    <span className="text-[7px] font-black uppercase tracking-widest text-amber-500">Pending Approval</span>
+                  </div>
+                )}
+
+                <div className="absolute top-4 right-4 flex items-center gap-1 px-2 py-1 bg-[var(--color-bg-primary)]/80 backdrop-blur-sm border border-[var(--color-border)] rounded-full shadow-sm z-10">
+                  <Star size={8} className="text-yellow-500 fill-yellow-500" />
+                  <span className="text-[8px] font-black">{skill.avg_rating || '5.0'}</span>
+                </div>
+
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <Avatar src={skill.user?.avatar_url} name={skill.user?.name} size="sm" />
-                    <div>
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent)]">{skill.category}</h4>
-                      <p className="text-[8px] font-bold opacity-60">{skill.user?.name}</p>
+                    <div className="pr-12">
+                      <h4 className="text-[8px] font-black uppercase tracking-widest text-[var(--color-accent)] truncate max-w-[80px]">{skill.category}</h4>
+                      <p className="text-[7px] font-bold opacity-60 truncate max-w-[80px]">{skill.user?.name}</p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full">
-                    <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                    <span className="text-[9px] font-black">{skill.avg_rating || '5.0'}</span>
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-4">
-                  <h3 className="text-xl font-serif font-black tracking-tight leading-tight group-hover:text-[var(--color-accent)] transition-colors">{skill.name}</h3>
-                  <p className="text-[10px] text-[var(--color-text-secondary)] line-clamp-3 italic opacity-80 leading-relaxed">"{skill.description}"</p>
+                <div className="flex-1 space-y-3">
+                  <h3 className="text-base font-serif font-black tracking-tight leading-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 h-[2.5rem]">{skill.name}</h3>
+                  <p className="text-[9px] text-[var(--color-text-secondary)] line-clamp-2 italic opacity-80 leading-relaxed min-h-[2rem]">"{skill.description}"</p>
                   
-                  <div className="flex items-center gap-4 text-[8px] font-black uppercase tracking-widest opacity-60">
-                    <div className="flex items-center gap-1.5"><Users size={12} /> {skill.max_members || 5} Spots</div>
-                    <div className="flex items-center gap-1.5"><Layers size={12} /> {skill.level}</div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[7px] font-black uppercase tracking-widest opacity-60">
+                    <div className="flex items-center gap-1"><Users size={10} /> {skill.max_members || 5} Spots</div>
+                    <div className="flex items-center gap-1"><Layers size={10} /> {skill.level}</div>
                   </div>
                 </div>
 
                 <div className="mt-8">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedSkill(skill);
-                    }}
-                    className="w-full py-4 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[9px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all group-hover:bg-[var(--color-accent)] flex items-center justify-center gap-3"
-                  >
-                    {skill.user_id === user?.id ? 'View Details' : 'Request Entry'} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  {skill.status === 'pending' ? (
+                    <div className="w-full py-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[9px] font-black uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3">
+                      <Clock size={14} /> Awaiting Approval
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (skill.user_id === user?.id) {
+                          router.push(`/skills/${skill.id}`);
+                        } else {
+                          setSelectedSkill(skill);
+                        }
+                      }}
+                      className="w-full py-3.5 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[8px] font-black uppercase tracking-[0.15em] rounded-2xl transition-all group-hover:bg-[var(--color-accent)] group-hover:text-black flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      {skill.user_id === user?.id ? 'View Details' : 'Request Entry'} <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  )}
                 </div>
               </Card>
             ))}
@@ -546,9 +646,9 @@ export default function SkillsPage() {
                    <button onClick={() => setIsAddModalOpen(true)} className="px-8 py-4 bg-[var(--color-accent)] text-black rounded-full text-[9px] font-black uppercase tracking-widest">List Expertise</button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-4 md:gap-6">
                   {myListedTribes.map(skill => (
-                    <div key={skill.id} className="p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] relative group cursor-pointer hover:border-[var(--color-accent)] transition-all" onClick={() => router.push(`/skills/${skill.id}`)}>
+                    <div key={skill.id} className="p-4 sm:p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] relative group cursor-pointer hover:border-[var(--color-accent)] transition-all" onClick={() => router.push(`/skills/${skill.id}`)}>
                       <div className="flex justify-between items-start mb-6">
                         <div className="px-3 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[8px] font-black uppercase">
                           {skill.category}
@@ -559,10 +659,19 @@ export default function SkillsPage() {
                         </div>
                       </div>
                       <h3 className="text-xl font-serif font-black mb-3">{skill.name}</h3>
-                      <div className="flex items-center justify-between text-[9px] font-black uppercase opacity-60">
+                      <div className="flex items-center justify-between text-[9px] font-black uppercase opacity-60 mb-6">
                          <span>{skill.max_members || 5} Members Limit</span>
                          <span className="text-[var(--color-accent)]">{incomingRequests.filter(r => r.skill_id === skill.id && r.status === 'ACCEPTED').length} Joined</span>
                       </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/chat?id=${skill.conversation_id || ''}`);
+                        }}
+                        className="w-full py-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-all shadow-sm"
+                      >
+                         <MessageCircle size={14} /> Group Chat
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -589,18 +698,11 @@ export default function SkillsPage() {
                          </span>
                        </div>
                        <div className="flex gap-3">
-                         {session.meeting_link && (
-                           <a href={session.meeting_link} target="_blank" className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center">Launch Meeting</a>
-                         )}
-                         {session.type === 'MANUAL' && (
-                           <button 
-                             onClick={() => handleCompleteSession(session.id)}
-                             className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest"
-                           >
-                             {processingId === session.id ? '...' : 'Mark Done'}
-                           </button>
-                         )}
-                       </div>
+                          {session.meeting_link && (
+                            <a href={session.meeting_link} target="_blank" className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center">Launch Meeting</a>
+                          )}
+                          {renderSessionAction(session)}
+                        </div>
                      </div>
                    ))
                  )}
@@ -637,9 +739,9 @@ export default function SkillsPage() {
                            <div className="grid grid-cols-2 gap-4">
                               <button 
                                 onClick={() => router.push(`/chat?id=${skill.conversation_id || ''}`)}
-                                className="py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-all"
+                                className="py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-all shadow-sm"
                               >
-                                 Chat Group
+                                 <MessageCircle size={14} /> Group Chat
                               </button>
                               <a 
                                 href={skill.meeting_link || '#'} 
@@ -678,21 +780,7 @@ export default function SkillsPage() {
                               {session.meeting_link && (
                                 <a href={session.meeting_link} target="_blank" className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center">Enter Class</a>
                               )}
-                              {session.type === 'MANUAL' ? (
-                                <button 
-                                  onClick={() => handleCompleteSession(session.id)}
-                                  className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest"
-                                >
-                                  {processingId === session.id ? '...' : 'Mark Done'}
-                                </button>
-                              ) : (
-                                <button 
-                                  onClick={() => handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
-                                  className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest"
-                                >
-                                  {processingId === (session.exchangeId + session.displayTime) ? '...' : 'Mark Done'}
-                                </button>
-                              )}
+                              {renderSessionAction(session)}
                            </div>
                         </div>
                       ))

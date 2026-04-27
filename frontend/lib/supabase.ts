@@ -58,6 +58,7 @@ export interface Intent {
   request_count?: number
   collaborators?: User[]
   collaborator_limit?: number
+  conversation_id?: string | number
 }
 
 export interface Message {
@@ -749,9 +750,42 @@ export const conversationService = {
     }
   },
 
-  // Accept a chat request (Legacy - if status ever added back)
+  // Accept a chat request
   async acceptMessageRequest(conversationId: number): Promise<boolean> {
-    return true
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/accept-invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ conversationId })
+      })
+      return response.ok
+    } catch (err) {
+      console.error('Error accepting chat request:', err)
+      return false
+    }
+  },
+
+  // Reject a chat request
+  async rejectMessageRequest(conversationId: number): Promise<boolean> {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${API_URL}/api/chat/reject-invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ conversationId })
+      })
+      return response.ok
+    } catch (err) {
+      console.error('Error rejecting chat request:', err)
+      return false
+    }
   },
 
   // Clear all messages in a conversation
@@ -888,7 +922,11 @@ export const skillService = {
       if (category && category !== 'All') params.append('category', category)
       if (sortBy) params.append('sortBy', sortBy)
       
-      const response = await fetch(`${API_URL}/api/skills?${params.toString()}`)
+      const token = localStorage.getItem('auth_token')
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const response = await fetch(`${API_URL}/api/skills?${params.toString()}`, { headers })
       return await response.json()
     } catch (err) {
       console.error('Error fetching skills:', err)
@@ -1086,6 +1124,19 @@ export const skillService = {
     } catch (err) {
       console.error('Error updating exchange:', err)
       return { success: false, error: 'Failed to update exchange status' }
+    }
+  },
+
+  /**
+   * Get all skills for a specific user (listed and enrolled)
+   */
+  async getUserSkills(userId: string) {
+    try {
+      const response = await fetch(`${API_URL}/api/skills/user/${userId}`)
+      return await response.json()
+    } catch (err) {
+      console.error('Error fetching user skills:', err)
+      return { success: false, data: [] }
     }
   }
 }

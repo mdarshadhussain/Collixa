@@ -86,3 +86,32 @@ export default {
   authorizeRoles,
   verifiedMiddleware,
 };
+
+/**
+ * Optional auth middleware — extracts user if token is present, but does NOT block if missing.
+ * Use this on public routes where knowing the current user is helpful but not required.
+ */
+export const optionalAuthMiddleware = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization || req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !authUser) {
+      req.user = null;
+      return next();
+    }
+
+    const profile = await UserModel.findById(authUser.id);
+    req.user = profile || null;
+    next();
+  } catch {
+    req.user = null;
+    next();
+  }
+};

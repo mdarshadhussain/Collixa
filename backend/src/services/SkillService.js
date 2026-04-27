@@ -17,60 +17,55 @@ export class SkillService {
 
     if (userError || !user) throw new Error('User not found');
 
+    // Count tribes created THIS month only (monthly limit)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
     const { count, error: countError } = await SkillModel.getClient()
       .from('skills')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .gte('created_at', startOfMonth);
 
     if (countError) throw new Error('Failed to verify tribe limits');
 
     const limits = LevelService.getTierLimits(user.tier);
     if (count >= limits.maxSkills) {
-      throw new Error(`Limit reached! Your ${user.tier} rank allows listing only ${limits.maxSkills} tribes. Reach the next level to unlock more!`);
+      throw new Error(`Monthly limit reached! Your ${user.tier} rank allows listing ${limits.maxSkills} tribes per month. Gain more XP to level up!`);
     }
 
     const skill = await SkillModel.create({
+      ...skillData,
       user_id: userId,
-      status: 'active',
       max_members: skillData.max_members || 5,
       schedule: skillData.schedule || [],
       meeting_link: skillData.meeting_link || `https://meet.jit.si/CollixaTribe_${userId}_${Date.now()}`,
-      ...skillData
+      status: 'pending',
     });
 
-    // AUTOMATION: Create a Permanent Tribe Group Chat
-    try {
-      const { data: conversation, error: convError } = await SkillModel.getClient()
-        .from('conversations')
+    // AUTOMATION: Create a Tribe Group Chat
+    const { data: conversation, error: convError } = await SkillModel.getClient()
+      .from('conversations')
+      .insert([{
+        title: `Tribe: ${skill.name}`,
+        type: 'GROUP',
+        admin_id: userId
+      }])
+      .select()
+      .single();
+
+    if (!convError && conversation) {
+      // Link conversation back to skill
+      await SkillModel.update(skill.id, { conversation_id: conversation.id });
+
+      // Add owner as first participant (Admin)
+      await SkillModel.getClient()
+        .from('conversation_participants')
         .insert([{
-          type: 'GROUP',
-          title: `Tribe: ${skill.name}`,
-          admin_id: userId,
-          last_message: 'Tribe Group Created'
-        }])
-        .select()
-        .single();
-
-      if (!convError && conversation) {
-        // Add expert as ADMIN
-        await SkillModel.getClient().from('conversation_participants').insert([
-          { conversation_id: conversation.id, user_id: userId, role: 'ADMIN' }
-        ]);
-
-        // Link conversation to skill
-        await SkillModel.update(skill.id, { conversation_id: conversation.id });
-
-        // Send welcome message
-        const { ChatService } = await import('./ChatService.js');
-        await ChatService.sendMessage(
-          conversation.id,
-          userId,
-          `Welcome to the "${skill.name}" Tribe! This is your permanent classroom group.`,
-          'system'
-        );
-      }
-    } catch (err) {
-      console.error('Failed to create tribe group chat:', err);
+          conversation_id: conversation.id,
+          user_id: userId,
+          role: 'ADMIN'
+        }]);
     }
 
     // Award XP for creating a tribe
@@ -81,9 +76,39 @@ export class SkillService {
 
   /**
    * Get all skills with search
+   * @param {Object} filters - search filters
+   * @param {string} [currentUserId] - current user ID (to show their pending tribes)
    */
-  static async searchSkills(filters) {
-    return await SkillModel.getAll(filters);
+  static async searchSkills(filters, currentUserId = null) {
+    const skills = await SkillModel.getAll(filters, currentUserId);
+    
+    // ATTACH CONVERSATION IDs by Title
+    try {
+      const tribeTitles = skills.map(s => `Tribe: ${s.name}`);
+      if (tribeTitles.length > 0) {
+        const { data: convs } = await SkillModel.getClient()
+          .from('conversations')
+          .select('id, title')
+          .in('title', tribeTitles)
+          .eq('type', 'GROUP');
+        
+        if (convs) {
+          const titleMap = convs.reduce((acc, c) => {
+            acc[c.title] = c.id;
+            return acc;
+          }, {});
+          
+          skills.forEach(s => {
+            const title = `Tribe: ${s.name}`;
+            if (titleMap[title]) s.conversation_id = titleMap[title];
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to attach conversation IDs to search skills:', err);
+    }
+
+    return skills;
   }
 
   /**
@@ -177,11 +202,31 @@ export class SkillService {
         );
 
         // AUTOMATION: Add student to the Tribe Group Chat
-        if (status === 'ACCEPTED' && skill.conversation_id) {
+        let targetConversationId = skill.conversation_id;
+        
+        // FALLBACK: If not linked, find by title
+        if (!targetConversationId) {
+          try {
+            const { data: conv } = await client
+              .from('conversations')
+              .select('id')
+              .eq('type', 'GROUP')
+              .eq('title', `Tribe: ${skill.name}`)
+              .maybeSingle();
+            
+            if (conv) {
+              targetConversationId = conv.id;
+            }
+          } catch (err) {
+            console.error('Failed to find tribe conversation for new member:', err);
+          }
+        }
+
+        if (status === 'ACCEPTED' && targetConversationId) {
           try {
             // 1. Add to participants
             await client.from('conversation_participants').upsert([
-              { conversation_id: skill.conversation_id, user_id: existing.requester_id, role: 'MEMBER' }
+              { conversation_id: targetConversationId, user_id: existing.requester_id, role: 'MEMBER' }
             ]);
 
             // 2. Send system message to group
@@ -189,7 +234,7 @@ export class SkillService {
             
             const { ChatService } = await import('./ChatService.js');
             await ChatService.sendMessage(
-              skill.conversation_id,
+              targetConversationId,
               skill.user_id,
               `${student?.name} has joined the Tribe!`,
               'system'
@@ -218,10 +263,69 @@ export class SkillService {
   }
 
   /**
-   * Get all skills for a specific user
+   * Get all skills for a specific user (listed and enrolled)
    */
   static async getUserSkills(userId) {
-    return await SkillModel.getByUserId(userId);
+    // 1. Get skills listed by the user
+    const listedSkills = await SkillModel.getByUserId(userId);
+    
+    // 2. Get skills the user is enrolled in
+    const { data: exchanges, error } = await SkillModel.getClient()
+      .from('skill_exchanges')
+      .select(`
+        skill_id
+      `)
+      .eq('requester_id', userId)
+      .eq('status', 'ACCEPTED');
+
+    if (error) {
+      console.error('Error fetching enrolled skill IDs:', error);
+      return listedSkills;
+    }
+
+    const enrolledSkillIds = (exchanges || []).map(e => e.skill_id);
+    if (enrolledSkillIds.length === 0) return listedSkills;
+
+    // Filter out skills already in listedSkills
+    const listedIds = new Set(listedSkills.map(s => s.id));
+    const uniqueEnrolledIds = enrolledSkillIds.filter(id => !listedIds.has(id));
+
+    if (uniqueEnrolledIds.length === 0) return listedSkills;
+
+    // Fetch details for enrolled skills
+    const enrolledSkills = await Promise.all(
+      uniqueEnrolledIds.map(id => SkillModel.getById(id).catch(() => null))
+    );
+
+    const allSkills = [...listedSkills, ...enrolledSkills.filter(Boolean)];
+
+    // ATTACH CONVERSATION IDs by Title
+    try {
+      const tribeTitles = allSkills.map(s => `Tribe: ${s.name}`);
+      if (tribeTitles.length > 0) {
+        const { data: convs } = await SkillModel.getClient()
+          .from('conversations')
+          .select('id, title')
+          .in('title', tribeTitles)
+          .eq('type', 'GROUP');
+        
+        if (convs) {
+          const titleMap = convs.reduce((acc, c) => {
+            acc[c.title] = c.id;
+            return acc;
+          }, {});
+          
+          allSkills.forEach(s => {
+            const title = `Tribe: ${s.name}`;
+            if (titleMap[title]) s.conversation_id = titleMap[title];
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to attach conversation IDs to user skills:', err);
+    }
+
+    return allSkills;
   }
 
   /**
@@ -245,10 +349,32 @@ export class SkillService {
     const members = await SkillModel.getMembers(skillId);
     const notices = await SkillModel.getNotices(skillId);
     
+    // ATTACH CONVERSATION ID
+    let conversation_id = skill.conversation_id;
+    
+    // FALLBACK: Search by title if not linked (or if the link is an invalid UUID string)
+    if (!conversation_id) {
+      try {
+        const { data: conv } = await SkillModel.getClient()
+          .from('conversations')
+          .select('id')
+          .eq('type', 'GROUP')
+          .eq('title', `Tribe: ${skill.name}`)
+          .maybeSingle();
+        
+        if (conv) {
+          conversation_id = conv.id;
+        }
+      } catch (err) {
+        console.error('Failed to find tribe conversation by title:', err);
+      }
+    }
+    
     return {
       ...skill,
-      members: members.map(m => m.user),
-      notices
+      members: members.map(m => ({ ...m.user, exchange_id: m.id })).filter(Boolean),
+      notices,
+      conversation_id
     };
   }
 

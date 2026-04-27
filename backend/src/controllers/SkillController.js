@@ -26,7 +26,8 @@ export class SkillController {
    */
   static async getSkills(req, res, next) {
     try {
-      const skills = await SkillService.searchSkills(req.query);
+      const currentUserId = req.user?.id || null;
+      const skills = await SkillService.searchSkills(req.query, currentUserId);
       res.status(200).json({
         success: true,
         data: skills
@@ -158,6 +159,22 @@ export class SkillController {
       res.status(200).json({
         success: true,
         message: 'Notice deleted successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get all skills for a specific user (listed and enrolled)
+   */
+  static async getUserSkills(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const skills = await SkillService.getUserSkills(userId);
+      res.status(200).json({
+        success: true,
+        data: skills
       });
     } catch (error) {
       next(error);

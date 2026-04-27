@@ -50,15 +50,35 @@ export class SessionModel {
   }
 
   static async update(id, updates) {
-    const { data, error } = await getClient()
-      .from('sessions')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      const { data, error } = await getClient()
+        .from('sessions')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) throw new Error(`Failed to update session: ${error.message}`);
-    return data;
+      if (error) {
+        // Handle missing columns in schema surgically
+        if (error.message && (error.message.includes("in the schema cache") || error.message.includes("does not exist"))) {
+           const match = error.message.match(/column "(.*?)"/i) || error.message.match(/column '(.*?)'/i);
+           const missingColumn = match ? match[1] : null;
+           
+           if (missingColumn && updates[missingColumn] !== undefined) {
+             console.warn(`[SessionModel] Stripping missing column from update: ${missingColumn}`);
+             const { [missingColumn]: _, ...remainingUpdates } = updates;
+             
+             // Removed the automatic fallback to COMPLETED status.
+             // We now strictly honor the confirmation flags once the columns are added.
+             return this.update(id, remainingUpdates); // Recursive retry
+           }
+        }
+        throw new Error(`Failed to update session: ${error.message}`);
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
   }
 }
 

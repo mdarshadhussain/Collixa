@@ -58,6 +58,8 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
     }
   }, [skill, isOpen])
 
+  const [formError, setFormError] = useState<string | null>(null)
+
   if (!isOpen) return null
 
   const addSlot = () => {
@@ -79,24 +81,27 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
     setFormData({ ...formData, schedule: newSchedule })
   }
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setFormError(null)
     try {
       const res = skill 
       ? await skillService.updateSkill(skill.id, formData)
       : await skillService.addSkill(formData)
         
       if (res.success) {
-        notify.success(`Tribe ${skill ? 'updated' : 'listed'} successfully!`)
+        notify.success(skill ? 'Tribe updated successfully!' : 'Tribe submitted for approval! It will be visible to others once approved by an admin.')
         onSuccess()
         onClose()
       } else {
-        notify.error(res.error || `Failed to ${skill ? 'update' : 'add'} skill`)
+        setFormError(res.error || `Failed to ${skill ? 'update' : 'add'} skill`)
       }
     } catch (err) {
       console.error(err)
-      notify.error('An error occurred while saving your expertise.')
+      setFormError('An error occurred while saving your expertise.')
     } finally {
       setLoading(false)
     }
@@ -322,6 +327,22 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
                   />
                 </div>
               </div>
+
+              {/* Inline Error Banner */}
+              {formError && (
+                <div className="mt-6 flex items-start gap-3 p-5 bg-red-500/10 border border-red-500/30 rounded-2xl animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="p-1.5 bg-red-500/20 rounded-lg shrink-0 mt-0.5">
+                    <X size={14} className="text-red-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-1">Cannot Proceed</p>
+                    <p className="text-sm text-red-300 font-medium leading-relaxed">{formError}</p>
+                  </div>
+                  <button type="button" onClick={() => setFormError(null)} className="p-1 text-red-500/50 hover:text-red-500 transition-colors shrink-0">
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
 
               {/* Action Button */}
               <Button

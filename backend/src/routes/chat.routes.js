@@ -66,6 +66,12 @@ router.post('/invite', authMiddleware, ChatController.inviteUser);
 router.post('/accept-invite', authMiddleware, ChatController.acceptInvite);
 
 /**
+ * POST /api/chat/reject-invite
+ * Reject a direct chat invitation
+ */
+router.post('/reject-invite', authMiddleware, ChatController.rejectInvite);
+
+/**
  * POST /api/chat/conversations/direct
  * Get or create a direct conversation
  */

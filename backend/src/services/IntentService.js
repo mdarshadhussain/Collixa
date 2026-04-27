@@ -19,17 +19,22 @@ export class IntentService {
 
     if (userError || !user) throw new Error('User not found');
 
-    // 2. Check current intent count
+    // Count intents created THIS month only (monthly limit)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    // 2. Check current intent count for this month
     const { count, error: countError } = await supabase
       .from('intents')
       .select('*', { count: 'exact', head: true })
-      .eq('created_by', userId);
+      .eq('created_by', userId)
+      .gte('created_at', startOfMonth);
 
     if (countError) throw new Error('Failed to verify intent limits');
 
     const limits = LevelService.getTierLimits(user.tier);
     if (count >= limits.maxIntents) {
-      throw new Error(`Limit reached! Your ${user.tier} rank allows only ${limits.maxIntents} active intents. Gain more XP to level up!`);
+      throw new Error(`Monthly limit reached! Your ${user.tier} rank allows ${limits.maxIntents} intents per month. Gain more XP to level up!`);
     }
 
     // Data is already validated in the route
@@ -84,13 +89,40 @@ export class IntentService {
    * @returns {Promise<Array>} Intents
    */
   static async getAllIntents(filters = {}) {
+    let intents;
     // If filters are provided, use filter method
     if (Object.keys(filters).length > 0) {
-      return await IntentModel.filter(filters);
+      intents = await IntentModel.filter(filters);
+    } else {
+      intents = await IntentModel.getAll();
     }
 
-    // Otherwise return all intents
-    return await IntentModel.getAll();
+    // ATTACH CONVERSATION IDs
+    try {
+      const intentIds = intents.map(i => i.id);
+      if (intentIds.length > 0) {
+        const { data: convs } = await supabase
+          .from('conversations')
+          .select('id, intent_id')
+          .in('intent_id', intentIds)
+          .eq('type', 'GROUP');
+        
+        if (convs) {
+          const convMap = convs.reduce((acc, c) => {
+            acc[c.intent_id] = c.id;
+            return acc;
+          }, {});
+          
+          intents.forEach(i => {
+            if (convMap[i.id]) i.conversation_id = convMap[i.id];
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to attach conversation IDs to marketplace intents:', err);
+    }
+
+    return intents;
   }
 
   /**
@@ -107,6 +139,20 @@ export class IntentService {
      // Attach accepted collaborators
      intent.collaborators = await IntentModel.getCollaborators(intentId);
      intent.accepted_count = intent.collaborators.length;
+
+     // AUTOMATION: Fetch and attach group chat ID for easy navigation
+     try {
+       const { data: conv } = await supabase
+         .from('conversations')
+         .select('id')
+         .eq('intent_id', intentId)
+         .eq('type', 'GROUP')
+         .maybeSingle();
+       
+       if (conv) intent.conversation_id = conv.id;
+     } catch (err) {
+       console.error('Failed to fetch conversation ID for intent:', err);
+     }
 
      return intent;
   }
@@ -280,7 +326,34 @@ export class IntentService {
    * @returns {Promise<Array>} User's intents
    */
   static async getUserIntents(userId) {
-    return await IntentModel.getByUserId(userId);
+    const intents = await IntentModel.getByUserId(userId);
+    
+    // ATTACH CONVERSATION IDs
+    try {
+      const intentIds = intents.map(i => i.id);
+      if (intentIds.length > 0) {
+        const { data: convs } = await supabase
+          .from('conversations')
+          .select('id, intent_id')
+          .in('intent_id', intentIds)
+          .eq('type', 'GROUP');
+        
+        if (convs) {
+          const convMap = convs.reduce((acc, c) => {
+            acc[c.intent_id] = c.id;
+            return acc;
+          }, {});
+          
+          intents.forEach(i => {
+            if (convMap[i.id]) i.conversation_id = convMap[i.id];
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to attach conversation IDs to user intents:', err);
+    }
+
+    return intents;
   }
 
   /**

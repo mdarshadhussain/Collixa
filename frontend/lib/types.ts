@@ -28,6 +28,7 @@ export interface Intent {
   createdBy?: User
   createdAt?: string
   updatedAt?: string
+  conversation_id?: string | number
 }
 
 export interface Skill {
@@ -36,6 +37,7 @@ export interface Skill {
   category: string
   level: 'beginner' | 'intermediate' | 'advanced' | 'expert'
   endorsements?: number
+  conversation_id?: string | number
 }
 
 export interface Message {
