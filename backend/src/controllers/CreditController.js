@@ -102,6 +102,15 @@ export class CreditController {
       // Use CreditService for consistent and cleaner logic
       await CreditService.addCredits(userId, totalCredits, 'PURCHASE');
 
+      // AWARD XP for purchase: $1 = 10 XP
+      try {
+        const LevelService = (await import('../services/LevelService.js')).default;
+        const purchaseXP = Math.floor(pkg.price / 10);
+        await LevelService.awardXP(userId, purchaseXP, `Purchased: ${pkg.name}`);
+      } catch (err) {
+        console.error('XP Award failure (Purchase Simulation):', err);
+      }
+
       res.status(200).json({ 
         success: true, 
         message: `Successfully added ${totalCredits} credits (${bonusCredits} rank bonus included)`,
@@ -140,6 +149,19 @@ export class CreditController {
 
         await CreditService.addCredits(userId, totalCredits, 'PURCHASE');
         console.log(`✅ Successfully credited ${totalCredits} credits (${bonusCredits} bonus) to user ${userId}`);
+
+        // AWARD XP for purchase: $1 = 10 XP
+        try {
+          const packageId = session.metadata.packageId;
+          const pkg = CREDIT_PACKAGES[packageId];
+          if (pkg) {
+            const LevelService = (await import('../services/LevelService.js')).default;
+            const purchaseXP = Math.floor(pkg.price / 10);
+            await LevelService.awardXP(userId, purchaseXP, `Purchased: ${pkg.name}`);
+          }
+        } catch (err) {
+          console.error('XP Award failure (Webhook Purchase):', err);
+        }
       } catch (dbErr) {
         console.error('Database update failed after payment:', dbErr);
         return res.status(500).json({ error: 'Database update failed' });
@@ -150,11 +172,11 @@ export class CreditController {
   }
 
   /**
-   * Share credits with another user by email
+   * Share credits with another user by email or ID
    */
   static async shareCredits(req, res, next) {
     try {
-      const { recipientEmail, amount, message } = req.body;
+      const { recipientEmail, recipientId, amount, message } = req.body;
       const senderId = req.user.id;
       const senderName = req.user.name;
 
@@ -164,10 +186,16 @@ export class CreditController {
         return res.status(400).json({ success: false, error: 'Invalid credit amount' });
       }
 
-      // Find recipient by email
-      const recipient = await UserModel.findByEmail(recipientEmail);
+      // Find recipient
+      let recipient;
+      if (recipientId) {
+        recipient = await UserModel.findById(recipientId);
+      } else if (recipientEmail) {
+        recipient = await UserModel.findByEmail(recipientEmail);
+      }
+
       if (!recipient) {
-        return res.status(404).json({ success: false, error: 'User not found with this email' });
+        return res.status(404).json({ success: false, error: 'Recipient not found' });
       }
 
       // Cannot send to yourself
@@ -271,6 +299,119 @@ export class CreditController {
           avatar_url: user.avatar_url
         }
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Redeem credits for a gift card
+   */
+  static async redeemGiftCard(req, res, next) {
+    try {
+      const { cardId, amount, provider } = req.body;
+      const userId = req.user.id;
+      const userName = req.user.name;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ success: false, error: 'Invalid redemption amount' });
+      }
+
+      // Check balance
+      const user = await UserModel.findById(userId);
+      if (!user || (user.credits || 0) < amount) {
+        return res.status(400).json({ success: false, error: 'Insufficient credits for this redemption' });
+      }
+
+      // Generate dummy code and PIN
+      const voucherCode = Math.random().toString(36).substring(2, 12).toUpperCase();
+      const voucherPin = Math.floor(1000 + Math.random() * 9000).toString();
+
+      // 1. Prepare redemption data for storage in description
+      const redemptionMetadata = {
+        isRedemption: true,
+        cardId,
+        provider,
+        voucher_code: voucherCode,
+        voucher_pin: voucherPin,
+        status: 'COMPLETED'
+      };
+
+      // 2. Deduct credits and record in transactions table
+      const transaction = await CreditService.deductCredits(
+        userId, 
+        amount, 
+        'REDEMPTION', 
+        JSON.stringify(redemptionMetadata)
+      );
+
+      // 3. Notify user
+      await NotificationService.send(
+        userId,
+        'CREDIT_REDEEMED',
+        'Redemption Initiated',
+        `Success! You've exchanged ${amount} credits for a ${provider} voucher. Your code is: ${voucherCode}`,
+        '/credits/exchange'
+      );
+
+      // 4. Award small XP for usage
+      try {
+        const LevelService = (await import('../services/LevelService.js')).default;
+        await LevelService.awardXP(userId, 5, 'Reward Redemption');
+      } catch (err) {}
+
+      res.status(200).json({
+        success: true,
+        message: 'Redemption successful',
+        data: {
+          ...redemptionMetadata,
+          id: transaction.id,
+          amount: amount,
+          created_at: transaction.created_at
+        }
+      });
+    } catch (error) {
+      console.error('Redemption error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get current user's redemption history
+   */
+  static async getMyRedemptions(req, res, next) {
+    try {
+      const userId = req.user.id;
+      
+      // Fetch all SPEND transactions for this user
+      const transactions = await CreditService.getMyTransactions(userId);
+      
+      // Filter for those that have redemption metadata in description
+      const redemptions = transactions
+        .filter(tx => {
+          if (!tx.description) return false;
+          try {
+            const meta = JSON.parse(tx.description);
+            return meta.isRedemption === true;
+          } catch (e) {
+            return false;
+          }
+        })
+        .map(tx => {
+          const meta = JSON.parse(tx.description);
+          return {
+            id: tx.id,
+            user_id: tx.user_id,
+            amount: Math.abs(tx.amount),
+            provider: meta.provider,
+            status: meta.status,
+            voucher_code: meta.voucher_code,
+            voucher_pin: meta.voucher_pin,
+            created_at: tx.created_at
+          };
+        });
+
+      res.status(200).json({ success: true, data: redemptions });
     } catch (error) {
       next(error);
     }

@@ -125,13 +125,30 @@ export class LevelService {
       // 5. Notifications & Logs
       if (leveledUp) {
         console.log(`[LevelService] User ${userId} (${user.name}) leveled up to ${newLevel}!`);
-        await NotificationService.send(
-          userId,
-          'LEVEL_UP',
-          'Level Up!',
-          `Congratulations! You've reached Level ${newLevel}. Your influence grows.`,
-          '/profile'
-        );
+        
+        // Award 10 credits reward
+        try {
+          const { default: CreditService } = await import('./CreditService.js');
+          await CreditService.addCredits(userId, 10, 'ACHIEVEMENT');
+          
+          await NotificationService.send(
+            userId,
+            'LEVEL_UP',
+            'Level Up + Reward!',
+            `Congratulations! You've reached Level ${newLevel}. You've been awarded 10 credits!`,
+            '/credits'
+          );
+        } catch (creditErr) {
+          console.error('[LevelService] Error awarding credits:', creditErr);
+          // Still send base notification if credit award fails
+          await NotificationService.send(
+            userId,
+            'LEVEL_UP',
+            'Level Up!',
+            `Congratulations! You've reached Level ${newLevel}. Your influence grows.`,
+            '/profile'
+          );
+        }
       }
 
       if (tierShifted) {
@@ -175,6 +192,32 @@ export class LevelService {
       nextThreshold: nextLevelThreshold,
       percentage
     };
+  }
+
+  /**
+   * Award Daily XP (Once per day)
+   */
+  static async awardDailyXP(userId) {
+    if (!userId) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if already awarded today
+      const { data: existing } = await getClient()
+        .from('xp_transactions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', 'DAILY_PULSE')
+        .gte('created_at', today)
+        .limit(1);
+
+      if (existing && existing.length > 0) return;
+
+      await this.awardXP(userId, 10, 'Daily Pulse');
+    } catch (err) {
+      console.error('[LevelService] awardDailyXP Exception:', err);
+    }
   }
 
   /**

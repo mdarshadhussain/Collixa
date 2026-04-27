@@ -10,53 +10,53 @@ import { useAuth } from '@/app/context/AuthContext'
 const BENEFITS_DATA = [
   {
     number: "(01)",
-    title: "Momentum Forge",
-    description: "Designed for high-velocity teams who need immediate clarity. You'll finally have a collaboration workspace that feels intuitive, supports your project's specific DNA, and drives execution without the noise.",
-    idealFor: "Ideal for project leads, founders, and technical architects.",
+    title: "Find Your People",
+    description: "Whether it's for sports, hobbies, or building a business, Collixa connects you with partners who share your purpose. Stop searching and start collaborating with AI-matched peers.",
+    idealFor: "Ideal for anyone looking for gym partners, players, or co-founders.",
     bg: "bg-[#FFCEE3]", // Soft Pink
     text: "text-[#021A54]",
     btnBg: "bg-[#021A54]",
     btnText: "text-white",
-    btnLabel: "Reserve Access",
+    btnLabel: "Post an Intent",
     insideItems: [
-      "Real-time clarity dashboards",
-      "DNA-based workspace configuration",
-      "Noise cancellation workflow tools",
-      "Fast-track project execution"
+      "AI compatibility matching",
+      "Broad category support (Sports/B2B)",
+      "Instant synergy scores",
+      "Goal-based messaging"
     ]
   },
   {
     number: "(02)",
-    title: "Intent Alignment",
-    description: "Fully custom and strategically designed to see your big vision through. Our matching engine identifies collaborators you can count on — it's time your project's expert network caught up.",
-    idealFor: "Perfect for established networks or growing service-based tribes.",
+    title: "Monetize Expertise",
+    description: "Create a Tribe and share your skills. Set your own credit fee and get rewarded after every successful session. It’s the ultimate marketplace for disciplinary growth.",
+    idealFor: "Perfect for mentors, coaches, and skill specialists.",
     bg: "bg-[#021A54]", // Midnight Blue
     text: "text-[#F5F5F5]",
     btnBg: "bg-[#F5F5F5]",
     btnText: "text-[#021A54]",
-    btnLabel: "Match Now",
+    btnLabel: "Create a Tribe",
     insideItems: [
-      "Strategic alignment matching engine",
-      "Verified expert network access",
-      "Vision-to-execution mapping",
-      "Network integrity verification"
+      "Fixed-fee credit payouts",
+      "Admin-approved quality control",
+      "Secure escrow-like flow",
+      "Scheduled meeting archives"
     ]
   },
   {
     number: "(03)",
-    title: "Execution Vault",
-    description: "A strategic ecosystem that protects your project's momentum. Move from intro to delivery with structured conversations, validated skills, and alignment that stays consistent.",
-    idealFor: "Best for serious collaborators and long-term project partners.",
+    title: "Rise through Ranks",
+    description: "Your engagement is rewarded. Level up to unlock better economic perks like purchase bonuses on credits and massive discounts on transfer fees.",
+    idealFor: "Best for active community builders and long-term users.",
     bg: "bg-[#FFCEE3]", // Soft Pink
     text: "text-[#021A54]",
     btnBg: "bg-[#021A54]",
     btnText: "text-white",
-    btnLabel: "Start Building",
+    btnLabel: "Check Rewards",
     insideItems: [
-      "Structured high-intent conversations",
-      "Validated skill/momentum matrix",
-      "Consistency guardrails",
-      "Secure project delivery vault"
+      "Tiered purchase bonuses",
+      "Discounted transfer fees",
+      "Exclusive Oracle privileges",
+      "Engagement-based leveling"
     ]
   }
 ];

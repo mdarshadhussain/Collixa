@@ -26,6 +26,7 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
     category: skill?.category || 'Development',
     description: skill?.description || '',
     max_members: skill?.max_members || 5,
+    session_fee: skill?.session_fee || 20,
     duration: skill?.duration || '',
     schedule: skill?.schedule || [],
     status: skill?.status || 'active'
@@ -40,6 +41,7 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
         category: skill.category,
         description: skill.description,
         max_members: skill.max_members || 5,
+        session_fee: skill.session_fee || 20,
         duration: skill.duration || '',
         schedule: skill.schedule || [],
         status: skill.status || 'active'
@@ -51,6 +53,7 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
         category: 'Development',
         description: '',
         max_members: 5,
+        session_fee: 20,
         duration: '',
         schedule: [],
         status: 'active'
@@ -97,11 +100,15 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
         onSuccess()
         onClose()
       } else {
-        setFormError(res.error || `Failed to ${skill ? 'update' : 'add'} skill`)
+        const errorMsg = res.error || res.message || `Failed to ${skill ? 'update' : 'add'} skill`;
+        setFormError(errorMsg);
+        notify.error(errorMsg);
       }
-    } catch (err) {
-      console.error(err)
-      setFormError('An error occurred while saving your expertise.')
+    } catch (err: any) {
+      console.error('Submit Error:', err)
+      const errorMsg = err.message || 'An error occurred while saving your expertise.';
+      setFormError(errorMsg);
+      notify.error(errorMsg);
     } finally {
       setLoading(false)
     }
@@ -202,7 +209,7 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
                   </div>
                 </div>
 
-                {/* Duration & Limit */}
+                {/* Duration, Limit & Fee */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-20 flex items-center gap-2 shrink-0">
@@ -229,6 +236,27 @@ export default function AddSkillModal({ isOpen, onClose, onSuccess, skill }: Add
                       onChange={(e) => setFormData({ ...formData, max_members: parseInt(e.target.value) })}
                       className="editorial-input flex-1"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 flex items-center gap-2 shrink-0">
+                      <Sparkles size={12} className="text-[var(--color-accent)]" />
+                      <label className="editorial-label mb-0 whitespace-nowrap">Session Fee</label>
+                    </div>
+                    <div className="relative flex-1">
+                      <input
+                        required
+                        type="number"
+                        min="0"
+                        placeholder="20"
+                        value={formData.session_fee}
+                        onChange={(e) => setFormData({ ...formData, session_fee: parseInt(e.target.value) })}
+                        className="editorial-input w-full pr-12"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase opacity-40">Creds</span>
+                    </div>
                   </div>
                 </div>
 

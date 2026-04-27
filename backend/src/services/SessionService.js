@@ -92,7 +92,7 @@ export class SessionService {
     const now = new Date();
     const scheduledTime = new Date(session.scheduled_time);
     if (now < scheduledTime) {
-      throw new Error(`Session completion is only allowed after the scheduled time (\${scheduledTime.toLocaleString()})`);
+      throw new Error(`Session completion is only allowed after the scheduled time (${scheduledTime.toLocaleString()})`);
     }
 
     if (session.status === 'COMPLETED') {
@@ -101,38 +101,132 @@ export class SessionService {
 
     const updates = {};
     if (session.sender_id === userId) {
+      // STRICT SEQUENTIAL: Student can only mark done AFTER owner
+      if (!session.receiver_confirmed) {
+        throw new Error('Please wait for the Tribe Owner to mark this session as done first.');
+      }
       updates.sender_confirmed = true;
     } else {
+      // Owner can mark done anytime
       updates.receiver_confirmed = true;
     }
 
     const isSenderAlreadyConfirmed = session.sender_confirmed === true || updates.sender_confirmed === true;
     const isReceiverAlreadyConfirmed = session.receiver_confirmed === true || updates.receiver_confirmed === true;
 
+    const skillName = session.exchange?.skill?.name || 'Tribe';
+
     if (isSenderAlreadyConfirmed && isReceiverAlreadyConfirmed) {
-      console.log(`[SessionService] Both confirmed, completing session: \${sessionId}`);
-      updates.status = 'COMPLETED';
+      console.log(`[SessionService] Both confirmed, moving to feedback phase: ${sessionId}`);
+      updates.status = 'WAITING_FOR_FEEDBACK';
       
-      const learner = await UserModel.findById(session.sender_id);
-      const teacher = await UserModel.findById(session.receiver_id);
-
-      if (!learner || !teacher) {
-        throw new Error('Session participants were not found');
+      // NOTIFY BOTH: Ready for Feedback
+      try {
+        const recipientId = userId === session.sender_id ? session.receiver_id : session.sender_id;
+        
+        // Notify both that it's time for feedback (credits will be handled in finalizeSession)
+        await NotificationService.send(recipientId, 'SESSION_UPDATE', 'Session Confirmed! ✅', `The session for "${skillName}" is confirmed. Credits are being transferred. Please provide your feedback.`, `/skills?session_id=${sessionId}`);
+        await NotificationService.send(userId, 'SESSION_UPDATE', 'Session Confirmed! ✅', `You have confirmed completion for "${skillName}". Credits are being transferred. Please provide your feedback.`, `/skills?session_id=${sessionId}`);
+      } catch (err) {
+        console.error('Final confirmation notification failed:', err);
       }
-      if ((learner.credits || 0) < 10) {
-        throw new Error('Learner has insufficient credits');
+    } else {
+      // ONLY ONE PERSON CONFIRMED (Must be Owner if we followed the rule)
+      updates.status = 'WAITING'; 
+      try {
+        const sender = await UserModel.findById(userId);
+        const recipientId = userId === session.sender_id ? session.receiver_id : session.sender_id;
+        await NotificationService.notifySessionMarkedDone(recipientId, sender?.name || 'Partner', skillName, sessionId, false);
+      } catch (err) {
+        console.error('Confirmation notification failed:', err);
       }
-      
-      console.log(`[SessionService] Transferring 10 credits from \${learner.id} to \${teacher.id} for session \${session.id}`);
-      
-      await CreditService.deductCredits(learner.id, 10, 'SPEND');
-      await CreditService.addCredits(teacher.id, 10, 'EARN', session.id);
-
-      // AWARD XP: Provider gets 150 XP for teaching a session
-      LevelService.awardXP(teacher.id, 150).catch(err => console.error('XP Award failure (Provider):', err));
     }
 
-    return await SessionModel.update(session.id, updates);
+    const updated = await SessionModel.update(session.id, updates);
+
+    // If both confirmed, finalize immediately (Credits transfer)
+    if (isSenderAlreadyConfirmed && isReceiverAlreadyConfirmed) {
+       try {
+         await this.finalizeSession(session.id);
+         // Refetch updated session to return the final status
+         return await SessionModel.getById(session.id);
+       } catch (err) {
+         console.error('[SessionService] Immediate finalization failed:', err);
+       }
+    }
+
+    return updated;
+  }
+
+  /**
+   * Finalize session: Transfer credits and award XP
+   * Triggered only when both parties have reviewed
+   */
+  static async finalizeSession(sessionId) {
+    const session = await SessionModel.getById(sessionId);
+    
+    if (session.status === 'COMPLETED') return session;
+    
+    // Only require confirmations now, not reviews
+    if (!session.sender_confirmed || !session.receiver_confirmed) {
+      console.log(`[SessionService] Session ${sessionId} not ready for finalization. Flags: ${JSON.stringify({
+        sender_confirmed: session.sender_confirmed,
+        receiver_confirmed: session.receiver_confirmed
+      })}`);
+      return session;
+    }
+
+    console.log(`[SessionService] ALL CONDITIONS MET. Finalizing session: ${sessionId}`);
+    
+    const fee = session.exchange?.skill?.session_fee !== undefined ? session.exchange.skill.session_fee : 20;
+    const skillName = session.exchange?.skill?.name || 'Tribe';
+    
+    const learner = await UserModel.findById(session.sender_id);
+    const teacher = await UserModel.findById(session.receiver_id);
+
+    if (fee > 0) {
+      if ((learner.credits || 0) < fee) {
+        // Log error but don't block? Or block?
+        // Usually, we should have checked this earlier, but better safe than sorry.
+        console.error(`[SessionService] Finalization failed: Learner ${learner.id} has insufficient credits.`);
+        throw new Error(`Learner has insufficient credits (${learner.credits}) for the session fee (${fee}).`);
+      }
+      
+      console.log(`[SessionService] Finalizing: Transferring ${fee} credits for session ${session.id}`);
+      await CreditService.deductCredits(learner.id, fee, 'SPEND');
+      await CreditService.addCredits(teacher.id, fee, 'EARN', session.id);
+    }
+
+    // Award XP
+    await LevelService.awardXP(teacher.id, 250, `Session: ${skillName} (Provider)`).catch(err => console.error('XP Award failure (Teacher):', err));
+    await LevelService.awardXP(learner.id, 100, `Session: ${skillName} (Student)`).catch(err => console.error('XP Award failure (Learner):', err));
+
+    const finalUpdates = { status: 'COMPLETED' };
+    const updatedSession = await SessionModel.update(session.id, finalUpdates);
+
+    // NOTIFY BOTH: Session Fully Completed
+    try {
+      const formattedFee = fee.toLocaleString();
+      await NotificationService.send(
+        session.sender_id, 
+        'SESSION_UPDATE', 
+        'Session Finalized! ✅', 
+        `The session for "${skillName}" is complete. ${formattedFee} credits have been deducted from your wallet.`, 
+        `/skills?session_id=${sessionId}`
+      );
+      
+      await NotificationService.send(
+        session.receiver_id, 
+        'SESSION_UPDATE', 
+        'Session Finalized! ✅', 
+        `The session for "${skillName}" is complete. You have received ${formattedFee} credits for your expertise.`, 
+        `/skills?session_id=${sessionId}`
+      );
+    } catch (err) {
+      console.error('Final completion notification failed:', err);
+    }
+
+    return updatedSession;
   }
 
   /**

@@ -10,6 +10,8 @@ router.post('/simulate-success', authMiddleware, CreditController.simulateSucces
 
 // Share credits routes
 router.post('/share', authMiddleware, CreditController.shareCredits);
+router.post('/redeem', authMiddleware, CreditController.redeemGiftCard);
+router.get('/redemptions', authMiddleware, CreditController.getMyRedemptions);
 router.get('/search-user', authMiddleware, CreditController.searchUserByEmail);
 
 // Webhook must be public because Stripe calls it, but controller handles signature verification

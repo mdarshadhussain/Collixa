@@ -38,6 +38,7 @@ export class SkillService {
       ...skillData,
       user_id: userId,
       max_members: skillData.max_members || 5,
+      session_fee: skillData.session_fee || 20,
       schedule: skillData.schedule || [],
       meeting_link: skillData.meeting_link || `https://meet.jit.si/CollixaTribe_${userId}_${Date.now()}`,
       status: 'pending',
@@ -69,7 +70,7 @@ export class SkillService {
     }
 
     // Award XP for creating a tribe
-    LevelService.awardXP(userId, 30, 'Created a Tribe').catch(console.error);
+    LevelService.awardXP(userId, 75, `Created Tribe: ${skill.name}`).catch(console.error);
 
     return skill;
   }
@@ -124,14 +125,42 @@ export class SkillService {
       throw new Error('You cannot join your own tribe.');
     }
 
-    // Check if tribe is full
-    const { count, error: countError } = await SkillModel.getClient()
+    // Check if user already has a pending or accepted request for this skill
+    const { data: existingRequest } = await SkillModel.getClient()
       .from('skill_exchanges')
-      .select('*', { count: 'exact', head: true })
+      .select('id, status')
+      .eq('requester_id', requesterId)
       .eq('skill_id', skillId)
-      .eq('status', 'ACCEPTED');
+      .in('status', ['PENDING', 'ACCEPTED'])
+      .maybeSingle();
 
-    if (!countError && count >= (skill.max_members || 5)) {
+    if (existingRequest) {
+      if (existingRequest.status === 'ACCEPTED') {
+        throw new Error('You are already a member of this tribe.');
+      } else {
+        throw new Error('You already have a pending request to join this tribe.');
+      }
+    }
+
+    // 1. Check Limits & Balance
+    const { data: user, error: userError } = await SkillModel.getClient()
+      .from('users')
+      .select('credits')
+      .eq('id', requesterId)
+      .single();
+
+    if (userError || !user) throw new Error('User not found');
+    
+    const requiredFee = skill.session_fee || 20;
+    if ((user.credits || 0) < requiredFee) {
+      throw new Error(`Insufficient credits! You need at least ${requiredFee} credits to join this tribe.`);
+    }
+
+    // 2. Check capacity
+    const members = await SkillModel.getMembers(skillId);
+    const uniqueMemberCount = new Set(members.map(m => m.user?.id).filter(Boolean)).size;
+
+    if (uniqueMemberCount >= (skill.max_members || 5)) {
       throw new Error('This tribe has reached its maximum number of students.');
     }
 
@@ -146,11 +175,14 @@ export class SkillService {
     // Notify provider
     try {
       const { data: requester } = await SkillModel.getClient().from('users').select('name').eq('id', requesterId).single();
-      await NotificationService.notifySkillRequest(skill.user_id, requester?.name || 'A user', skill.name);
+      await NotificationService.notifySkillRequest(skill.user_id, requester?.name || 'A user', skill.name, skill.id);
     } catch (err) {
       console.error('Failed to send notification:', err);
     }
 
+    // Award XP for requesting to join
+    LevelService.awardXP(requesterId, 20, `Requested to Join: ${skill.name}`).catch(console.error);
+    
     return exchange;
   }
 
@@ -181,6 +213,25 @@ export class SkillService {
       throw new Error(`Cannot update a ${existing.status} request`);
     }
 
+    // If accepting, check if user is already a member (to avoid duplicate counts)
+    if (status === 'ACCEPTED') {
+      const members = await SkillModel.getMembers(existing.skill_id);
+      const isAlreadyMember = members.some(m => m.user?.id === existing.requester_id);
+      if (isAlreadyMember) {
+        // If already a member, we can just mark this request as accepted without double counting
+        // or just let it through since our count logic now handles unique users.
+        // But cleaner to prevent duplicates.
+        console.warn(`User ${existing.requester_id} is already a member of tribe ${existing.skill_id}. Marking request as accepted.`);
+      } else {
+        // Check limit one last time before accepting
+        const { data: skill } = await client.from('skills').select('max_members').eq('id', existing.skill_id).single();
+        const currentCount = new Set(members.map(m => m.user?.id).filter(Boolean)).size;
+        if (currentCount >= (skill?.max_members || 5)) {
+          throw new Error('This tribe has reached its maximum capacity. Cannot accept more members.');
+        }
+      }
+    }
+
     const updated = await SkillExchangeModel.updateStatus(exchangeId, status, data);
     
     // Notify requester
@@ -200,6 +251,11 @@ export class SkillService {
           skill?.name || 'tribe',
           status === 'ACCEPTED'
         );
+        
+        // Award XP for accepting a member
+        if (status === 'ACCEPTED') {
+          LevelService.awardXP(userId, 40, `Onboarded Student: ${skill?.name}`).catch(console.error);
+        }
 
         // AUTOMATION: Add student to the Tribe Group Chat
         let targetConversationId = skill.conversation_id;
@@ -372,7 +428,14 @@ export class SkillService {
     
     return {
       ...skill,
-      members: members.map(m => ({ ...m.user, exchange_id: m.id })).filter(Boolean),
+      session_fee: skill.session_fee || 20,
+      members: Array.from(
+        new Map(
+          members
+            .filter(m => m && m.user)
+            .map(m => [m.user.id, { ...m.user, exchange_id: m.id }])
+        ).values()
+      ),
       notices,
       conversation_id
     };

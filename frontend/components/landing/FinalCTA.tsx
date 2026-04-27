@@ -24,7 +24,7 @@ export default function FinalCTASection() {
           className="text-center max-w-[760px] mx-auto flex flex-col items-center"
         >
           <Typewriter 
-            text="Ready to build your next project with the right people?"
+            text="Ready to find your next partner and join the community?"
             align="center"
             className="font-[var(--font-lp-serif)] text-[44px] md:text-[72px] leading-[0.95] tracking-tight font-bold text-[var(--lp-text)]"
           />

@@ -211,6 +211,23 @@ export class IntentController {
   }
 
   /**
+   * Get intents for a specific user
+   * GET /api/intents/user/:userId
+   */
+  static async getIntentsByUserId(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const intents = await IntentService.getUserIntents(userId);
+      return res.status(200).json({
+        data: intents,
+        total: intents.length,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Send collaboration request
    * POST /api/intents/:id/request
    */

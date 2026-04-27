@@ -1,6 +1,8 @@
 import ReviewModel from '../models/Review.js';
 import SessionModel from '../models/Session.js';
 import IntentModel from '../models/Intent.js';
+import UserModel from '../models/User.js';
+import { SessionService } from './SessionService.js';
 import { supabase, supabaseAdmin } from '../config/database.js';
 
 const getClient = () => supabaseAdmin || supabase;
@@ -12,8 +14,9 @@ export class ReviewService {
     if (sessionId) {
       const session = await SessionModel.getById(sessionId);
 
-      if (session.status !== 'COMPLETED') {
-        throw new Error('Reviews are only allowed after session completion');
+      // Allow reviews if status is COMPLETED (legacy) or WAITING_FOR_FEEDBACK (new protocol)
+      if (session.status !== 'COMPLETED' && session.status !== 'WAITING_FOR_FEEDBACK') {
+        throw new Error('Reviews are only allowed after both parties have marked the session as done');
       }
       if (String(session.sender_id) !== String(userId) && String(session.receiver_id) !== String(userId)) {
         throw new Error('You are not a participant in this session');
@@ -26,13 +29,49 @@ export class ReviewService {
 
       const revieweeId = String(session.sender_id) === String(userId) ? session.receiver_id : session.sender_id;
 
-      return await ReviewModel.create({
+      const review = await ReviewModel.create({
         session_id: sessionId,
         reviewer_id: userId,
         reviewee_id: revieweeId,
         rating,
         comment: comment || null,
       });
+
+      // AWARD XP for providing feedback
+      try {
+        const { default: LevelService } = await import('./LevelService.js');
+        await LevelService.awardXP(userId, 50, 'Provided Session Feedback');
+      } catch (err) {
+        console.error('XP Award failure (Review):', err);
+      }
+
+      // Update session review flags to track completion for escrow release
+      const sessionUpdates = {};
+      if (String(session.sender_id) === String(userId)) {
+        sessionUpdates.sender_reviewed = true;
+      } else {
+        sessionUpdates.receiver_reviewed = true;
+      }
+      await SessionModel.update(sessionId, sessionUpdates);
+
+      // Trigger finalization (Credits transfer) if both have now reviewed
+      try {
+        await SessionService.finalizeSession(sessionId);
+      } catch (err) {
+        console.error('[ReviewService] Finalization trigger failed:', err);
+      }
+
+      // NOTIFY: Feedback Received
+      try {
+        const { NotificationService } = await import('./NotificationService.js');
+        const reviewer = await UserModel.findById(userId);
+        const skillName = session.exchange?.skill?.name || 'Tribe';
+        await NotificationService.notifyFeedbackReceived(revieweeId, reviewer?.name || 'Partner', skillName);
+      } catch (err) {
+        console.error('Feedback notification failed:', err);
+      }
+
+      return review;
     } else if (intentId) {
        const intent = await IntentModel.getById(intentId);
        

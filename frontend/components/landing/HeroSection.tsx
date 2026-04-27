@@ -21,19 +21,19 @@ export default function HeroSection() {
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
             >
-              <h1 className="text-[48px] md:text-[76px] leading-[0.95] tracking-[-0.05em] font-extrabold font-[var(--font-lp-serif)] text-transparent bg-clip-text bg-gradient-to-br from-[var(--lp-text)] via-[var(--lp-text)] to-[var(--lp-primary)] drop-shadow-[0_4px_4px_rgba(2,26,84,0.05)]">
+              <h1 className="text-[42px] md:text-[68px] leading-[0.95] tracking-[-0.05em] font-extrabold font-[var(--font-lp-serif)] text-transparent bg-clip-text bg-gradient-to-br from-[var(--lp-text)] via-[var(--lp-text)] to-[var(--lp-primary)] drop-shadow-[0_4px_4px_rgba(2,26,84,0.05)]">
                 <Typewriter 
-                  text="Collaboration refined for serious intent." 
+                  text="Fuel Your Intent. Forge Your Tribe. Reward Your Evolution." 
                   speed={0.03} 
                   delay={0.2}
                 />
               </h1>
               
               <Typewriter 
-                text="We design memorable project intents that work as hard as your favorite team member. Oh, and the matching? Refreshingly smooth, some even say fun."
+                text="The next evolution of human synergy. We utilize intent-driven AI to find your perfect partners and tribes, governed by a meritocratic economic protocol. No noise, just growth."
                 delay={0.8}
                 speed={0.01}
-                className="mt-8 text-[18px] md:text-[20px] text-[var(--lp-text)] opacity-80 max-w-[480px] leading-relaxed font-[var(--font-lp-sans)]"
+                className="mt-8 text-[18px] md:text-[20px] text-[var(--lp-text)] opacity-80 max-w-[520px] leading-relaxed font-[var(--font-lp-sans)]"
               />
 
               <motion.div 

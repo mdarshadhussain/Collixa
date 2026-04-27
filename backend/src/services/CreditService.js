@@ -74,17 +74,25 @@ export class CreditService {
    * @param {string} userId - ID of the user
    * @param {number} amount - Amount of credits to deduct
    * @param {string} type - Transaction type (TRANSFER, ADMIN_DEDUCT, etc.)
+   * @param {string} description - Optional description/metadata
    * @returns {Promise<Object>} The updated transaction record
    */
-  static async deductCredits(userId, amount, type) {
+  static async deductCredits(userId, amount, type, description = null) {
     try {
+      // Use 'SPEND' if 'REDEMPTION' is passed to avoid database constraint violations
+      const transactionType = type === 'REDEMPTION' ? 'SPEND' : type;
+
       // 1. Record the transaction (negative amount)
-      const [transaction] = await CreditTransactionModel.createMany([{
+      const transactionData = {
         user_id: userId,
         amount: -parseInt(amount),
-        type: type,
+        type: transactionType,
         created_at: new Date().toISOString()
-      }]);
+      };
+      
+      if (description) transactionData.description = description;
+
+      const [transaction] = await CreditTransactionModel.createMany([transactionData]);
 
       if (!transaction) throw new Error('Failed to create credit transaction record');
 

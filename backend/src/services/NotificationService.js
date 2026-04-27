@@ -49,13 +49,13 @@ export class NotificationService {
 
   // --- Convenience Methods ---
 
-  static async notifySkillRequest(providerId, requesterName, skillName) {
+  static async notifySkillRequest(providerId, requesterName, skillName, skillId) {
     return await this.send(
       providerId,
       'SKILL_REQUEST',
       'Tribe Admission Request',
       `${requesterName} wants to join your "${skillName}" Tribe.`,
-      '/skills?tab=academy'
+      skillId ? `/skills/${skillId}` : '/skills?tab=academy'
     );
   }
 
@@ -88,6 +88,28 @@ export class NotificationService {
       'New Message',
       `${senderName} sent you a message.`,
       `/chat?id=${conversationId}`
+    );
+  }
+
+  static async notifySessionMarkedDone(recipientId, senderName, skillName, sessionId, isBothDone) {
+    return await this.send(
+      recipientId,
+      'SESSION_UPDATE',
+      isBothDone ? 'Session Finalized! 🎉' : 'Session Completion Request',
+      isBothDone 
+        ? `${senderName} also marked the "${skillName}" session as done. You can now leave feedback!` 
+        : `${senderName} marked your "${skillName}" session as done. Please confirm to finalize.`,
+      `/skills?session_id=${sessionId}`
+    );
+  }
+
+  static async notifyFeedbackReceived(recipientId, senderName, skillName) {
+    return await this.send(
+      recipientId,
+      'FEEDBACK_RECEIVED',
+      'New Feedback Received',
+      `${senderName} left feedback for the "${skillName}" session.`,
+      '/profile'
     );
   }
 }

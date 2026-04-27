@@ -117,7 +117,7 @@ export default function NotificationDrawer({ isOpen, onClose }: NotificationDraw
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[200]"
+            className="fixed inset-0 bg-slate-900/30 backdrop-blur-2xl z-[9999]"
           />
 
           {/* Drawer */}
@@ -126,7 +126,7 @@ export default function NotificationDrawer({ isOpen, onClose }: NotificationDraw
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-screen w-full sm:w-[400px] bg-[var(--color-bg-primary)] border-l border-[var(--color-border)] shadow-2xl z-[201] flex flex-col"
+            className="fixed right-0 top-0 h-screen w-full sm:w-[400px] bg-[var(--color-bg-primary)] border-l border-[var(--color-border)] shadow-2xl z-[10000] flex flex-col"
           >
             {/* Header */}
             <div className="p-6 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg-secondary)]/50">

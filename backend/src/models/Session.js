@@ -21,7 +21,16 @@ export class SessionModel {
   static async getById(id) {
     const { data, error } = await getClient()
       .from('sessions')
-      .select('*')
+      .select(`
+        *,
+        exchange:skill_exchanges(
+          id,
+          status,
+          requester_id,
+          provider_id,
+          skill:skills(id, name, session_fee)
+        )
+      `)
       .eq('id', id)
       .single();
 
@@ -34,11 +43,13 @@ export class SessionModel {
       .from('sessions')
       .select(`
         *,
+        sender:users!sessions_sender_id_fkey(name, id),
         exchange:skill_exchanges(
           id,
           status,
           requester_id,
           provider_id,
+          skill_id,
           skill:skills(name, category)
         )
       `)

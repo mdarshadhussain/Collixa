@@ -377,7 +377,7 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: (i + 3) * 0.1 }}
-                  onClick={() => router.push(`/profile?uid=${partner.user_id}`)}
+                  onClick={() => router.push(`/user?uid=${partner.user_id}`)}
                   className="group bg-[var(--color-inverse-bg)] border border-white/5 p-4 sm:p-6 rounded-[2.5rem] hover:border-[var(--color-accent)]/40 transition-all cursor-pointer relative overflow-hidden flex flex-col items-center text-center"
                 >
                   <div className="absolute top-3 right-3 z-10">
@@ -397,17 +397,21 @@ export default function DashboardPage() {
           ) : (
             <div className="bg-[var(--color-bg-secondary)] border border-dashed border-[var(--color-border)] p-12 rounded-[3rem] text-center max-w-2xl mx-auto">
               <div className="w-16 h-16 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] rounded-full flex items-center justify-center mx-auto mb-6">
-                <Users size={24} />
+                {authUser.is_genesis_completed ? <CompassIcon size={24} className="text-[var(--color-accent)]" /> : <Users size={24} />}
               </div>
-              <h3 className="text-2xl font-serif font-black italic mb-3 text-[var(--color-text-primary)]">Unlock Your Potential.</h3>
+              <h3 className="text-2xl font-serif font-black italic mb-3 text-[var(--color-text-primary)]">
+                {authUser.is_genesis_completed ? "The search continues." : "Unlock Your Potential."}
+              </h3>
               <p className="text-xs text-[var(--color-text-secondary)] font-medium leading-relaxed mb-8 px-4">
-                Our AI matches you with the best collaborators and projects based on your interests. Currently, your profile is thin on details!
+                {authUser.is_genesis_completed 
+                  ? "Your profile looks great! However, we couldn't find any immediate AI matches. Try creating a new intent or exploring the global network."
+                  : "Our AI matches you with the best collaborators and projects based on your interests. Currently, your profile is thin on details!"}
               </p>
               <button
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push(authUser.is_genesis_completed ? '/intents' : '/profile')}
                 className="px-8 py-4 bg-[var(--color-accent)] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-xl hover:scale-105 transition-all shadow-xl"
               >
-                Complete Your Profile
+                {authUser.is_genesis_completed ? "Explore Network" : "Complete Your Profile"}
               </button>
             </div>
           )}
@@ -483,7 +487,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => router.push(`/profile?uid=${tribe.user_id}`)}
+                onClick={() => router.push(`/user?uid=${tribe.user_id}`)}
                 className="group bg-[var(--color-inverse-bg)] rounded-[2rem] overflow-hidden border border-white/5 hover:border-[var(--color-accent)]/30 hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col"
               >
                 <div className="p-4 sm:p-8 flex flex-col items-center text-center space-y-4">

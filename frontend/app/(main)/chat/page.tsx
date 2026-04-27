@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Send, Plus, MoreVertical, Search, ArrowLeft, MessageCircle, X, Loader2, MapPin, Image as ImageIcon, Camera, Video, Calendar } from 'lucide-react'
+import { Send, Plus, MoreVertical, Search, ArrowLeft, MessageCircle, X, Loader2, MapPin, Image as ImageIcon, Camera, Video, Calendar, Users, Award, ArrowUpRight, ChevronDown } from 'lucide-react'
 import Badge from '@/components/Badge'
 import { useAuth } from '@/app/context/AuthContext'
 import { conversationService, messageService, supabase, userService, storageService } from '@/lib/supabase'
@@ -21,6 +21,7 @@ interface UIMessage {
   isOwn: boolean
   type?: 'text' | 'location' | 'system' | 'image' | 'meeting'
   metadata?: any
+  authorId?: string
 }
 
 interface UIConversation {
@@ -36,6 +37,7 @@ interface UIConversation {
   role?: 'ADMIN' | 'MEMBER'
   admin_id?: string
   intent_id?: number | null
+  otherUserId?: string
 }
 
 export default function ChatPage() {
@@ -155,7 +157,8 @@ export default function ChatPage() {
             chatType: 'DIRECT',
             isSender: isUserP1,
             admin_id: conv.admin_id,
-            intent_id: conv.intent_id
+            intent_id: conv.intent_id,
+            otherUserId: other?.id
           }
         })
         
@@ -268,7 +271,8 @@ export default function ChatPage() {
                   ? storageService.getPublicUrl((m.sender_id as any).avatar_url) 
                   : `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`),
             type: type,
-            metadata: metadata
+            metadata: metadata,
+            authorId: senderId
           }
         })
         setMessages(mapped)
@@ -708,27 +712,30 @@ export default function ChatPage() {
         setSelectedConversation(conv)
         setMobileShowConversations(false)
       }}
-      className={`w-full text-left p-6 border-b border-[var(--color-border)] hover:bg-[var(--color-accent-soft)]/20 transition-all group relative ${
-        selectedConversation?.id === conv.id ? 'bg-[var(--color-accent-soft)]/20 border-l-4 border-l-[var(--color-accent)]' : ''
+      className={`w-full text-left p-6 border-b border-slate-100 hover:bg-slate-50 transition-all group relative ${
+        selectedConversation?.id === conv.id ? 'bg-white' : ''
       }`}
     >
+      {selectedConversation?.id === conv.id && (
+        <div className="absolute top-0 right-0 bottom-0 w-1 bg-pink-400 shadow-[0_0_15px_rgba(244,114,182,0.5)]" />
+      )}
       <div className="flex items-center gap-4">
         <div className="relative">
-          <Avatar name={conv.name} src={conv.avatar} size="md" className="ring-2 ring-transparent group-hover:ring-[var(--color-accent-soft)] transition-all" />
+          <Avatar name={conv.name} src={conv.avatar} size="md" />
           {conv.status === 'online' && (
-            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-4 border-[var(--color-bg-secondary)]"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-sm font-black tracking-tight group-hover:text-[var(--color-accent)] transition-colors">{conv.name}</span>
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-sm font-bold text-slate-700 truncate">{conv.name}</span>
             {conv.unread > 0 && (
-              <span className="px-2 py-0.5 min-w-[1.25rem] text-center text-[8px] font-black bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-full">
+              <span className="px-2 py-0.5 min-w-[1.25rem] text-center text-[8px] font-bold bg-pink-400 text-white rounded-full">
                 {conv.unread}
               </span>
             )}
           </div>
-          <p className="text-[10px] text-[var(--color-text-secondary)] truncate font-medium opacity-60 italic">{conv.lastMessage}</p>
+          <p className="text-[10px] text-slate-400 truncate font-medium italic">{conv.lastMessage}</p>
         </div>
       </div>
     </button>
@@ -739,7 +746,7 @@ export default function ChatPage() {
       <div className="h-[calc(100vh-160px)] flex gap-4 overflow-hidden relative">
             
             <div
-              className={`w-full md:w-80 lg:w-96 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] flex flex-col overflow-hidden shadow-sm transition-all ${
+              className={`w-full md:w-80 lg:w-96 bg-white border border-slate-100 rounded-[2.5rem] flex flex-col overflow-hidden shadow-sm transition-all ${
                 mobileShowConversations ? 'flex' : 'hidden md:flex'
               }`}
             >
@@ -747,34 +754,34 @@ export default function ChatPage() {
                 {/* Top Search + Plus Icon */}
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-[var(--color-accent)] transition-colors opacity-40" size={16} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-400 transition-colors opacity-40" size={16} />
                     <input
                       type="text"
-                      placeholder="Search node..."
+                      placeholder="SEARCH NODE..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-[var(--color-bg-primary)]/50 border border-[var(--color-border)] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/20 outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] focus:border-pink-300 outline-none transition-all placeholder:text-slate-300"
                     />
                   </div>
                   <button 
                     onClick={() => setIsNewChatModalOpen(true)} 
-                    className="p-3 bg-[var(--color-accent-soft)] text-[var(--color-accent)] rounded-2xl hover:bg-[var(--color-accent)] hover:text-white transition-all shadow-lg active:scale-95"
+                    className="p-3.5 bg-pink-100 text-pink-500 rounded-full hover:bg-pink-200 transition-all shadow-sm active:scale-95"
                   >
                     <Plus size={18} />
                   </button>
                 </div>
 
                 {/* Tabs for Groups/Direct */}
-                <div className="flex p-1 bg-[var(--color-bg-primary)]/50 border border-[var(--color-border)] rounded-2xl">
+                <div className="flex p-1 bg-white border border-slate-100 rounded-full shadow-sm">
                   <button 
                     onClick={() => setActiveTab('GROUPS')}
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'GROUPS' ? 'bg-[var(--color-accent)] text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]'}`}
+                    className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${activeTab === 'GROUPS' ? 'bg-pink-400 text-white shadow-md' : 'text-slate-400 hover:text-pink-400'}`}
                   >
                     Groups
                   </button>
                   <button 
                     onClick={() => setActiveTab('DIRECT')}
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'DIRECT' ? 'bg-[var(--color-accent)] text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]'}`}
+                    className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${activeTab === 'DIRECT' ? 'bg-pink-400 text-white shadow-md' : 'text-slate-400 hover:text-pink-400'}`}
                   >
                     Direct
                   </button>
@@ -837,24 +844,31 @@ export default function ChatPage() {
               </div>
             </div>
 
-            <div className={`flex-1 flex flex-col bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
+            <div className={`flex-1 flex flex-col bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
               {selectedConversation ? (
                 <>
-                  <div className="px-8 py-6 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg-secondary)]/50 backdrop-blur-md z-10">
-                    <div className="flex items-center gap-4 flex-1">
+                  <div className="px-4 md:px-8 py-3 md:py-6 border-b border-slate-100 flex items-center justify-between bg-white/50 backdrop-blur-md z-10">
+                    <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                       <button 
                         onClick={() => setMobileShowConversations(true)} 
-                        className="md:hidden p-3 -ml-2 text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/20 rounded-full transition-all"
+                        className="md:hidden p-2 -ml-1 text-pink-400 hover:bg-pink-50 rounded-full transition-all shrink-0"
                       >
                         <ArrowLeft size={20} />
                       </button>
-                      <Avatar name={selectedConversation.name} src={selectedConversation.avatar} size="lg" />
-                      <div className="cursor-pointer group/title" onClick={() => selectedConversation?.chatType === 'GROUP' && setShowMembersModal(true)}>
-                        <h3 className="text-lg font-serif font-black tracking-tight flex items-center gap-2 group-hover/title:text-[var(--color-accent)] transition-all">
+                      <Avatar 
+                        name={selectedConversation.name} 
+                        src={selectedConversation.avatar} 
+                        size="md" 
+                        className={selectedConversation.chatType === 'DIRECT' ? 'cursor-pointer hover:scale-105 active:scale-95 transition-all shrink-0' : 'shrink-0'}
+                        onClick={() => selectedConversation.chatType === 'DIRECT' && selectedConversation.otherUserId && router.push(`/user?uid=${selectedConversation.otherUserId}`)}
+                      />
+                      <div 
+                        className="cursor-pointer group/title min-w-0 flex-1" 
+                        onClick={() => selectedConversation?.chatType === 'GROUP' ? setShowMembersModal(true) : (selectedConversation.otherUserId && router.push(`/user?uid=${selectedConversation.otherUserId}`))}
+                      >
+                        <h3 className="text-sm md:text-lg font-bold tracking-tight text-slate-800 truncate">
                           {selectedConversation?.name}
-                          {selectedConversation?.role === 'ADMIN' && <Badge variant="blue" className="px-2 py-0.5 text-[7px]">ADMIN</Badge>}
                         </h3>
-                        {selectedConversation.chatType === 'GROUP' && <p className="text-[9px] font-black uppercase tracking-widest opacity-40 group-hover/title:opacity-100 transition-all">View Members</p>}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 lg:gap-4 relative">
@@ -889,7 +903,7 @@ export default function ChatPage() {
                   <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 custom-scrollbar bg-[var(--color-bg-primary)]/20 relative">
                     {selectedConversation.chatStatus === 'PENDING' || selectedConversation.chatStatus === 'REJECTED' ? (
                       <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-bg-primary)]/80 backdrop-blur-sm z-20">
-                         <div className="text-center p-8 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] shadow-2xl max-w-sm w-full mx-4">
+                         <div className="text-center p-8 bg-[var(--color-bg-secondary)] rounded-3xl border border-[var(--color-border)] shadow-2xl max-w-sm w-full mx-4">
                             {selectedConversation.chatStatus === 'REJECTED' ? (
                                <>
                                  <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -923,125 +937,158 @@ export default function ChatPage() {
 
                     {messages.length === 0 && selectedConversation.chatStatus === 'ACCEPTED' ? (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                         <div className="text-center p-8 bg-[var(--color-bg-secondary)]/80 backdrop-blur-md rounded-[2.5rem] border border-[var(--color-border)]">
+                         <div className="text-center p-8 bg-[var(--color-bg-secondary)]/80 backdrop-blur-md rounded-3xl border border-[var(--color-border)]">
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)]">Begin synchronizing.</span>
                          </div>
                       </div>
                     ) : (
                       messages.map((msg: any) => (
                         msg.type === 'system' ? (
-                          <div key={msg.id} className="flex justify-center my-6">
-                            <div className="bg-[var(--color-bg-primary)]/40 backdrop-blur-sm px-6 py-2 rounded-2xl border border-[var(--color-border)] shadow-sm">
-                              <p className="text-[9px] font-black text-[var(--color-text-secondary)] uppercase tracking-[0.2em] opacity-60">
-                                {msg.content.replace('[SYSTEM]:', '').trim()}
-                              </p>
+                          <div key={msg.id} className="flex justify-center my-8">
+                            <div className="bg-[var(--color-bg-secondary)]/40 backdrop-blur-md px-8 py-3 rounded-full border border-[var(--color-border)] shadow-xl flex items-center gap-3">
+                               <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse" />
+                               <p className="text-[9px] font-black text-[var(--color-text-primary)] uppercase tracking-[0.3em] opacity-60 italic">
+                                 {msg.content.replace('[SYSTEM]:', '').trim()}
+                               </p>
                             </div>
                           </div>
                         ) : msg.type === 'location' ? (
-                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
-                            <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
-                               {selectedConversation?.chatType === 'GROUP' && !msg.isOwn && (
-                                 <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] ml-4 mb-1 opacity-60">
-                                   {msg.author}
-                                 </span>
-                               )}
-                              <div className={`max-w-[16rem] md:max-w-md p-0 overflow-hidden rounded-3xl shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-tr-none' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-tl-none'}`}>
-                                <div className="p-4 bg-black/5">
-                                  <div className="flex items-center gap-3 mb-3">
-                                    <div className="p-2 bg-[var(--color-accent)] text-white rounded-xl">
-                                      <MapPin size={16} />
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Location Shared</p>
-                                      <p className="text-xs font-bold leading-tight mb-0.5">{msg.content.replace('📍 ', '')}</p>
-                                      <p className="text-[9px] opacity-40 font-medium">{msg.metadata?.latitude?.toFixed(4)}, {msg.metadata?.longitude?.toFixed(4)}</p>
-                                    </div>
-                                  </div>
-                                  <a 
-                                    href={`https://www.google.com/maps?q=${msg.metadata?.latitude},${msg.metadata?.longitude}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block w-full py-3 bg-[var(--color-accent)] text-white text-[10px] font-black uppercase tracking-widest text-center rounded-xl hover:bg-black transition-all"
-                                  >
-                                    View on Map
-                                  </a>
-                                </div>
-                              </div>
-                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-2 opacity-40">{msg.timestamp}</span>
-                            </div>
+                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''} group/msg`}>
+                             {!msg.isOwn && (
+                               <Avatar 
+                                 name={msg.author} 
+                                 src={msg.avatar} 
+                                 size="sm" 
+                                 className="mt-auto shadow-lg cursor-pointer hover:scale-110 active:scale-95 transition-all" 
+                                 onClick={() => msg.authorId && router.push(`/user?uid=${msg.authorId}`)}
+                               />
+                             )}
+                             <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''} max-w-[85%]`}>
+                               <div className={`p-6 overflow-hidden rounded-[2.5rem] shadow-xl ${msg.isOwn ? 'bg-[#d6709d] text-white' : 'bg-white border border-slate-100'}`}>
+                                 <div className="flex items-center gap-4 mb-4">
+                                   <div className={`p-3 rounded-2xl ${msg.isOwn ? 'bg-white/20' : 'bg-pink-50 text-pink-400'}`}>
+                                     <MapPin size={24} />
+                                   </div>
+                                   <div>
+                                     <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${msg.isOwn ? 'text-white/70' : 'text-pink-400'}`}>LOCATION SHARED</p>
+                                     <p className="text-xs font-bold leading-relaxed">{msg.content.replace('📍 ', '')}</p>
+                                     <p className={`text-[8px] mt-1 opacity-50 ${msg.isOwn ? 'text-white' : 'text-slate-400'}`}>
+                                       {msg.metadata?.latitude}, {msg.metadata?.longitude}
+                                     </p>
+                                   </div>
+                                 </div>
+                                 <a 
+                                   href={`https://www.google.com/maps?q=${msg.metadata?.latitude},${msg.metadata?.longitude}`}
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   className={`block w-full py-4 text-[10px] font-bold uppercase tracking-widest text-center rounded-2xl transition-all ${msg.isOwn ? 'bg-black/20 text-white hover:bg-black/30' : 'bg-pink-400 text-white hover:bg-pink-500'}`}
+                                 >
+                                   VIEW ON MAP
+                                 </a>
+                               </div>
+                               <span className="text-[8px] font-bold uppercase tracking-widest text-slate-300 mt-2 px-4">{msg.timestamp}</span>
+                             </div>
                           </div>
                         ) : msg.type === 'image' ? (
-                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
-                            <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
-                              {selectedConversation?.chatType === 'GROUP' && !msg.isOwn && (
-                                <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] ml-4 mb-1 opacity-60">
-                                  {msg.author}
-                                </span>
-                              )}
-                              <div className={`max-w-[10rem] md:max-w-[14rem] p-1.5 overflow-hidden rounded-[2rem] shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] rounded-tr-none' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-tl-none'}`}>
-                                <img 
-                                  src={msg.metadata?.url} 
-                                  alt="Shared Image" 
-                                  className="w-full h-auto rounded-[1.5rem] object-cover min-w-[140px] min-h-[100px]"
-                                  loading="lazy"
-                                />
-                              </div>
-                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-2 opacity-40">{msg.timestamp}</span>
-                            </div>
+                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''} group/msg`}>
+                             {!msg.isOwn && (
+                               <Avatar 
+                                 name={msg.author} 
+                                 src={msg.avatar} 
+                                 size="sm" 
+                                 className="mt-auto shadow-lg cursor-pointer hover:scale-110 active:scale-95 transition-all" 
+                                 onClick={() => msg.authorId && router.push(`/user?uid=${msg.authorId}`)}
+                               />
+                             )}
+                             <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''} max-w-[80%]`}>
+                               <div className={`p-1 overflow-hidden rounded-2xl ${msg.isOwn ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)]'}`}>
+                                 <img 
+                                   src={msg.metadata?.url} 
+                                   alt="Shared Data" 
+                                   className="w-full h-auto rounded-xl object-cover min-w-[140px] min-h-[100px] hover:scale-105 transition-transform duration-700 cursor-pointer"
+                                   loading="lazy"
+                                   onClick={() => msg.authorId && router.push(`/user?uid=${msg.authorId}`)}
+                                 />
+                               </div>
+                               <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-1 opacity-30 px-2">{msg.timestamp}</span>
+                             </div>
                           </div>
                         ) : msg.type === 'meeting' ? (
-                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
-                            <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
-                              {selectedConversation?.chatType === 'GROUP' && !msg.isOwn && (
-                                <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] ml-4 mb-1 opacity-60">
-                                  {msg.author}
-                                </span>
-                              )}
-                              <div className={`max-w-[15rem] md:max-w-[18rem] overflow-hidden rounded-[1.5rem] shadow-2xl transition-all hover:scale-[1.01] ${msg.isOwn ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)]'}`}>
-                                <div className="p-4">
-                                  <div className="flex items-center gap-3 mb-4">
-                                    <div className={`p-2 rounded-xl ${msg.isOwn ? 'bg-white/20' : 'bg-[var(--color-accent-soft)]/30 text-[var(--color-accent)]'}`}>
-                                      <Video size={18} />
-                                    </div>
-                                    <div className="overflow-hidden">
-                                      <p className={`text-[7px] font-black tracking-[0.1em] mb-0.5 ${msg.isOwn ? 'text-white/60' : 'opacity-40'}`}>Collab Meeting</p>
-                                      <p className="text-[11px] font-black tracking-tight truncate">{msg.metadata?.title}</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="space-y-3">
-                                    <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl ${msg.isOwn ? 'bg-black/10' : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)]'}`}>
-                                      <Calendar size={12} className={msg.isOwn ? 'text-white/40' : 'opacity-30'} />
-                                      <p className={`text-[10px] font-bold ${msg.isOwn ? 'text-white/80' : 'opacity-70'}`}>
-                                        {msg.metadata?.scheduledAt ? new Date(msg.metadata.scheduledAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pending'}
-                                      </p>
-                                    </div>
-                                    
-                                    <button 
-                                      onClick={() => window.open(`https://meet.jit.si/${msg.metadata?.roomName}`, '_blank')}
-                                      className={`w-full py-3 text-[10px] font-black tracking-[0.1em] text-center rounded-xl transition-all shadow-lg active:scale-[0.98] ${msg.isOwn ? 'bg-white text-[var(--color-accent)] hover:bg-black hover:text-white' : 'bg-[var(--color-accent)] text-white hover:bg-black'}`}
-                                    >
-                                      Join meeting
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-1.5 opacity-40">{msg.timestamp}</span>
-                            </div>
+                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''} group/msg`}>
+                             {!msg.isOwn && (
+                               <Avatar 
+                                 name={msg.author} 
+                                 src={msg.avatar} 
+                                 size="sm" 
+                                 className="mt-auto shadow-lg cursor-pointer hover:scale-110 active:scale-95 transition-all" 
+                                 onClick={() => msg.authorId && router.push(`/user?uid=${msg.authorId}`)}
+                               />
+                             )}
+                             <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''} max-w-[80%]`}>
+                               <div className={`overflow-hidden rounded-2xl shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)]'}`}>
+                                 <div className="p-6">
+                                   <div className="flex items-center gap-4 mb-5">
+                                     <div className={`p-3 rounded-2xl ${msg.isOwn ? 'bg-white/20' : 'bg-[var(--color-accent)] text-white'}`}>
+                                       <Video size={20} />
+                                     </div>
+                                     <div className="overflow-hidden">
+                                       {!msg.isOwn && (
+                                         <p 
+                                           onClick={() => msg.authorId && router.push(`/user?uid=${msg.authorId}`)}
+                                           className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] mb-0.5 cursor-pointer hover:underline"
+                                         >
+                                           {msg.author}
+                                         </p>
+                                       )}
+                                       <p className="text-[12px] font-black tracking-tight truncate">{msg.metadata?.title}</p>
+                                     </div>
+                                   </div>
+                                   
+                                   <div className="space-y-3">
+                                     <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${msg.isOwn ? 'bg-black/10' : 'bg-black/5'}`}>
+                                       <Calendar size={14} className="opacity-40" />
+                                       <p className="text-[10px] font-black uppercase tracking-wider">
+                                         {msg.metadata?.scheduledAt ? new Date(msg.metadata.scheduledAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pending'}
+                                       </p>
+                                     </div>
+                                     
+                                     <button 
+                                       onClick={() => window.open(`https://meet.jit.si/${msg.metadata?.roomName}`, '_blank')}
+                                       className={`w-full py-4 text-[10px] font-black uppercase tracking-[0.2em] text-center rounded-xl transition-all shadow-xl active:scale-[0.98] ${msg.isOwn ? 'bg-white text-[var(--color-accent)] hover:bg-black hover:text-white' : 'bg-[var(--color-accent)] text-white hover:bg-black'}`}
+                                     >
+                                       Join Protocol
+                                     </button>
+                                   </div>
+                                 </div>
+                               </div>
+                               <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-1 opacity-30 px-2">{msg.timestamp}</span>
+                             </div>
                           </div>
                         ) : (
-                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''}`}>
-                            <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''}`}>
-                              {selectedConversation?.chatType === 'GROUP' && !msg.isOwn && (
-                                <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-accent)] ml-4 mb-1 opacity-60">
-                                  {msg.author}
-                                </span>
-                              )}
-                              <div className={`max-w-[16rem] md:max-w-md px-6 py-4 rounded-3xl shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-tr-none' : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-tl-none'}`}>
-                                <p className="text-sm font-medium">{msg.content}</p>
-                              </div>
-                              <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-2 opacity-40">{msg.timestamp}</span>
-                            </div>
+                          <div key={msg.id} className={`flex gap-4 ${msg.isOwn ? 'flex-row-reverse' : ''} group/msg`}>
+                             {!msg.isOwn && (
+                               <Avatar 
+                                 name={msg.author} 
+                                 src={msg.avatar} 
+                                 size="sm" 
+                                 className="mt-auto shadow-lg cursor-pointer hover:scale-110 active:scale-95 transition-all" 
+                                 onClick={() => msg.authorId && router.push(`/user?uid=${msg.authorId}`)}
+                               />
+                             )}
+                             <div className={`flex flex-col ${msg.isOwn ? 'items-end' : ''} max-w-[75%]`}>
+                               <div className={`px-4 py-2 rounded-2xl shadow-sm ${msg.isOwn ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)]'}`}>
+                                 {!msg.isOwn && selectedConversation?.chatType === 'GROUP' && (
+                                   <p 
+                                     onClick={() => msg.authorId && router.push(`/user?uid=${msg.authorId}`)}
+                                     className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] mb-1 opacity-80 cursor-pointer hover:opacity-100"
+                                   >
+                                     {msg.author}
+                                   </p>
+                                 )}
+                                 <p className="text-sm font-medium leading-relaxed">{msg.content}</p>
+                               </div>
+                               <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] mt-1 opacity-30 px-2">{msg.timestamp}</span>
+                             </div>
                           </div>
                         )
                       ))
@@ -1049,130 +1096,139 @@ export default function ChatPage() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <div className="p-4 pb-24 md:p-6 md:pb-6 border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)] relative">
-                    <AnimatePresence>
-                    {showPlusMenu && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-full left-4 mb-4 w-56 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-3xl shadow-2xl overflow-hidden z-30"
-                      >
-                        <div className="p-2 space-y-1">
-                          <div className="relative w-full group">
-                            <button className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all">
-                              <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl group-hover:bg-blue-500 group-hover:text-white transition-all">
-                                <ImageIcon size={18} />
+                  <div className="p-3 md:p-8 bg-white/30 backdrop-blur-xl border-t border-slate-100 relative">
+                    <div className="max-w-4xl mx-auto flex gap-2 md:gap-4 items-center">
+                      <div className="relative">
+                        <AnimatePresence>
+                        {showPlusMenu && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute bottom-full left-0 mb-6 w-64 bg-white/95 backdrop-blur-2xl border border-slate-100 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden z-30"
+                          >
+                            <div className="p-3 space-y-1">
+                              <div className="relative w-full group">
+                                <button className="w-full flex items-center gap-4 p-4 hover:bg-blue-50 rounded-2xl transition-all text-slate-700">
+                                  <div className="p-2.5 bg-blue-50 text-blue-500 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                    <ImageIcon size={18} />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-sm font-bold text-slate-800">Photos</p>
+                                    <p className="text-[10px] text-slate-400 font-medium">Share images</p>
+                                  </div>
+                                </button>
+                                <input 
+                                  type="file" 
+                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                                  accept="image/*"
+                                  ref={fileInputRef}
+                                  onChange={handleFileSelect}
+                                />
                               </div>
-                              <div className="text-left">
-                                <p className="text-xs font-black tracking-tight">Photos</p>
-                                <p className="text-[9px] opacity-40">Share images</p>
-                              </div>
-                            </button>
-                            <input 
-                              type="file" 
-                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                              accept="image/*"
-                              ref={fileInputRef}
-                              onChange={handleFileSelect}
-                            />
-                          </div>
-                          
-                          <div className="h-px bg-[var(--color-border)] mx-3 my-1" />
+                              
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setShowPlusMenu(false)
+                                  handleSendLocation()
+                                }}
+                                disabled={isSendingLocation}
+                                className="w-full flex items-center gap-4 p-4 hover:bg-green-50 rounded-2xl transition-all group disabled:opacity-50 text-slate-700"
+                              >
+                                <div className="p-2.5 bg-green-50 text-green-500 rounded-2xl group-hover:bg-green-500 group-hover:text-white transition-all">
+                                  {isSendingLocation ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-sm font-bold text-slate-800">Current location</p>
+                                  <p className="text-[10px] text-slate-400 font-medium">Share GPS coords</p>
+                                </div>
+                              </button>
 
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setShowPlusMenu(false)
-                              handleSendLocation()
-                            }}
-                            disabled={isSendingLocation}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <div className="p-2 bg-green-500/10 text-green-500 rounded-xl group-hover:bg-green-500 group-hover:text-white transition-all">
-                              {isSendingLocation ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
-                            </div>
-                            <div className="text-left">
-                              <p className="text-xs font-black tracking-tight">{isSendingLocation ? 'Sending...' : 'Current location'}</p>
-                              <p className="text-[9px] opacity-40">Share GPS coords</p>
-                            </div>
-                          </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setShowPlusMenu(false)
+                                  setShowLocationSearch(true)
+                                }}
+                                className="w-full flex items-center gap-4 p-4 hover:bg-purple-50 rounded-2xl transition-all group text-slate-700"
+                              >
+                                <div className="p-2.5 bg-purple-50 text-purple-500 rounded-2xl group-hover:bg-purple-500 group-hover:text-white transition-all">
+                                  <Search size={18} />
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-sm font-bold text-slate-800">Search location</p>
+                                  <p className="text-[10px] text-slate-400 font-medium">Find any place</p>
+                                </div>
+                              </button>
 
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setShowPlusMenu(false)
-                              setShowLocationSearch(true)
-                            }}
-                            disabled={isSendingLocation}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group disabled:opacity-50"
-                          >
-                            <div className="p-2 bg-purple-500/10 text-purple-500 rounded-xl group-hover:bg-purple-500 group-hover:text-white transition-all">
-                              <Search size={18} />
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setShowPlusMenu(false)
+                                  setShowMeetingModal(true)
+                                }}
+                                className="w-full flex items-center gap-4 p-4 hover:bg-orange-50 rounded-2xl transition-all group text-slate-700"
+                              >
+                                <div className="p-2.5 bg-orange-50 text-orange-500 rounded-2xl group-hover:bg-orange-500 group-hover:text-white transition-all">
+                                  <Calendar size={18} />
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-sm font-bold text-slate-800">Schedule meeting</p>
+                                  <p className="text-[10px] text-slate-400 font-medium">Set a collab time</p>
+                                </div>
+                              </button>
                             </div>
-                            <div className="text-left">
-                              <p className="text-xs font-black tracking-tight">Search location</p>
-                              <p className="text-[9px] opacity-40">Find any place</p>
-                            </div>
-                          </button>
-
-                          <div className="h-px bg-[var(--color-border)] mx-3 my-1" />
-
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setShowPlusMenu(false)
-                              setShowMeetingModal(true)
-                            }}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--color-bg-secondary)] rounded-2xl transition-all group"
-                          >
-                            <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl group-hover:bg-orange-500 group-hover:text-white transition-all">
-                              <Calendar size={18} />
-                            </div>
-                            <div className="text-left">
-                              <p className="text-xs font-black tracking-tight">Schedule meeting</p>
-                              <p className="text-[9px] opacity-40">Set a collab time</p>
-                            </div>
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                    </AnimatePresence>
-
-                    <div className="flex gap-2.5 md:gap-4 items-center">
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setShowPlusMenu(!showPlusMenu)
-                        }}
-                        disabled={isUploadingImage}
-                        className={`p-4 ${showPlusMenu ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'} rounded-2xl hover:text-[var(--color-accent)] transition-all flex-shrink-0 disabled:opacity-50`}
-                      >
-                        {isUploadingImage ? (
-                          <Loader2 size={20} className="animate-spin" />
-                        ) : (
-                          <Plus size={20} className={`transition-transform duration-300 ${showPlusMenu ? 'rotate-45' : ''}`} />
+                          </motion.div>
                         )}
+                        </AnimatePresence>
+
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setShowPlusMenu(!showPlusMenu)
+                          }}
+                          disabled={isUploadingImage}
+                          className={`w-11 h-11 md:w-14 md:h-14 flex items-center justify-center rounded-2xl transition-all shadow-sm text-white ${showPlusMenu ? 'bg-pink-400' : 'bg-pink-300 hover:bg-pink-400'}`}
+                        >
+                          {isUploadingImage ? <Loader2 size={18} className="animate-spin md:w-5 md:h-5" /> : <Plus size={18} className={`md:w-5 md:h-5 transition-transform duration-500 ${showPlusMenu ? 'rotate-45' : ''}`} />}
+                        </button>
+                      </div>
+
+                      <div className="flex-1">
+                        <textarea
+                          placeholder="Type a message..."
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault()
+                              handleSendMessage()
+                            }
+                          }}
+                          rows={1}
+                          className="w-full px-4 md:px-8 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-full text-xs md:text-sm focus:border-pink-200 outline-none resize-none min-h-[44px] md:min-h-[56px] max-h-32 custom-scrollbar flex items-center text-slate-600 placeholder:text-slate-300"
+                          style={{ height: 'auto' }}
+                        />
+                      </div>
+
+                      <button 
+                        onClick={handleSendMessage} 
+                        disabled={!newMessage.trim()} 
+                        className="w-11 h-11 md:w-14 md:h-14 bg-pink-500 text-white rounded-2xl flex items-center justify-center hover:bg-pink-600 active:scale-95 disabled:opacity-50 transition-all shadow-sm"
+                      >
+                        <Send size={18} className="md:w-5 md:h-5" />
                       </button>
-                      <input
-                        type="text"
-                        placeholder="Type a message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        className="flex-1 px-6 py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-sm font-medium focus:border-[var(--color-accent)] outline-none transition-all"
-                      />
-                      <button onClick={handleSendMessage} disabled={!newMessage.trim()} className="p-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-2xl hover:bg-[var(--color-inverse-bg)] disabled:opacity-40 transition-all shadow-lg flex-shrink-0"><Send size={20} /></button>
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-                  <div className="w-20 h-20 bg-[var(--color-accent-soft)] text-[var(--color-accent)] rounded-[2rem] flex items-center justify-center mb-8"><MessageCircle size={40} /></div>
+                  <div className="w-20 h-20 bg-[var(--color-accent-soft)] text-[var(--color-accent)] rounded-3xl flex items-center justify-center mb-8"><MessageCircle size={40} /></div>
                   <h3 className="text-2xl font-serif italic text-[var(--color-text-primary)]">Select a chat.</h3>
                   <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] mt-4">Stay connected with your community</p>
                 </div>
@@ -1189,7 +1245,7 @@ export default function ChatPage() {
           />
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-            className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 space-y-6 shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-3xl p-8 space-y-6 shadow-2xl overflow-hidden"
           >
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-soft)]" />
             
@@ -1271,74 +1327,134 @@ export default function ChatPage() {
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowMembersModal(false)} 
+            className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setShowMembersModal(false)} 
           />
           <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-            className="relative w-full max-w-sm bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 space-y-6 shadow-2xl overflow-hidden"
+            initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-sm bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
           >
-             <div className="flex items-center justify-between">
-                <h3 className="text-xl font-serif font-black italic tracking-tight">Group Members</h3>
-                <button onClick={() => setShowMembersModal(false)} className="text-[10px] font-black uppercase tracking-widest opacity-50 hover:opacity-100">Close</button>
+             {/* Header with Background Accent */}
+             <div className="relative h-28 bg-[var(--color-inverse-bg)] overflow-hidden shrink-0">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-accent)]/20 rounded-full blur-3xl -mr-10 -mt-10" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl -ml-10 -mb-10" />
+                
+                <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                   <h3 className="text-2xl font-serif font-black italic tracking-tighter text-white leading-none">Group Info.</h3>
+                   <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mt-2">Node Participant Registry</p>
+                </div>
+                
+                <button 
+                  onClick={() => setShowMembersModal(false)} 
+                  className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all backdrop-blur-md"
+                >
+                   <X size={18} />
+                </button>
+             </div>
+
+             {/* Meta Stats */}
+             <div className="px-8 py-4 bg-[var(--color-bg-primary)]/50 border-b border-[var(--color-border)] flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                   <Users size={14} className="text-[var(--color-accent)]" />
+                   <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">{participants.length} Active Participants</span>
+                </div>
+                <Badge variant="accent" className="text-[8px] tracking-[0.2em] font-black uppercase">{selectedConversation?.intent_id ? 'Intent Group' : 'Skill Tribe'}</Badge>
              </div>
              
-             <div className="space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
+             {/* Members List */}
+             <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
                 {isFetchingParticipants ? (
-                  <div className="flex justify-center py-8"><Loader2 className="animate-spin text-[var(--color-accent)]" /></div>
+                  <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
+                     <Loader2 className="animate-spin text-[var(--color-accent)]" size={32} />
+                     <p className="text-[9px] font-black uppercase tracking-widest">Syncing Identity Data...</p>
+                  </div>
                 ) : (
-                  participants.map(p => (
-                    <div 
+                  [...participants]
+                   .sort((a, b) => {
+                      if (a.role === 'ADMIN' && b.role !== 'ADMIN') return -1;
+                      if (a.role !== 'ADMIN' && b.role === 'ADMIN') return 1;
+                      return 0;
+                   })
+                   .map((p, idx) => (
+                    <motion.div 
                        key={p.id} 
-                       className={`flex flex-col gap-2 p-3 bg-[var(--color-bg-primary)] rounded-2xl border border-[var(--color-border)] group ${p.id !== user?.id ? 'cursor-pointer hover:border-[var(--color-accent)] transition-all' : ''}`}
+                       initial={{ opacity: 0, x: -10 }}
+                       animate={{ opacity: 1, x: 0 }}
+                       transition={{ delay: idx * 0.05 }}
+                       className={`p-4 rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)]/50 hover:bg-[var(--color-bg-secondary)] hover:shadow-xl hover:-translate-y-0.5 transition-all group relative ${p.id !== user?.id ? 'cursor-pointer' : ''}`}
                        onClick={() => p.id !== user?.id && handleStartDirectChat(p.id)}
                      >
-                        <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-3">
-                              <Avatar name={p.name} src={p.avatar_url ? storageService.getPublicUrl(p.avatar_url) : undefined} size="sm" />
-                              <div>
-                                 <p className="text-sm font-black tracking-tight flex items-center gap-2 group-hover:text-[var(--color-accent)] transition-colors">
-                                   {p.name} {p.id === user?.id && <span className="opacity-40 font-normal">(You)</span>}
+                        <div className="flex items-center justify-between gap-3">
+                           <div className="flex items-center gap-4 flex-1 min-w-0">
+                              <div className="relative">
+                                 <Avatar name={p.name} src={p.avatar_url ? storageService.getPublicUrl(p.avatar_url) : undefined} size="sm" />
+                                 {p.role === 'ADMIN' && (
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--color-accent)] rounded-full flex items-center justify-center border-2 border-white">
+                                       <Award size={8} className="text-white" fill="currentColor" />
+                                    </div>
+                                 )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                 <p className="text-sm font-black tracking-tight flex items-center gap-2 group-hover:text-[var(--color-accent)] transition-colors truncate">
+                                   {p.name} {p.id === user?.id && <span className="opacity-30 font-normal italic text-[10px]">(You)</span>}
                                  </p>
-                                 <div className="flex items-center gap-2">
-                                    <Badge variant={p.role === 'ADMIN' ? 'blue' : 'sage'}>{p.role || 'MEMBER'}</Badge>
-                                    {p.title && <span className="text-[8px] font-black uppercase tracking-widest opacity-40">{p.title}</span>}
+                                 <div className="flex items-center gap-2 mt-0.5">
+                                    <span className={`text-[8px] font-black uppercase tracking-widest ${p.role === 'ADMIN' ? 'text-blue-600' : 'text-slate-400'}`}>{p.role || 'MEMBER'}</span>
+                                    {p.id === selectedConversation?.admin_id && (
+                                       <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-blue-50 text-blue-400 rounded-md border border-blue-100/50">Founder</span>
+                                    )}
+                                    {p.title && <span className="text-[8px] font-black uppercase tracking-widest opacity-20 truncate">• {p.title}</span>}
                                  </div>
                               </div>
                            </div>
+                           
+                           {/* Right Side Actions */}
+                           <div className="flex items-center gap-2">
+                              {/* Admin Management Actions (Only visible to admins on other users) */}
+                              {selectedConversation?.role === 'ADMIN' && p.id !== user?.id && (user?.id === selectedConversation?.admin_id || p.id !== selectedConversation?.admin_id) && (
+                                 <div className="flex items-center gap-1.5 bg-[var(--color-bg-primary)]/80 p-1 rounded-xl border border-[var(--color-border)] opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {p.role !== 'ADMIN' ? (
+                                       <button 
+                                          onClick={(e) => { e.stopPropagation(); handleMakeAdmin(p.id); }}
+                                          title="Promote to Admin"
+                                          className="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
+                                       >
+                                          <ArrowUpRight size={14} />
+                                       </button>
+                                    ) : (
+                                       <button 
+                                          onClick={(e) => { e.stopPropagation(); handleRemoveAdmin(p.id); }}
+                                          title="Demote to Member"
+                                          className="w-7 h-7 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-300 transition-all"
+                                       >
+                                          <ChevronDown size={14} />
+                                       </button>
+                                    )}
+                                    <button 
+                                       onClick={(e) => { e.stopPropagation(); handleRemoveMember(p.id); }}
+                                       title="Expel Member"
+                                       className="w-7 h-7 rounded-lg bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+                                    >
+                                       <X size={14} />
+                                    </button>
+                                 </div>
+                              )}
+
+                              {/* Chat Action (Always visible on hover for non-self users) */}
+                              {p.id !== user?.id && (
+                                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all shadow-inner">
+                                    <MessageCircle size={14} />
+                                 </div>
+                              )}
+                           </div>
                         </div>
-                       {selectedConversation?.role === 'ADMIN' && p.id !== user?.id && (user?.id === selectedConversation?.admin_id || p.id !== selectedConversation?.admin_id) && (
-                          <div className="flex gap-2 pt-2 border-t border-[var(--color-border)]">
-                            {p.role !== 'ADMIN' ? (
-                              <button 
-                                onClick={() => handleMakeAdmin(p.id)}
-                                className="flex-1 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-[var(--color-accent)] transition-all"
-                              >
-                                Make Admin
-                              </button>
-                            ) : (
-                              <button 
-                                onClick={() => handleRemoveAdmin(p.id)}
-                                className="flex-1 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-red-500 transition-all text-red-500"
-                              >
-                                Remove Admin
-                              </button>
-                            )}
-                            <button 
-                              onClick={() => handleRemoveMember(p.id)}
-                              className="flex-1 py-2 bg-red-500/5 text-red-500 border border-red-500/10 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                       )}
-                       {p.id === selectedConversation?.admin_id && (
-                          <div className="pt-2 border-t border-[var(--color-border)]">
-                             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-600 text-center">Group Creator</p>
-                          </div>
-                       )}
-                    </div>
+                    </motion.div>
                   ))
                 )}
+             </div>
+
+             {/* Footer Info */}
+             <div className="px-8 py-5 bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] text-center shrink-0">
+                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--color-text-secondary)] opacity-30">© 2026 Collixa Protocol • Privacy Protected</p>
              </div>
           </motion.div>
         </div>
@@ -1363,7 +1479,7 @@ export default function ChatPage() {
            />
            <motion.div 
              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-             className="relative bg-[var(--color-bg-secondary)] rounded-[2.5rem] border border-[var(--color-border)] shadow-2xl w-full max-w-xl overflow-hidden"
+             className="relative bg-[var(--color-bg-secondary)] rounded-3xl border border-[var(--color-border)] shadow-2xl w-full max-w-xl overflow-hidden"
              onClick={(e) => e.stopPropagation()}
            >
               <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-bg-primary)]/50">
@@ -1438,7 +1554,7 @@ export default function ChatPage() {
           />
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-            className="relative bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden"
+            className="relative bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
@@ -1473,7 +1589,7 @@ export default function ChatPage() {
                    value={meetingDateTime}
                    onChange={(val) => setMeetingDateTime(val)}
                    minDate={new Date().toISOString()}
-                />
+                 />
               </div>
 
               <button 

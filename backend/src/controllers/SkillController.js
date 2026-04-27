@@ -90,6 +90,16 @@ export class SkillController {
   static async updateSkill(req, res, next) {
     try {
       const { id } = req.params;
+      
+      // Validate UUID format to prevent database syntax errors
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: `Invalid Tribe ID format: "${id}". This may happen if you're trying to update a legacy record or if the ID is corrupted.` 
+        });
+      }
+
       const skill = await SkillService.updateSkill(req.user.id, id, req.body);
       res.status(200).json({
         success: true,

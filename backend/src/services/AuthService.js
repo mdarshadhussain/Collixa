@@ -118,6 +118,15 @@ export class AuthService {
 
     // Return user (without password and OTP fields) and token
     const { password_hash, reset_otp, reset_otp_expiry, ...userWithoutSensitive } = user;
+    
+    // AWARD DAILY XP (Pulse)
+    try {
+      const { default: LevelService } = await import('./LevelService.js');
+      LevelService.awardDailyXP(user.id).catch(err => console.error('Daily XP award failure:', err));
+    } catch (err) {
+      console.warn('Daily XP award skipped during login');
+    }
+
     return { user: userWithoutSensitive, token };
   }
 
@@ -135,7 +144,75 @@ export class AuthService {
     }
 
     const { password_hash, ...userWithoutPassword } = user;
+    
+    // AWARD DAILY XP (Pulse)
+    try {
+      const { default: LevelService } = await import('./LevelService.js');
+      LevelService.awardDailyXP(userId).catch(err => console.error('Daily XP award failure:', err));
+    } catch (err) {
+      console.warn('Daily XP award skipped during profile fetch');
+    }
+
     return userWithoutPassword;
+  }
+
+  /**
+   * Get public user profile (limited fields)
+   * @param {string} userId - Target user ID
+   * @returns {Promise<Object>} Public user data
+   */
+  static async getPublicProfile(userId) {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      const error = new Error('User not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // --- FETCH COLLABORATION STATS ---
+    const client = UserModel.getClient();
+    
+    // 1. Total Groups (Conversations of type GROUP where user is a participant)
+    const { count: groupsCount } = await client
+      .from('conversation_participants')
+      .select('conversation_id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    // 2. Total Tribes (Skills created or joined)
+    const { count: tribesCreatedCount } = await client
+      .from('skills')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    
+    const { count: tribesJoinedCount } = await client
+      .from('skill_exchanges')
+      .select('id', { count: 'exact', head: true })
+      .eq('requester_id', userId)
+      .eq('status', 'ACCEPTED');
+
+    // 3. Total Intents (Intents created or joined)
+    const { count: intentsCreatedCount } = await client
+      .from('intents')
+      .select('id', { count: 'exact', head: true })
+      .eq('created_by', userId);
+    
+    const { count: intentsJoinedCount } = await client
+      .from('collaboration_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'ACCEPTED');
+
+    // Exclude sensitive fields like email and password hash
+    const { password_hash, email, reset_otp, reset_otp_expiry, ...publicData } = user;
+    
+    return {
+      ...publicData,
+      collaboration_stats: {
+        total_groups: groupsCount || 0,
+        total_tribes: (tribesCreatedCount || 0) + (tribesJoinedCount || 0),
+        total_intents: (intentsCreatedCount || 0) + (intentsJoinedCount || 0)
+      }
+    };
   }
 
   /**

@@ -72,40 +72,40 @@ function FeatureItem({ feature, idx }: { feature: any, idx: number }) {
 export default function FeatureGrid() {
   const features = [
     {
-      title: "Create your intent",
-      category: "Foundation",
-      image: "/features/create-intent.png",
-      description: "Define your project goals with our intuitive AI-assisted builder."
+      title: "Declare Your Intent",
+      category: "Connections",
+      image: "/features/intent.png",
+      description: "Looking for a badminton partner or a startup team? Post your intent and let AI find exactly who you need."
     },
     {
-      title: "Join others",
-      category: "Collaboration",
-      image: "/features/join-others.png",
-      description: "Find perfectly aligned projects looking for your unique skill set."
+      title: "Join Skill Tribes",
+      category: "Education",
+      image: "/features/tribe.png",
+      description: "Enter niche communities where experts share skills. Apply to join, learn from the best, and level up."
     },
     {
-      title: "Real-time Messaging",
-      category: "Communication",
-      image: "/features/messaging.png",
-      description: "Seamless coordination with built-in editorial-grade chat."
+      title: "Earn with Credits",
+      category: "Economy",
+      image: "/features/economy.png",
+      description: "Teach what you know and get paid in credits. Fixed fees ensure you are rewarded for your expertise."
     },
     {
-      title: "Get notified",
-      category: "Automation",
-      image: "/features/get-notified.png",
-      description: "Never miss a match with intelligent, instant alerts."
+      title: "Wealth Protocol",
+      category: "Rewards",
+      image: "/features/protocol.png",
+      description: "Rise from Nomad to Oracle. Higher levels unlock bigger purchase bonuses and lower transfer fees."
     },
     {
-      title: "Exclusive Tribes",
-      category: "Community",
-      image: "/features/tribes.png",
-      description: "Join niche communities of professionals driving impact."
+      title: "AI Compatibility",
+      category: "Intelligence",
+      image: "/features/ai.png",
+      description: "Gemini AI analyzes your profile to suggest the most relevant users, tribes, and intents for your goals."
     },
     {
-      title: "Skill Exchange",
-      category: "Growth",
-      image: "/features/skill-exchange.png",
-      description: "Swap expertise and grow your portfolio through collaborative tasks."
+      title: "Goal Roadmaps",
+      category: "Guidance",
+      image: "/features/roadmap.png",
+      description: "Get AI-generated outlines and roadmaps for your specific purpose, keeping you on the path to success."
     }
   ]
 

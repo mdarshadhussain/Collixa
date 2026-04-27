@@ -18,6 +18,9 @@ interface ShareCreditsModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
+  recipientEmail?: string
+  recipientName?: string
+  recipientId?: string
 }
 
 const TIER_RULES: Record<string, { fee: number }> = {
@@ -27,13 +30,15 @@ const TIER_RULES: Record<string, { fee: number }> = {
   'Oracle': { fee: 0.02 }
 }
 
-export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareCreditsModalProps) {
+export default function ShareCreditsModal({ isOpen, onClose, onSuccess, recipientEmail, recipientName, recipientId }: ShareCreditsModalProps) {
   const router = useRouter()
   const { user: currentUser, refreshUser } = useAuth()
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(recipientEmail || '')
   const [amount, setAmount] = useState('')
   const [message, setMessage] = useState('')
-  const [foundUser, setFoundUser] = useState<User | null>(null)
+  const [foundUser, setFoundUser] = useState<User | null>(
+    (recipientId || recipientEmail) && recipientName ? { id: recipientId || '', name: recipientName, email: recipientEmail || '' } : null
+  )
   const [searching, setSearching] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
@@ -46,10 +51,10 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
 
   useEffect(() => {
     if (isOpen) {
-      setEmail('')
+      setEmail(recipientEmail || '')
       setAmount('')
       setMessage('')
-      setFoundUser(null)
+      setFoundUser((recipientId || recipientEmail) && recipientName ? { id: recipientId || '', name: recipientName, email: recipientEmail || '' } : null)
       setError('')
       setSuccess('')
       document.body.style.overflow = 'hidden'
@@ -57,7 +62,7 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
       document.body.style.overflow = 'unset'
     }
     return () => { document.body.style.overflow = 'unset' }
-  }, [isOpen])
+  }, [isOpen, recipientEmail, recipientName])
 
   const searchUser = async () => {
     const searchEmail = email.trim().toLowerCase()
@@ -124,7 +129,8 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
         body: JSON.stringify({
-          recipientEmail: foundUser.email,
+          recipientId: foundUser.id || undefined,
+          recipientEmail: !foundUser.id ? foundUser.email : undefined,
           amount: creditAmount,
           message: message.trim() || undefined
         })
@@ -150,12 +156,12 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+        className="fixed inset-0 bg-slate-900/30 backdrop-blur-2xl"
         onClick={onClose}
       />
       
@@ -196,26 +202,28 @@ export default function ShareCreditsModal({ isOpen, onClose, onSuccess }: ShareC
                </div>
             </div>
 
-            {/* Email Search */}
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-2">Recipient Email</label>
-              <div className="relative group">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={handleEmailChange}
-                  placeholder="name@nexus.com"
-                  className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-5 py-4 text-xs font-bold focus:border-[var(--color-accent)] outline-none transition-all pr-14"
-                />
-                <button
-                  onClick={searchUser}
-                  disabled={searching || !email.trim()}
-                  className="absolute right-2 top-2 bottom-2 px-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-xl hover:bg-[var(--color-inverse-bg)] transition-all flex items-center justify-center shadow-lg shadow-[var(--color-accent)]/20 active:scale-95 disabled:opacity-50"
-                >
-                  {searching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                </button>
+            {/* Email Search - Hidden if recipient is pre-defined */}
+            {!recipientId && !recipientEmail && (
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-2">Recipient Email</label>
+                <div className="relative group">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={handleEmailChange}
+                    placeholder="name@nexus.com"
+                    className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl px-5 py-4 text-xs font-bold focus:border-[var(--color-accent)] outline-none transition-all pr-14"
+                  />
+                  <button
+                    onClick={searchUser}
+                    disabled={searching || !email.trim()}
+                    className="absolute right-2 top-2 bottom-2 px-4 bg-[var(--color-accent)] text-[var(--color-inverse-text)] rounded-xl hover:bg-[var(--color-inverse-bg)] transition-all flex items-center justify-center shadow-lg shadow-[var(--color-accent)]/20 active:scale-95 disabled:opacity-50"
+                  >
+                    {searching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Found User / Identity Card */}
             <AnimatePresence mode="wait">

@@ -58,20 +58,20 @@ export default function HowItWorksSection() {
     {
       number: "01",
       icon: Sparkles,
-      title: 'Define Intent',
-      description: 'Start with a clear goal. What do you want to build or achieve next?'
+      title: 'Post Intent or Tribe',
+      description: 'Looking for a partner or sharing a skill? Start by declaring your purpose to the community.'
     },
     {
       number: "02",
       icon: Users,
-      title: 'Meet Matches',
-      description: 'Our engine identifies collaborators with the exact DNA your project needs.'
+      title: 'Get AI Matched',
+      description: 'Our Gemini-powered engine finds the most compatible people based on your profile and goals.'
     },
     {
       number: "03",
       icon: CheckCircle2,
-      title: 'Gain Momentum',
-      description: 'Launch into collaborative action with purpose-built tools for delivery.'
+      title: 'Collaborate & Earn',
+      description: 'Work together, exchange skills for credits, and level up to unlock exclusive rewards.'
     },
   ]
 

@@ -40,7 +40,6 @@ const getLevelLabel = (level: number = 1) => {
 export default function ProfilePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const profileUid = searchParams.get('uid')
   const { user, isAuthenticated, loading: authLoading, token, refreshUser, updateUser } = useAuth()
   const { showToast } = useToast()
   const [activeTab, setActiveTab] = useState<'intents' | 'skills' | 'reviews' | 'achievements' | 'history'>('intents')
@@ -68,8 +67,6 @@ export default function ProfilePage() {
   const [loadingTransactions, setLoadingTransactions] = useState(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [externalUser, setExternalUser] = useState<any | null>(null)
-  const [loadingExternalUser, setLoadingExternalUser] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
   const [showCreditModal, setShowCreditModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -115,21 +112,9 @@ export default function ProfilePage() {
     }
   }
 
-  // Derived state for the user being displayed
-  const profileUser = profileUid && profileUid !== user?.id ? externalUser : user
-  const isOwnProfile = !profileUid || profileUid === user?.id
-
   const handleStartChat = async () => {
-    if (!user || !profileUser || isOwnProfile) return
-    try {
-      const conversation = await conversationService.getOrCreateDirectConversation(user.id, profileUser.id)
-      if (conversation) {
-        router.push('/chat')
-      }
-    } catch (err) {
-      console.error('Failed to start chat:', err)
-      notify.error('Could not initiate chat conversation.')
-    }
+    // Self profile doesn't need start chat
+    return
   }
 
   useEffect(() => {
@@ -208,14 +193,12 @@ export default function ProfilePage() {
   }
 
   useEffect(() => {
-    const targetUserId = profileUid || user?.id
-    if (targetUserId) {
-      fetchUserSkills(targetUserId)
-      if (targetUserId === user?.id) {
-        fetchTransactionHistory()
-      }
+    if (user?.id) {
+      fetchUserSkills(user.id)
+      fetchTransactionHistory()
+      fetchUserReviews(user.id)
     }
-  }, [profileUid, user?.id])
+  }, [user?.id])
 
   const fetchTransactionHistory = async () => {
     if (!token) return
@@ -236,30 +219,10 @@ export default function ProfilePage() {
   }
 
   useEffect(() => {
-    const fetchExternalUser = async () => {
-      if (!profileUid || profileUid === user?.id) return
-
-      setLoadingExternalUser(true)
-      try {
-        const response = await fetch(`${API_URL}/api/users/${profileUid}`)
-        const data = await response.json()
-        if (response.ok && data.data) {
-          setExternalUser(data.data)
-          fetchUserReviews(profileUid)
-        }
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoadingExternalUser(false)
-      }
+    if (token) {
+      fetchMyIntents()
     }
-
-    fetchExternalUser()
-
-    if (isOwnProfile && user?.id) {
-      fetchUserReviews(user.id)
-    }
-  }, [profileUid, user?.id, isOwnProfile])
+  }, [token])
 
   const fetchMyIntents = async () => {
     setLoadingIntents(true)
@@ -342,7 +305,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (authLoading || (!user && !profileUid) || loadingExternalUser) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
         <div className="w-12 h-12 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
@@ -350,11 +313,11 @@ export default function ProfilePage() {
     )
   }
 
-  let profileShareUrl = '';
-  if (profileUser) {
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    profileShareUrl = `${origin}/profile?uid=${profileUser.id}`;
-  }
+  const profileUser = user;
+  const isOwnProfile = true;
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const profileShareUrl = `${origin}/user?uid=${user.id}`;
 
   let joinDate = 'Member since launch';
   if (profileUser?.created_at) {
@@ -538,16 +501,18 @@ export default function ProfilePage() {
                                     {(profileUser?.gender || profileUser?.age) && ` • ${profileUser?.gender || ''}${profileUser?.age ? ` • ${profileUser.age} Years` : ''}`}
                                     {profileUser?.location && ` • ${profileUser.location}`}
                                   </span>
-                                </div>
                               </div>
                             </div>
+                          </div>
 
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-3">
+                          <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-3">
                               <p className="text-[9px] md:text-[10px] font-medium tracking-[0.1em] text-[var(--color-accent)] opacity-60 lowercase font-mono">{profileUser?.email || 'community member'}</p>
-                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/20 rounded-full shadow-sm shrink-0">
-                                <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                                <span className="text-[10px] font-black">{profileUser?.avg_rating > 0 ? profileUser.avg_rating.toFixed(1) : 'New'}</span>
-                              </div>
+                              {profileUser?.avg_rating > 0 && (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full shadow-sm shrink-0">
+                                  <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                                  <span className="text-[10px] font-black">{profileUser.avg_rating.toFixed(1)}</span>
+                                </div>
+                              )}
                             </div>
 
                           </div>
@@ -699,12 +664,12 @@ export default function ProfilePage() {
             </div>
 
             <div className="flex flex-col space-y-10">
-              <div className="flex gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-4 flex-wrap">
+              <div className="flex gap-5 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] rounded-xl px-4 overflow-x-auto no-scrollbar whitespace-nowrap">
                 {['intents', 'skills', 'reviews', 'achievements', ...(isOwnProfile ? ['history'] : [])].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab as any)}
-                    className={`py-3 text-[10px] font-black uppercase tracking-[0.3em] border-b-2 transition-all ${activeTab === tab
+                    className={`py-3 text-[10px] font-black uppercase tracking-[0.3em] border-b-2 transition-all flex-shrink-0 ${activeTab === tab
                         ? 'text-[var(--color-accent)] border-[var(--color-accent)]'
                         : 'text-[var(--color-text-secondary)] border-transparent hover:text-[var(--color-text-primary)]'
                       }`}
@@ -805,25 +770,66 @@ export default function ProfilePage() {
                 {activeTab === 'reviews' && (
                   <div className="space-y-6">
                     {reviews.length > 0 ? (
-                      reviews.map((review) => (
-                        <div key={review.id} className="bg-[var(--color-bg-secondary)] border p-8 rounded-[2.5rem]">
-                          <div className="flex items-center gap-4 mb-4">
-                            <Avatar name={review.reviewer_name} size="sm" />
-                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em]">{review.reviewer_name}</p>
-                              <p className="text-[8px] opacity-40 uppercase">{new Date(review.created_at).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                          <div className="mt-2 mb-4">
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] opacity-70">
-                              {review.type === 'INTENT' ? `Project: ${review.intent_title}` : `Tribe: ${review.skill_name}`}
-                            </span>
-                          </div>
-                          <p className="text-sm italic font-medium">"{review.comment}"</p>
+                      <>
+                        <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-accent)]/20 p-10 rounded-[3rem] flex items-center justify-between shadow-xl relative overflow-hidden group">
+                           <div className="absolute top-0 right-0 p-8 opacity-5 -mr-4 -mt-4">
+                              <Star size={80} className="text-[var(--color-accent)]" />
+                           </div>
+                           <div className="space-y-2 relative z-10">
+                              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)]">Aggregate Reputation</p>
+                              <div className="flex items-baseline gap-2">
+                                 <h4 className="text-5xl font-serif font-black">
+                                   {(reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1)}
+                                 </h4>
+                                 <span className="text-[10px] font-black uppercase opacity-40">Average</span>
+                              </div>
+                              <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Verified Consensus across {reviews.length} sessions</p>
+                           </div>
+                           <div className="flex gap-1.5 relative z-10">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star 
+                                  key={s} 
+                                  size={24} 
+                                  className={s <= Math.round(reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) / reviews.length) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-200'} 
+                                />
+                              ))}
+                           </div>
                         </div>
-                      ))
+                        {reviews.map((review) => (
+                          <div key={review.id} className="bg-[var(--color-bg-secondary)] border p-8 rounded-[2.5rem]">
+                            <div className="flex items-center justify-between gap-4 mb-4">
+                              <div className="flex items-center gap-4">
+                                <Avatar name={review.reviewer_name} size="sm" />
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">{review.reviewer_name}</p>
+                                  <p className="text-[8px] opacity-40 uppercase">{new Date(review.created_at).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star 
+                                    key={s} 
+                                    size={12} 
+                                    className={s <= (review.rating || 5) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-200'} 
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="mt-2 mb-4">
+                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] opacity-70">
+                                {review.type === 'INTENT' ? `Project: ${review.intent_title}` : `Tribe: ${review.skill_name}`}
+                              </span>
+                            </div>
+                            <p className="text-sm italic font-medium">"{review.comment}"</p>
+                          </div>
+                        ))}
+                      </>
                     ) : (
-                      <div className="py-20 text-center italic opacity-40">Reputation ledger empty.</div>
+                      <div className="py-20 text-center space-y-4">
+                        <Star size={40} className="mx-auto text-[var(--color-border)] opacity-30" />
+                        <h3 className="text-2xl font-serif italic opacity-40">No verified reputation yet.</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-30">Collaborate to build your reputation score.</p>
+                      </div>
                     )}
                   </div>
                 )}

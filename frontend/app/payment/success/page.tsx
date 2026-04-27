@@ -70,7 +70,7 @@ function SuccessContent() {
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans">
       <Header />
       
-      <main className="max-w-4xl mx-auto px-4 pt-4 pb-12 md:pt-8 md:pb-16 text-center">
+      <main className="max-w-4xl mx-auto px-4 pt-24 pb-12 md:pt-32 md:pb-16 text-center">
         <div className="space-y-5 md:space-y-6">
           
           {/* ─── SUCCESS ICON ─── */}

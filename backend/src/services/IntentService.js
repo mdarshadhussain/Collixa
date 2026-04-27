@@ -77,8 +77,8 @@ export class IntentService {
       // We don't throw here to avoid failing intent creation if chat fails
     }
 
-    // AWARD XP: User gets 50 XP for starting a new Intent
-    LevelService.awardXP(userId, 50).catch(err => console.error('XP Award failure:', err));
+    // AWARD XP: User gets 100 XP for starting a new Intent
+    LevelService.awardXP(userId, 100, `Started Intent: ${data.title}`).catch(err => console.error('XP Award failure:', err));
 
     return intent;
   }

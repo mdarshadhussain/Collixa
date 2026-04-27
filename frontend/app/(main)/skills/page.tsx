@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2, Users, Layers, Sparkles, BookOpen, Clock, MessageCircle } from 'lucide-react'
+import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2, Users, Layers, Sparkles, BookOpen, Clock, MessageCircle, Video } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import CustomDateTimePicker from '@/components/CustomDateTimePicker'
 import Card from '@/components/Card'
@@ -138,6 +138,36 @@ export default function SkillsPage() {
     }, 8000)
     return () => clearInterval(poll)
   }, [fetchMyExchanges, fetchSessions, fetchMyReviews])
+
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => {
+        setFeedback(null)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [feedback])
+
+  const sortedSkills = useMemo(() => {
+    if (!skills) return [];
+    
+    return [...skills].sort((a, b) => {
+      const isAOwner = a.user_id === user?.id;
+      const isBOwner = b.user_id === user?.id;
+      
+      const isAJoined = exchanges.some(e => e.skill_id === a.id && e.status === 'ACCEPTED' && e.requester_id === user?.id);
+      const isBJoined = exchanges.some(e => e.skill_id === b.id && e.status === 'ACCEPTED' && e.requester_id === user?.id);
+
+      // Scoring: 0 = New, 1 = Joined, 2 = Owned
+      const scoreA = isAOwner ? 2 : (isAJoined ? 1 : 0);
+      const scoreB = isBOwner ? 2 : (isBJoined ? 1 : 0);
+
+      if (scoreA !== scoreB) return scoreA - scoreB;
+      
+      // Secondary sort: newest first within each group
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+  }, [skills, user?.id, exchanges]);
 
   const handleExchangeStatus = async (exchangeId: string, status: 'ACCEPTED' | 'REJECTED') => {
     setProcessingId(exchangeId)
@@ -295,35 +325,88 @@ export default function SkillsPage() {
     const isConfirmedByOther = isExpert ? session.sender_confirmed : session.receiver_confirmed;
     const isCompleted = session.status === 'COMPLETED';
     const isReviewedByMe = reviewedSessionIds.includes(session.id);
+    const isWaitingForFeedback = session.status === 'WAITING_FOR_FEEDBACK';
 
     if (isCompleted) {
-      if (isReviewedByMe) return null;
+      if (isReviewedByMe) {
+        return (
+          <div className="flex-1 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-[9px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
+            <CheckCircle2 size={12} /> Done
+          </div>
+        );
+      }
+      // If completed but I haven't reviewed, fall through to the feedback button logic
+    }
+
+    // FEEDBACK PHASE (Now handles COMPLETED status too)
+    if (isWaitingForFeedback || (isConfirmedByMe && isConfirmedByOther) || isCompleted) {
+      if (isReviewedByMe) {
+        return (
+          <div className="flex-1 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl text-[7px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
+            <Clock size={10} className="animate-pulse" /> {isCompleted ? 'Awaiting Partner Feedback' : `Waiting for ${isExpert ? 'Student' : 'Host'} Feedback`}
+          </div>
+        );
+      }
       return (
         <button 
           onClick={() => setReviewTarget(session)}
-          className="flex-1 py-3 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg"
+          className="flex-1 py-3 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform"
         >
-          Feedback
+          Leave Feedback
         </button>
       );
     }
 
+    // PENDING/LIVE PHASE
+    if (!isConfirmedByMe) {
+        // If it's time to join and we have a link
+        const now = new Date();
+        const sessionDate = new Date(session.displayTime);
+        const isExpired = sessionDate.getTime() < (now.getTime() - 7200000); // 2 hours past
+        const meetingLink = session.meeting_link || session.exchange?.skill?.meeting_link;
+
+        // Skip Join Meeting if host already confirmed (student must see Mark Done)
+        if (!isExpired && meetingLink && !( !isExpert && isConfirmedByOther )) {
+            return (
+                <a 
+                  href={meetingLink} 
+                  target="_blank" 
+                  className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                >
+                  <Video size={14} /> {isExpert ? 'Start Meeting' : 'Join Meeting'}
+                </a>
+            );
+        }
+
+        // If host hasn't confirmed yet (for student)
+        if (!isExpert && !session.receiver_confirmed) {
+            return (
+                <div className="flex-1 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl text-[7px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2 opacity-60">
+                    <Clock size={10} /> Awaiting Host
+                </div>
+            );
+        }
+
+        return (
+            <button 
+                onClick={() => isMaterialized ? handleCompleteSession(session.id) : handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
+                className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/5 transition-colors"
+            >
+                {processingId === (isMaterialized ? session.id : (session.exchangeId + session.displayTime)) ? '...' : 'Mark Done'}
+            </button>
+        );
+    }
+
+    // WAITING FOR OTHER
     if (isConfirmedByMe && !isConfirmedByOther) {
       return (
-        <div className="flex-1 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-[7px] font-black uppercase tracking-widest text-center flex items-center justify-center">
-          Waiting for {isExpert ? 'Student' : 'Host'}
+        <div className="flex-1 py-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl text-[7px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
+          <Clock size={10} className="animate-pulse" /> Waiting for {isExpert ? 'Student' : 'Host'}
         </div>
       );
     }
 
-    return (
-      <button 
-        onClick={() => isMaterialized ? handleCompleteSession(session.id) : handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
-        className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/5 transition-colors"
-      >
-        {processingId === (isMaterialized ? session.id : (session.exchangeId + session.displayTime)) ? '...' : 'Mark Done'}
-      </button>
-    );
+    return null;
   };
 
   const incomingRequests = exchanges.filter((x) => x.provider_id === user?.id)
@@ -479,13 +562,16 @@ export default function SkillsPage() {
   return (
     <div className="space-y-6 md:space-y-12 mt-0">
       {feedback && (
-        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[400] border rounded-2xl px-6 py-4 text-[11px] font-black uppercase tracking-widest shadow-2xl backdrop-blur-xl ${
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[400] border rounded-2xl px-8 py-5 text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl backdrop-blur-2xl flex items-center gap-4 border-white/10 ${
           feedback.type === 'success'
-            ? 'bg-[var(--color-accent-soft)]/90 border-[var(--color-accent)]/30 text-[var(--color-text-primary)]'
-            : 'bg-red-500/90 border-red-500/30 text-white'
+            ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/30'
+            : 'bg-red-950/90 text-red-400 border-red-500/30'
         }`}>
+          <div className={`w-2 h-2 rounded-full animate-pulse ${feedback.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`} />
           {feedback.text}
-          <button onClick={() => setFeedback(null)} className="ml-4 opacity-50 hover:opacity-100">✕</button>
+          <button onClick={() => setFeedback(null)} className="ml-4 opacity-40 hover:opacity-100 transition-opacity">
+            <X size={14} />
+          </button>
         </div>
       )}
 
@@ -535,7 +621,10 @@ export default function SkillsPage() {
             </div>
             
             <button 
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setEditingSkill(null);
+                setIsAddModalOpen(true);
+              }}
               className="w-full md:w-auto px-10 py-5 bg-[var(--color-accent)] text-[var(--color-inverse-text)] text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all hover:bg-[var(--color-inverse-bg)] shadow-xl shadow-[var(--color-accent)]/20 rounded-2xl group/btn"
             >
               List Expertise <Plus size={18} className="group-hover/btn:rotate-90 transition-transform" />
@@ -571,7 +660,7 @@ export default function SkillsPage() {
               <div className="col-span-full py-20 text-center bg-[var(--color-bg-secondary)]/30 rounded-[3rem] border border-dashed border-[var(--color-border)]">
                  <p className="text-[10px] font-black uppercase tracking-widest opacity-40">No Tribes found matching your criteria</p>
               </div>
-            ) : skills.map((skill) => (
+            ) : sortedSkills.map((skill) => (
               <Card key={skill.id} className={`group relative overflow-hidden flex flex-col p-4 sm:p-6 bg-[var(--color-bg-secondary)] rounded-[2.5rem] border transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 cursor-pointer ${skill.status === 'pending' ? 'border-dashed border-amber-500/40' : 'border-[var(--color-border)] hover:border-[var(--color-accent)]'}`} onClick={() => router.push(`/skills/${skill.id}`)}>
                 {/* Pending Approval Banner */}
                 {skill.status === 'pending' && (
@@ -612,19 +701,41 @@ export default function SkillsPage() {
                       <Clock size={14} /> Awaiting Approval
                     </div>
                   ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (skill.user_id === user?.id) {
-                          router.push(`/skills/${skill.id}`);
-                        } else {
-                          setSelectedSkill(skill);
-                        }
-                      }}
-                      className="w-full py-3.5 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[8px] font-black uppercase tracking-[0.15em] rounded-2xl transition-all group-hover:bg-[var(--color-accent)] group-hover:text-black flex items-center justify-center gap-2 shadow-lg"
-                    >
-                      {skill.user_id === user?.id ? 'View Details' : 'Request Entry'} <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
+                    (() => {
+                      const isOwner = skill.user_id === user?.id;
+                      const isJoined = myJoinedTribes.some(t => t.id === skill.id);
+
+                      if (isOwner) {
+                        return (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); router.push(`/skills/${skill.id}`); }}
+                            className="w-full py-3.5 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-[0.15em] rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                          >
+                            Created <CheckCircle2 size={12} />
+                          </button>
+                        );
+                      }
+
+                      if (isJoined) {
+                        return (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); router.push(`/skills/${skill.id}`); }}
+                            className="w-full py-3.5 bg-pink-500 text-white text-[8px] font-black uppercase tracking-[0.15em] rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20"
+                          >
+                            Joined <ArrowRight size={12} />
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedSkill(skill); }}
+                          className="w-full py-3.5 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] text-[8px] font-black uppercase tracking-[0.15em] rounded-2xl transition-all group-hover:bg-[var(--color-accent)] group-hover:text-black flex items-center justify-center gap-2 shadow-lg"
+                        >
+                          Request Entry <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      );
+                    })()
                   )}
                 </div>
               </Card>
@@ -661,17 +772,30 @@ export default function SkillsPage() {
                       <h3 className="text-xl font-serif font-black mb-3">{skill.name}</h3>
                       <div className="flex items-center justify-between text-[9px] font-black uppercase opacity-60 mb-6">
                          <span>{skill.max_members || 5} Members Limit</span>
-                         <span className="text-[var(--color-accent)]">{incomingRequests.filter(r => r.skill_id === skill.id && r.status === 'ACCEPTED').length} Joined</span>
+                         <span className="text-[var(--color-accent)]">
+                           {new Set(incomingRequests.filter(r => r.skill_id === skill.id && r.status === 'ACCEPTED').map(r => r.requester_id || r.requester?.id)).size} Joined
+                         </span>
                       </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/chat?id=${skill.conversation_id || ''}`);
-                        }}
-                        className="w-full py-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-all shadow-sm"
-                      >
-                         <MessageCircle size={14} /> Group Chat
-                      </button>
+                      <div className="flex flex-col gap-3">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/chat?id=${skill.conversation_id || ''}`);
+                          }}
+                          className="w-full py-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-all shadow-sm"
+                        >
+                           <MessageCircle size={14} /> Group Chat
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/skills/${skill.id}`);
+                          }}
+                          className="w-full py-3.5 bg-[var(--color-inverse-bg)] text-white rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent)] hover:text-black transition-all shadow-lg"
+                        >
+                           View Details
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -698,11 +822,8 @@ export default function SkillsPage() {
                          </span>
                        </div>
                        <div className="flex gap-3">
-                          {session.meeting_link && (
-                            <a href={session.meeting_link} target="_blank" className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center">Launch Meeting</a>
-                          )}
                           {renderSessionAction(session)}
-                        </div>
+                       </div>
                      </div>
                    ))
                  )}
@@ -777,9 +898,6 @@ export default function SkillsPage() {
                               </span>
                            </div>
                            <div className="flex gap-3">
-                              {session.meeting_link && (
-                                <a href={session.meeting_link} target="_blank" className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center">Enter Class</a>
-                              )}
                               {renderSessionAction(session)}
                            </div>
                         </div>

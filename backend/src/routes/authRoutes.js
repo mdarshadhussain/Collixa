@@ -42,6 +42,9 @@ router.post('/resend-otp', AuthController.resendOtp);
 // Google login
 router.post('/google', googleLoginValidation, validate, AuthController.googleLogin);
 
+// Get public profile by ID (no auth required for viewing others, or optional)
+router.get('/public/:id', AuthController.getPublicProfile);
+
 /**
  * Protected routes (require authentication)
  */

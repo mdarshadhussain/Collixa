@@ -140,6 +140,15 @@ router.get(
 );
 
 /**
+ * GET /api/intents/user/:userId
+ * Get intents for a specific user
+ */
+router.get(
+  '/user/:userId',
+  IntentController.getIntentsByUserId
+);
+
+/**
  * GET /api/intents/:id
  * Get specific intent by ID
  */

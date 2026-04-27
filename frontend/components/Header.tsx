@@ -338,21 +338,21 @@ export default function Header() {
       {/* ─── MOBILE MENU ─── */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 top-0 h-[100dvh] z-[1000] lg:hidden">
+          <div className="fixed inset-0 top-0 h-[100dvh] z-[9999] lg:hidden">
             <motion.button
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               aria-label="Close mobile menu"
               onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
+              className="absolute inset-0 bg-slate-900/30 backdrop-blur-2xl"
             />
             <motion.div 
               initial={{ x: '100%', opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute right-3 top-16 sm:right-6 sm:top-20 w-[min(86vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-3 shadow-2xl"
+              className="absolute right-3 top-20 sm:right-6 sm:top-24 w-[min(86vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-3 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-3 px-1">
                 <span className="font-serif font-black text-xl text-[var(--color-text-primary)]">Navigation</span>
@@ -365,18 +365,49 @@ export default function Header() {
                 {[
                   ...(isLandingPage ? landingNavItems : mainNavItems),
                   { label: 'Rewards', href: '/rewards', icon: Award },
+                  { label: 'Notifications', onClick: () => setIsDrawerOpen(true), icon: Bell, count: unreadCount },
                   { label: 'Profile Settings', href: '/profile', icon: User },
                 ].map((item) => {
                   const Icon = item.icon
+                  const isButton = !!item.onClick
+                  
+                  const content = (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <Icon size={15} className="text-[var(--color-accent)]" />
+                        {item.label}
+                      </div>
+                      {item.count !== undefined && item.count > 0 && (
+                        <span className="bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">
+                          {item.count}
+                        </span>
+                      )}
+                    </>
+                  )
+
+                  if (isButton) {
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => {
+                          item.onClick!()
+                          setIsOpen(false)
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
+                      >
+                        {content}
+                      </button>
+                    )
+                  }
+
                   return (
                     <Link
                       key={item.label}
-                      href={item.href}
-                      className="flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
+                      href={item.href!}
+                      className="flex items-center justify-between px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-primary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]/40 transition-colors rounded-lg"
                       onClick={() => setIsOpen(false)}
                     >
-                      <Icon size={15} className="text-[var(--color-accent)]" />
-                      {item.label}
+                      {content}
                     </Link>
                   )
                 })}

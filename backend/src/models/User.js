@@ -5,6 +5,13 @@ const getClient = () => supabaseAdmin || supabase;
 
 export class UserModel {
   /**
+   * Get the database client
+   */
+  static getClient() {
+    return getClient();
+  }
+
+  /**
    * Get user by email
    * @param {string} email - User email
    * @returns {Promise<Object>} User object or null

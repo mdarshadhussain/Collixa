@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Zap, ArrowRight, ArrowUpRight, TrendingUp, History, 
   CreditCard, Send, Sparkles, Clock, ChevronRight,
-  ShieldCheck, Loader2, Filter, Download, Award, Star, Compass, Layout, Flame, Eye, CheckCircle2, Shield
+  ShieldCheck, Loader2, Filter, Download, Award, Star, Compass, Layout, Flame, Eye, CheckCircle2, Shield, Gift
 } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 import { creditService, storageService } from '@/lib/supabase'
@@ -50,6 +51,7 @@ const TIERS = [
 ]
 
 export default function CreditsPage() {
+  const router = useRouter()
   const { user, refreshUser } = useAuth()
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,48 +92,57 @@ export default function CreditsPage() {
       {/* ─── WALLET HERO ─── */}
       <section className="relative overflow-hidden rounded-[3rem] bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] p-8 md:p-16 border border-white/5 shadow-2xl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-[var(--color-accent)]/20 to-transparent rounded-full blur-[120px] opacity-40 pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#FF85BB]/10 rounded-full blur-[100px] opacity-20 pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-center gap-12">
-          <div className="space-y-8 text-center lg:text-left">
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#FF85BB]/10 rounded-full blur-[100px] opacity-20 pointer-events-none" />        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-12">
+          <div className="flex-1 flex flex-col justify-center text-center lg:text-left">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] block mb-4 italic">Available Capital</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--color-accent)] block mb-4 italic opacity-80">Available Capital</span>
               <div className="flex items-baseline gap-4 justify-center lg:justify-start">
-                <h1 className="text-7xl md:text-9xl font-serif font-black italic tracking-tighter leading-none">
+                <h1 className="text-8xl md:text-[10rem] font-serif font-black italic tracking-tighter leading-none">
                   {user.credits || 0}
                 </h1>
-                <span className="text-xl md:text-2xl font-serif font-black uppercase tracking-tight opacity-40">Creds</span>
+                <span className="text-xl md:text-3xl font-serif font-black uppercase tracking-tight opacity-40">Creds</span>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-               <button 
-                 onClick={() => setIsPurchaseOpen(true)}
-                 className="px-8 py-5 bg-[var(--color-accent)] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:scale-105 transition-all shadow-xl flex items-center gap-3"
-               >
-                 <Zap size={16} fill="currentColor" />
-                 Top Up Wallet
-               </button>
-               <button 
-                 onClick={() => setIsShareOpen(true)}
-                 className="px-8 py-5 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white/10 transition-all flex items-center gap-3"
-               >
-                 <Send size={16} />
-                 Transfer Creds
-               </button>
+             <div className="flex flex-wrap md:flex-nowrap gap-3 justify-center lg:justify-start mt-10 md:mt-14">
+                <button 
+                  onClick={() => setIsPurchaseOpen(true)}
+                  className="w-full md:w-auto px-6 py-4 bg-[var(--color-accent)] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3 order-1"
+                >
+                  <Zap size={14} fill="currentColor" />
+                  Top Up
+                </button>
+                <button 
+                  onClick={() => setIsShareOpen(true)}
+                  className="flex-1 md:flex-none px-6 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-3 order-2"
+                >
+                  <Send size={14} />
+                  Transfer
+                </button>
+                <button 
+                  onClick={() => router.push('/credits/exchange')}
+                  className="flex-1 md:flex-none px-6 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-3 order-3"
+                >
+                  <Gift size={14} />
+                  Redeem
+                </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-             <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/5">
-                <TrendingUp size={24} className="text-[var(--color-accent)] mb-4" />
-                <p className="text-2xl font-black italic tracking-tight">Lvl {user.level || 1}</p>
-                <p className="text-[9px] font-bold uppercase tracking-widest opacity-40 mt-1">Reputation Rank</p>
+          <div className="grid grid-cols-2 gap-3 w-full lg:max-w-md mt-6 lg:mt-0">
+             <div className="bg-white/5 backdrop-blur-md p-4 md:p-10 rounded-2xl md:rounded-[3rem] border border-white/10 hover:border-white/20 transition-all group">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-[var(--color-accent-soft)]/20 rounded-xl md:rounded-2xl flex items-center justify-center text-[var(--color-accent)] mb-3 md:mb-6 group-hover:scale-110 transition-transform">
+                   <TrendingUp size={20} className="md:w-6 md:h-6" />
+                </div>
+                <p className="text-xl md:text-3xl font-serif font-black italic tracking-tight text-white">Lvl {user.level || 1}</p>
+                <p className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/30 mt-1 md:mt-2">Reputation</p>
              </div>
-             <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/5">
-                <Shield size={24} className="text-white/60 mb-4" />
-                <p className="text-2xl font-black italic tracking-tight">{user.tier || 'Nomad'}</p>
-                <p className="text-[9px] font-bold uppercase tracking-widest opacity-40 mt-1">Economic Tier</p>
+             <div className="bg-white/5 backdrop-blur-md p-4 md:p-10 rounded-2xl md:rounded-[3rem] border border-white/10 hover:border-white/20 transition-all group">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/5 rounded-xl md:rounded-2xl flex items-center justify-center text-white/60 mb-3 md:md:mb-6 group-hover:scale-110 transition-transform">
+                   <Shield size={20} className="md:w-6 md:h-6" />
+                </div>
+                <p className="text-xl md:text-3xl font-serif font-black italic tracking-tight text-white">{user.tier || 'Nomad'}</p>
+                <p className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/30 mt-1 md:mt-2">Economic</p>
              </div>
           </div>
         </div>

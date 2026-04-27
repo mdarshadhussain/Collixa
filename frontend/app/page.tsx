@@ -48,11 +48,11 @@ export default function LandingPage() {
         <BenefitCardsSection />
         <HowItWorksSection />
         <LogoTicker items={[
-          "\"Alignment is the new velocity.\"",
-          "\"Build with intent, not just instinct.\"",
-          "\"The best teams are architected, not stumbled upon.\"",
-          "\"Momentum is a design choice.\"",
-          "\"Execution is the highest form of alignment.\""
+          "\"Connections built on purpose.\"",
+          "\"Find your game. Find your team.\"",
+          "\"Skills shared. Rewards earned.\"",
+          "\"Level up your community.\"",
+          "\"Your growth is our protocol.\""
         ]} />
         <FinalCTASection />
       </div>

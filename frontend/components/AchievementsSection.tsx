@@ -219,31 +219,31 @@ export default function AchievementsSection({ userId, variant = 'full' }: { user
   if (error) return <div className="text-center py-12 text-slate-400">{error}</div>;
 
   return (
-    <div className="w-full bg-[#f8fafc] p-4 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] relative overflow-hidden group/main">
+    <div className="w-full bg-transparent p-4 sm:p-2 rounded-[2.5rem] sm:rounded-[3rem] relative overflow-hidden group/main">
       {/* Dynamic Background Glow */}
       <div className="absolute top-0 right-0 w-[300px] sm:w-[400px] h-[300px] sm:h-[400px] bg-blue-500/5 rounded-full blur-[80px] sm:blur-[100px] pointer-events-none" />
       
       {/* Header */}
       <div className="mb-6 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mb-1 sm:mb-2 tracking-tight">Achievements</h2>
-          <p className="text-[10px] sm:text-xs font-medium text-slate-400 tracking-tight flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="relative z-10">
+          <h2 className="text-2xl sm:text-4xl font-serif font-black text-[var(--color-text-primary)] mb-1 sm:mb-2 tracking-tighter italic leading-none uppercase">Achievements</h2>
+          <p className="text-[10px] sm:text-xs font-black text-[var(--color-text-secondary)] opacity-40 uppercase tracking-[0.2em] flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
             Unlock milestones to earn network credits
           </p>
         </div>
         
         {/* Creative Scroll Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 relative z-10">
            <button 
              onClick={() => scroll('left')}
-             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] hover:scale-110 active:scale-95 transition-all shadow-sm"
+             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-primary)] flex items-center justify-center hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] hover:scale-110 active:scale-95 transition-all shadow-xl backdrop-blur-md"
            >
               <ChevronLeft size={16} className="sm:w-5 sm:h-5" />
            </button>
            <button 
              onClick={() => scroll('right')}
-             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] hover:scale-110 active:scale-95 transition-all shadow-sm"
+             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-primary)] flex items-center justify-center hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] hover:scale-110 active:scale-95 transition-all shadow-xl backdrop-blur-md"
            >
               <ChevronRight size={16} className="sm:w-5 sm:h-5" />
            </button>
@@ -270,48 +270,48 @@ export default function AchievementsSection({ userId, variant = 'full' }: { user
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: idx * 0.04 }}
-                className="min-w-[calc(50%-8px)] sm:min-w-[calc(33.33%-16px)] lg:min-w-[calc(25%-18px)] bg-white rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-7 flex flex-col items-center text-center border border-slate-100 shadow-xl shadow-slate-200/30 hover:shadow-2xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-500 cursor-pointer relative group/card snap-start flex-shrink-0 overflow-hidden"
+                className="min-w-[calc(50%-8px)] sm:min-w-[calc(33.33%-16px)] lg:min-w-[calc(25%-18px)] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[1.5rem] sm:rounded-[2.5rem] p-3 sm:p-8 flex flex-col items-center text-center shadow-2xl hover:border-[var(--color-accent)]/30 hover:shadow-[var(--color-accent)]/10 hover:-translate-y-2 transition-all duration-500 cursor-pointer relative group/card snap-start flex-shrink-0 backdrop-blur-sm"
               >
                 {/* 3D Glass Accent */}
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-slate-50/50 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none" />
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/[0.03] to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none" />
                 
                 {/* Badge graphic scaled for mobile */}
-                <div className="scale-90 sm:scale-100">
+                <div className="scale-75 sm:scale-100">
                   <BadgeGraphic isUnlocked={node.isUnlocked} color={color} icon={Icon} shapeIdx={idx} />
                 </div>
                 
                 {/* Title & Checkmark */}
-                <div className="flex items-center gap-1 mb-1 mt-2 sm:mt-3">
-                  <h3 className="font-black text-slate-800 text-[11px] sm:text-[14px] tracking-tight truncate max-w-full">{node.name}</h3>
+                <div className="flex items-center justify-center gap-1.5 mb-1 sm:mb-2 mt-2 sm:mt-4 relative z-10 w-full px-1">
+                  <h3 className="font-black text-[var(--color-text-primary)] text-[9px] sm:text-[15px] tracking-tight truncate flex-1 italic font-serif leading-none">{node.name}</h3>
                   {node.isUnlocked && (
-                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                       <CheckCircle2 size={8} className="text-emerald-500" strokeWidth={3} />
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500/20 flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.3)] shrink-0">
+                       <CheckCircle2 size={8} className="text-emerald-500 sm:w-[10px] sm:h-[10px]" strokeWidth={3} />
                     </div>
                   )}
                 </div>
                 
                 {/* Description */}
-                <p className="text-[9px] sm:text-[11px] font-medium text-slate-400 mb-4 sm:mb-6 line-clamp-2 leading-tight sm:leading-relaxed h-[24px] sm:h-[32px]">
+                <p className="text-[8px] sm:text-[12px] font-medium text-[var(--color-text-secondary)] opacity-60 mb-4 sm:mb-6 line-clamp-1 sm:line-clamp-2 leading-tight h-[12px] sm:h-[36px] relative z-10">
                   {node.description}
                 </p>
                 
                 {/* Progress Bar */}
                 <div className="w-full mt-auto space-y-2 sm:space-y-3">
-                  <div className="relative h-1.5 sm:h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-50">
+                  <div className="relative h-1 sm:h-2 bg-[var(--color-bg-primary)] rounded-full overflow-hidden border border-[var(--color-border)]">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${progress}%` }}
                       transition={{ duration: 1.5, ease: "easeOut" }}
-                      className={`h-full rounded-full ${node.isUnlocked ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]' : progress > 0 ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.3)]' : 'bg-slate-300'}`} 
+                      className={`h-full rounded-full ${node.isUnlocked ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : progress > 0 ? 'bg-[var(--color-accent)] shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.5)]' : 'bg-slate-200'}`} 
                     />
                   </div>
                   <div className="flex justify-between items-center px-0.5">
-                     <div className="flex items-center gap-1">
-                        <div className={`w-0.5 sm:w-1 h-0.5 sm:h-1 rounded-full ${node.isUnlocked ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                        <span className="text-[7px] sm:text-[9px] font-black text-slate-300 uppercase tracking-widest">Progress</span>
+                     <div className="flex items-center gap-1 sm:gap-1.5">
+                        <div className={`w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full ${node.isUnlocked ? 'bg-emerald-500' : 'bg-[var(--color-border)]'}`} />
+                        <span className="text-[6px] sm:text-[10px] font-black text-[var(--color-text-secondary)] opacity-30 uppercase tracking-[0.1em] sm:tracking-[0.2em]">Progress</span>
                      </div>
-                     <span className={`text-[8px] sm:text-[11px] font-black tracking-tighter ${node.isUnlocked ? 'text-emerald-500' : 'text-slate-400'}`}>
-                      {node.progress} <span className="text-slate-300">/</span> {node.requirement}
+                     <span className={`text-[7px] sm:text-[12px] font-black tracking-tighter ${node.isUnlocked ? 'text-emerald-500' : 'text-[var(--color-text-secondary)] opacity-60'}`}>
+                      {node.progress} <span className="opacity-10">/</span> {node.requirement}
                     </span>
                   </div>
                 </div>
@@ -321,21 +321,20 @@ export default function AchievementsSection({ userId, variant = 'full' }: { user
         </div>
         
         {/* Floating Navigation Overlay */}
-        <div className="absolute inset-y-0 left-0 w-10 sm:w-20 bg-gradient-to-r from-[#f8fafc] to-transparent pointer-events-none opacity-0 group-hover/main:opacity-100 transition-opacity duration-700" />
-        <div className="absolute inset-y-0 right-0 w-10 sm:w-20 bg-gradient-to-l from-[#f8fafc] to-transparent pointer-events-none opacity-0 group-hover/main:opacity-100 transition-opacity duration-700" />
+        <div className="absolute inset-y-0 right-0 w-10 sm:w-20 bg-gradient-to-l from-[var(--color-bg-primary)] to-transparent pointer-events-none opacity-0 group-hover/main:opacity-100 transition-opacity duration-700 z-10" />
       </div>
 
       {/* ─── THE ASCENT TRACKER ─── */}
-      <div className="mt-2 sm:mt-4 px-1 sm:px-2">
+      <div className="mt-2 sm:mt-4 px-1 sm:px-2 relative z-10">
          <div className="flex items-center gap-2 sm:gap-4">
-            <span className="text-[7px] sm:text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Start</span>
-            <div className="flex-1 h-[1px] sm:h-[2px] bg-slate-200/50 rounded-full relative overflow-hidden">
+            <span className="text-[7px] sm:text-[10px] font-black text-[var(--color-text-secondary)] opacity-10 uppercase tracking-[0.3em]">Start</span>
+            <div className="flex-1 h-[1px] sm:h-[2px] bg-[var(--color-border)] rounded-full relative overflow-hidden">
                <motion.div 
                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-[var(--color-accent)] to-blue-500 shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.5)]"
                  style={{ width: `${scrollProgress}%` }}
                />
             </div>
-            <span className="text-[7px] sm:text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">End</span>
+            <span className="text-[7px] sm:text-[10px] font-black text-[var(--color-text-secondary)] opacity-10 uppercase tracking-[0.3em]">End</span>
          </div>
       </div>
 
@@ -372,42 +371,48 @@ export default function AchievementsSection({ userId, variant = 'full' }: { user
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="relative bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl z-20 border border-slate-100"
+                className="relative bg-[var(--color-bg-secondary)] rounded-[3rem] p-10 md:p-14 w-full max-w-md shadow-[0_20px_60px_rgba(0,0,0,0.2)] z-20 border border-[var(--color-border)]"
                 onClick={e => e.stopPropagation()}
               >
                 <button
                   onClick={() => setSelectedAchievement(null)}
-                  className="absolute top-4 right-4 text-slate-300 hover:text-slate-500 transition-colors"
+                  className="absolute top-8 right-8 p-2 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] opacity-40 hover:opacity-100 transition-opacity"
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </button>
 
                 <div className="flex flex-col items-center text-center gap-5">
                   <BadgeGraphic isUnlocked={a.isUnlocked} color={color} icon={Icon} shapeIdx={achievements.findIndex(x => x.id === a.id)} />
 
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">{a.name}</h3>
-                    <p className="text-sm text-slate-500 mt-1 leading-relaxed">{a.description}</p>
+                  <div className="space-y-2">
+                    <h3 className="text-3xl font-serif font-black italic text-[var(--color-text-primary)] italic leading-none">{a.name}</h3>
+                    <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[var(--color-accent)] opacity-80">{a.category} milestone</p>
+                    <p className="text-sm text-[var(--color-text-secondary)] opacity-70 mt-4 leading-relaxed font-medium">{a.description}</p>
                   </div>
 
                   {/* Progress detail */}
-                  <div className="w-full space-y-2">
-                    <div className="flex justify-between text-xs text-slate-400">
-                      <span>Progress</span>
-                      <span className="font-semibold text-slate-600">{a.progress} / {a.requirement}</span>
+                  <div className="w-full space-y-3">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] opacity-40">
+                      <span>Network Progress</span>
+                      <span className="text-[var(--color-text-primary)]">{a.progress} <span className="opacity-20">/</span> {a.requirement}</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-[var(--color-bg-primary)] overflow-hidden border border-[var(--color-border)] shadow-inner">
                       <motion.div
-                        className="h-full rounded-full transition-all duration-1000"
+                        className="h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.5)]"
                         style={{ backgroundColor: color, width: `${progress}%` }}
                       />
                     </div>
                   </div>
 
                   {/* Reward */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 w-full">
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Reward</p>
-                    <p className="text-lg font-bold text-slate-800">+{a.reward} Credits</p>
+                  <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-3xl px-8 py-6 w-full flex items-center justify-between">
+                    <div>
+                       <p className="text-[9px] font-black text-[var(--color-text-secondary)] opacity-40 uppercase tracking-[0.3em] mb-1">Network Reward</p>
+                       <p className="text-2xl font-serif font-black italic text-[var(--color-accent)] drop-shadow-sm">+{a.reward} <span className="text-[var(--color-text-secondary)] opacity-40 text-sm not-italic font-black">Creds</span></p>
+                    </div>
+                    <div className="p-3 bg-[var(--color-accent)]/10 rounded-2xl">
+                       <Award size={24} className="text-[var(--color-accent)]" />
+                    </div>
                   </div>
                 </div>
               </motion.div>

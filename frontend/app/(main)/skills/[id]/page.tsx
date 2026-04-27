@@ -23,7 +23,8 @@ import {
   Megaphone,
   X,
   Trash2,
-  Edit2
+  Edit2,
+  Check
 } from 'lucide-react'
 import { skillService, sessionService, reviewService, conversationService, storageService } from '@/lib/supabase'
 import { useAuth } from '@/app/context/AuthContext'
@@ -186,13 +187,13 @@ export default function SkillDetailPage() {
         comment: reviewForm.comment,
       })
       if (res.success) {
-        notify.success('Feedback submitted successfully.')
-        setReviewedSessionIds((prev) => [...prev, reviewTarget.id])
+        notify.success('Feedback submitted! Growth confirmed.')
+        setReviewedSessionIds([...reviewedSessionIds, reviewTarget.id])
         setReviewTarget(null)
         setReviewForm({ rating: 5, comment: '' })
         fetchTribeData(skill.id)
       } else {
-        notify.error(res.error || 'Could not submit feedback')
+        notify.error(res.error || 'Failed to submit review')
       }
     } catch (err) {
       console.error(err)
@@ -203,69 +204,120 @@ export default function SkillDetailPage() {
 
   const renderSessionAction = (session: any) => {
     const isMaterialized = session.id && !session.id.startsWith('teach-slot');
-    const isExpert = session.receiver_id === user?.id || isOwner;
-    const isConfirmedByMe = isExpert ? session.receiver_confirmed : session.sender_confirmed;
-    const isConfirmedByOther = isExpert ? session.sender_confirmed : session.receiver_confirmed;
+    
+    // Determine role based on session IDs or tribe ownership (for virtual slots)
+    const sessionTeacherId = session.receiver_id || skill.user_id;
+    const isTeacher = user?.id === sessionTeacherId;
+    
+    const isConfirmedByMe = isTeacher ? session.receiver_confirmed : session.sender_confirmed;
+    const isConfirmedByOther = isTeacher ? session.sender_confirmed : session.receiver_confirmed;
+    
     const isCompleted = session.status === 'COMPLETED';
     const isReviewedByMe = reviewedSessionIds.includes(session.id);
+    
+    // If status is WAITING, it means at least one person confirmed.
+    const isWaiting = session.status === 'WAITING';
+    const isWaitingForFeedback = session.status === 'WAITING_FOR_FEEDBACK';
 
     if (isCompleted) {
-      if (isReviewedByMe) return null;
+      if (isReviewedByMe) {
+        return (
+          <div className="flex-1 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-[9px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
+            <CheckCircle2 size={12} /> Session Completed
+          </div>
+        );
+      }
+      // If completed but I haven't reviewed, fall through to the feedback button logic
+    }
+
+    // FEEDBACK PHASE (Now handles COMPLETED status too)
+    if (isWaitingForFeedback || (isConfirmedByMe && isConfirmedByOther) || isCompleted) {
+      if (isReviewedByMe) {
+        // If we are here, it means the other person hasn't reviewed yet (if status is still WAITING_FOR_FEEDBACK)
+        // or it's completed but we just want to show the status.
+        return (
+          <div className="flex-1 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
+            <Clock size={12} className="animate-pulse" /> {isCompleted ? 'Awaiting Partner Feedback' : `Waiting for ${isTeacher ? 'Student' : 'Host'} Feedback`}
+          </div>
+        );
+      }
       return (
         <button 
           onClick={() => setReviewTarget(session)}
-          className="flex-1 py-3 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg"
+          className="flex-1 py-3 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
         >
-          Feedback
+          <Sparkles size={12} /> Leave Feedback
         </button>
       );
     }
 
+    // CONFIRMATION PHASE
     if (isConfirmedByMe && !isConfirmedByOther) {
       return (
-        <div className="flex-1 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-[7px] font-black uppercase tracking-widest text-center flex items-center justify-center">
-          Waiting for {isExpert ? 'Student' : 'Host'}
+        <div className="flex-1 py-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
+          <Clock size={12} className="animate-pulse" /> Waiting for {isTeacher ? 'Student' : 'Host'}
         </div>
       );
     }
 
-    return (
-      <button 
-        disabled={processingId !== null || (!isMaterialized && !session.exchangeId)}
-        onClick={() => isMaterialized ? handleCompleteSession(session.id) : handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
-        className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/5 transition-colors disabled:opacity-40"
-      >
-        {processingId === (isMaterialized ? session.id : (session.exchangeId + (new Date(session.displayTime).toISOString()))) ? '...' : (!isMaterialized && !session.exchangeId ? 'Awaiting Members' : 'Mark Done')}
-      </button>
-    );
-  };
+    // PENDING/LIVE PHASE
+    if (!isConfirmedByMe) {
+        // If it's time to join the meeting and I haven't marked it as done yet
+        // BUT if the host has already marked it done, student should transition to Mark Done immediately
+        if (!session.isExpired && !( !isTeacher && isConfirmedByOther )) {
+            return (
+                <button 
+                  onClick={handleStartClassroom}
+                  className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                >
+                  <Video size={14} /> {isTeacher ? 'Start Meeting' : 'Join Meeting'}
+                </button>
+            );
+        }
+
+        // If host hasn't confirmed yet (for student)
+        if (!isTeacher && !session.receiver_confirmed) {
+            return (
+                <div className="flex-1 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2 opacity-60">
+                    <Clock size={12} /> Awaiting Host Confirmation
+                </div>
+            );
+        }
+
+        // Otherwise, show Mark Done (if expired or if host has already confirmed)
+        return (
+            <button 
+                disabled={processingId !== null || (!isMaterialized && !session.exchangeId)}
+                onClick={() => isMaterialized ? handleCompleteSession(session.id) : handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
+                className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/5 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+                {processingId === (isMaterialized ? session.id : (session.exchangeId + (new Date(session.displayTime).toISOString()))) 
+                ? '...' 
+                : (!isMaterialized && !session.exchangeId ? 'Awaiting Members' : (
+                    <>
+                    <Check size={14} /> Mark Done
+                    </>
+                ))}
+            </button>
+        );
+    }
+
+    return null;
+};
 
   // Calculate teaching sessions specifically for this tribe
   const tribeExpertSessions = useMemo(() => {
     if (!skill) return []
     const now = new Date();
-    
-    // Manual sessions
-    const manualSessions = expertSessions.filter((s) => {
-       return s.status !== 'COMPLETED' || !reviewedSessionIds.includes(s.id);
-    }).map(s => ({
-      ...s,
-      type: 'MANUAL',
-      displayTime: s.scheduled_time,
-      displayName: skill.user_id === user?.id ? `TEACHING: ${skill.name}` : skill.name
-    }))
-
-    // Recurring/Date-based slots from tribe schedule
+    // Materialized sessions that correspond to the schedule
+    const materializedIds = new Set();
     const scheduledSlots: any[] = []
     
-    // Find the exchange ID for the current user (if student) or a representative one if owner
+    // Find the exchange ID for the current user
     let myExchangeId = null;
     if (isMember) {
       myExchangeId = skill.members?.find((m: any) => m.id === user?.id)?.exchange_id;
     } else if (isOwner) {
-      // For owner, we might need to handle multiple members, but for now we'll pick the first active exchange
-      // or use a placeholder if we want to materialize for all (requires backend change)
-      // For now, let's at least get a valid one if it exists to avoid the error
       myExchangeId = skill.members?.[0]?.exchange_id || null;
     }
 
@@ -274,43 +326,83 @@ export default function SkillDetailPage() {
         if (typeof slot === 'object' && slot.date && slot.time) {
           const isoTime = new Date(`${slot.date}T${slot.time}:00`).toISOString();
           const targetTime = new Date(isoTime).getTime();
+          const sessionDate = new Date(isoTime);
           
-          // Check if materialized for the current user
-          const materialized = expertSessions.find(s => 
-            s.exchange?.skill_id === skill.id && 
-            new Date(s.scheduled_time).getTime() === targetTime &&
-            (isOwner ? true : (s.sender_id === user?.id || s.receiver_id === user?.id))
-          );
-          
-          if (materialized) {
-            if (materialized.status === 'COMPLETED' && reviewedSessionIds.includes(materialized.id)) return;
-            scheduledSlots.push({
-               ...materialized,
-               id: materialized.id,
-               displayName: isOwner ? `TEACHING: ${skill.name}` : skill.name,
-               displayTime: isoTime,
-               type: 'SCHEDULED',
-               status: materialized.status
+          if (isOwner) {
+            // FOR OWNER: Show one card per member for each scheduled slot
+            skill.members?.forEach((member: any) => {
+              const materialized = expertSessions.find(s => 
+                s.exchange?.skill_id === skill.id && 
+                String(s.sender_id) === String(member.id) &&
+                Math.abs(new Date(s.scheduled_time).getTime() - targetTime) < 60000
+              );
+              
+              if (materialized) {
+                materializedIds.add(materialized.id);
+                if (materialized.status === 'COMPLETED' && reviewedSessionIds.includes(materialized.id)) return;
+                scheduledSlots.push({
+                   ...materialized,
+                   id: materialized.id,
+                   displayName: `TEACHING ${member.name}: ${skill.name}`,
+                   displayTime: isoTime,
+                   type: 'SCHEDULED',
+                   status: materialized.status
+                });
+              } else {
+                const isWithin24HoursPast = sessionDate.getTime() > (now.getTime() - 86400000);
+                const isFuture = sessionDate.getTime() > now.getTime();
+
+                if (isFuture || isWithin24HoursPast) {
+                  scheduledSlots.push({
+                    id: `teach-slot-${skill.id}-${idx}-${member.id}`,
+                    exchangeId: member.exchange_id,
+                    displayName: `TEACHING ${member.name}: ${skill.name}`,
+                    displayTime: isoTime,
+                    type: 'SCHEDULED',
+                    status: 'UPCOMING',
+                    isExpired: sessionDate.getTime() < (now.getTime() - 7200000)
+                  })
+                }
+              }
             });
           } else {
-            const sessionDate = new Date(isoTime);
-            // Show slots from the last 24 hours even if past, so they can be marked as done
-            const isWithin24HoursPast = sessionDate.getTime() > (now.getTime() - 86400000);
-            const isFuture = sessionDate.getTime() > now.getTime();
-
-            if (isFuture || isWithin24HoursPast) {
+            // FOR STUDENT: Show only their own card
+            const materialized = expertSessions.find(s => 
+              s.exchange?.skill_id === skill.id && 
+              (s.sender_id === user?.id || s.receiver_id === user?.id) &&
+              Math.abs(new Date(s.scheduled_time).getTime() - targetTime) < 60000
+            );
+            
+            if (materialized) {
+              materializedIds.add(materialized.id);
+              if (materialized.status === 'COMPLETED' && reviewedSessionIds.includes(materialized.id)) return;
               scheduledSlots.push({
-                id: `teach-slot-${skill.id}-${idx}`,
-                exchangeId: myExchangeId,
-                displayName: isOwner ? `TEACHING: ${skill.name}` : skill.name,
-                displayTime: isoTime,
-                type: 'SCHEDULED',
-                status: 'UPCOMING',
-                isExpired: sessionDate.getTime() < (now.getTime() - 7200000) // Gray out meeting link after 2 hours past
-              })
+                 ...materialized,
+                 id: materialized.id,
+                 displayName: skill.name,
+                 displayTime: isoTime,
+                 type: 'SCHEDULED',
+                 status: materialized.status
+              });
+            } else {
+              const isWithin24HoursPast = sessionDate.getTime() > (now.getTime() - 86400000);
+              const isFuture = sessionDate.getTime() > now.getTime();
+
+              if (isFuture || isWithin24HoursPast) {
+                scheduledSlots.push({
+                  id: `teach-slot-${skill.id}-${idx}`,
+                  exchangeId: myExchangeId,
+                  displayName: skill.name,
+                  displayTime: isoTime,
+                  type: 'SCHEDULED',
+                  status: 'UPCOMING',
+                  isExpired: sessionDate.getTime() < (now.getTime() - 7200000)
+                })
+              }
             }
           }
         } else if (typeof slot === 'object' && slot.day && slot.time) {
+            // Legacy handling
             scheduledSlots.push({
               id: `teach-slot-legacy-${skill.id}-${idx}`,
               exchangeId: myExchangeId,
@@ -322,6 +414,17 @@ export default function SkillDetailPage() {
         }
       })
     }
+
+    // Manual sessions (sessions in expertSessions that were NOT part of the schedule)
+    const manualSessions = expertSessions.filter((s) => {
+       if (materializedIds.has(s.id)) return false;
+       return s.status !== 'COMPLETED' || !reviewedSessionIds.includes(s.id);
+    }).map(s => ({
+      ...s,
+      type: 'MANUAL',
+      displayTime: s.scheduled_time,
+      displayName: isOwner ? `TEACHING ${s.sender?.name || 'Student'}: ${skill.name}` : skill.name
+    }))
 
     return [...manualSessions, ...scheduledSlots]
       .sort((a, b) => {
@@ -458,121 +561,69 @@ export default function SkillDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Notice Board */}
-          <AnimatePresence>
-            {(skill.notices?.length > 0 || isOwner) && (
-              <motion.section 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-sm font-black uppercase tracking-[0.4em] text-[var(--color-accent)]">Notice Board</h3>
-                    <div className="flex h-2 w-2 rounded-full bg-[var(--color-accent)] animate-pulse" />
+          {/* Hero Section */}
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="space-y-4 flex-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Badge variant="accent" className="text-[9px] px-3 py-1">{skill.category}</Badge>
+                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest opacity-60">
+                    <ShieldCheck size={12} className="text-[var(--color-accent)]" />
+                    Verified Expertise
                   </div>
+                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest opacity-60">
+                    <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                    {skill.avg_rating || '5.0'} ({skill.review_count || 0} Reviews)
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl md:text-5xl font-serif font-black tracking-tighter leading-tight">
+                    {skill.name}
+                  </h1>
                   {isOwner && (
                     <button 
-                      onClick={() => setShowNoticeForm(!showNoticeForm)}
-                      className="p-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-accent-soft)] transition-all"
+                      onClick={() => setShowEditModal(true)}
+                      className="p-2.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] transition-all shadow-md"
+                      title="Edit Tribe Parameters"
                     >
-                      {showNoticeForm ? <X size={16} /> : <Plus size={16} />}
+                      <Edit2 size={18} />
                     </button>
                   )}
                 </div>
 
-                {showNoticeForm && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="p-6 bg-[var(--color-bg-secondary)] border border-[var(--color-accent)] rounded-3xl space-y-4"
-                  >
-                    <textarea 
-                      value={newNotice}
-                      onChange={(e) => setNewNotice(e.target.value)}
-                      placeholder="Broadcast a message to your tribe..."
-                      className="w-full bg-transparent border-none outline-none text-xs font-medium resize-none min-h-[100px]"
-                    />
-                    <div className="flex justify-end">
-                       <Button 
-                         variant="accent" 
-                         size="sm"
-                         onClick={handlePostNotice}
-                         loading={isPostingNotice}
-                       >
-                          <Send size={14} className="mr-2" /> Post Announcement
-                       </Button>
-                    </div>
-                  </motion.div>
-                )}
+                <p className="text-sm md:text-base text-[var(--color-text-secondary)] italic leading-relaxed max-w-3xl">
+                  "{skill.description}"
+                </p>
+              </div>
 
-                <div className="space-y-4">
-                   {skill.notices?.filter(Boolean).map((notice: any) => (
-                     <div key={notice.id} className="p-6 bg-[var(--color-accent-soft)]/20 border border-[var(--color-accent)]/20 rounded-[2rem] flex gap-4">
-                        <div className="p-3 bg-[var(--color-bg-primary)] rounded-2xl h-fit text-[var(--color-accent)]">
-                           <Megaphone size={20} />
+              {/* High-Impact Pricing Badge */}
+              <div className="shrink-0">
+                <div className="p-6 bg-[var(--color-accent)] text-black rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 relative overflow-hidden group hover:scale-105 transition-all duration-500">
+                   <div className="absolute top-0 right-0 p-2 opacity-10 -mr-2 -mt-2 rotate-12">
+                     <Sparkles size={60} className="text-black" />
+                   </div>
+                   <div className="relative z-10 text-center md:text-left">
+                      <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Exchange Value</p>
+                      <div className="flex items-baseline justify-center md:justify-start gap-1">
+                        <span className="text-4xl font-serif font-black">
+                           {skill.session_fee === 0 ? 'FREE' : (skill.session_fee || 20)}
+                        </span>
+                        {skill.session_fee !== 0 && <span className="text-xs font-black uppercase">Creds</span>}
+                      </div>
+                      <p className="text-[9px] font-black uppercase tracking-widest opacity-60">per session</p>
+                      
+                      {skill.session_fee !== 0 && (
+                        <div className="mt-3 pt-3 border-t border-black/10">
+                           <p className="text-[10px] font-bold">
+                             {(skill.schedule?.length || 0) * (skill.session_fee || 20)} <span className="opacity-60">TOTAL PROGRAM</span>
+                           </p>
                         </div>
-                         <div className="space-y-2 flex-1">
-                           <div className="flex justify-between items-start">
-                              <p className="text-[10px] font-black uppercase tracking-widest opacity-40">{new Date(notice.created_at).toLocaleDateString()}</p>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="accent" className="text-[8px]">Notice</Badge>
-                                {isOwner && (
-                                  <button 
-                                    onClick={() => setNoticeToDelete(notice.id)}
-                                    disabled={isDeletingNotice === notice.id}
-                                    className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                )}
-                              </div>
-                           </div>
-                           <p className="text-[13px] font-medium leading-relaxed italic">"{notice.content}"</p>
-                           <div className="flex items-center gap-2 pt-2">
-                              <Avatar src={notice.author?.avatar_url} name={notice.author?.name} size="xs" />
-                              <span className="text-[9px] font-black uppercase opacity-60">From {notice.author?.name}</span>
-                           </div>
-                        </div>
-                     </div>
-                   ))}
+                      )}
+                   </div>
                 </div>
-              </motion.section>
-            )}
-          </AnimatePresence>
-
-          {/* Hero Section */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge variant="accent" className="text-[9px] px-3 py-1">{skill.category}</Badge>
-              <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest opacity-60">
-                <ShieldCheck size={12} className="text-[var(--color-accent)]" />
-                Verified Expertise
-              </div>
-              <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest opacity-60">
-                <Star size={12} className="text-yellow-500 fill-yellow-500" />
-                {skill.avg_rating || '5.0'} ({skill.review_count || 0} Reviews)
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl md:text-5xl font-serif font-black tracking-tighter leading-tight">
-                {skill.name}
-              </h1>
-              {isOwner && (
-                <button 
-                  onClick={() => setShowEditModal(true)}
-                  className="p-2.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] transition-all shadow-md"
-                  title="Edit Tribe Parameters"
-                >
-                  <Edit2 size={18} />
-                </button>
-              )}
-            </div>
-
-            <p className="text-sm md:text-base text-[var(--color-text-secondary)] italic leading-relaxed max-w-3xl">
-              "{skill.description}"
-            </p>
           </div>
 
           {/* Stats / Cards */}
@@ -643,14 +694,6 @@ export default function SkillDetailPage() {
                        
                        {isParticipant && (
                          <div className="flex gap-3">
-                           {!session.isExpired && (
-                             <button 
-                               onClick={handleStartClassroom}
-                               className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center transition-transform hover:scale-[1.02]"
-                             >
-                               {isOwner ? 'Start Meeting' : 'Join Meeting'}
-                             </button>
-                           )}
                             {renderSessionAction(session)}
                          </div>
                        )}
@@ -760,6 +803,94 @@ export default function SkillDetailPage() {
                  )}
               </div>
            </div>
+
+           {/* Notice Board */}
+           <AnimatePresence>
+             {(skill.notices?.length > 0 || isOwner) && (
+               <motion.div 
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 className="p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] space-y-6"
+               >
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 bg-[var(--color-accent-soft)] text-[var(--color-accent)] rounded-xl flex items-center justify-center">
+                        <Megaphone size={20} />
+                     </div>
+                     <div>
+                        <h3 className="text-lg font-serif font-black italic">Notice Board</h3>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse" />
+                           <span className="text-[8px] font-black uppercase tracking-widest opacity-60">Live Updates</span>
+                        </div>
+                     </div>
+                   </div>
+                   {isOwner && (
+                     <button 
+                       onClick={() => setShowNoticeForm(!showNoticeForm)}
+                       className="p-2.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-accent-soft)] transition-all"
+                     >
+                       {showNoticeForm ? <X size={16} /> : <Plus size={16} />}
+                     </button>
+                   )}
+                 </div>
+
+                 {showNoticeForm && (
+                   <motion.div 
+                     initial={{ opacity: 0, height: 0 }}
+                     animate={{ opacity: 1, height: 'auto' }}
+                     className="p-5 bg-[var(--color-bg-primary)] border border-[var(--color-accent)]/30 rounded-2xl space-y-4"
+                   >
+                     <textarea 
+                       value={newNotice}
+                       onChange={(e) => setNewNotice(e.target.value)}
+                       placeholder="Broadcast a message..."
+                       className="w-full bg-transparent border-none outline-none text-xs font-medium resize-none min-h-[80px]"
+                     />
+                     <div className="flex justify-end">
+                        <Button 
+                          variant="accent" 
+                          size="sm"
+                          className="rounded-xl px-4 py-2 text-[9px]"
+                          onClick={handlePostNotice}
+                          loading={isPostingNotice}
+                        >
+                           <Send size={12} className="mr-2" /> Broadcast
+                        </Button>
+                     </div>
+                   </motion.div>
+                 )}
+
+                 <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                    {skill.notices?.filter(Boolean).length === 0 ? (
+                       <p className="text-[10px] text-center opacity-30 italic py-8 border border-dashed border-[var(--color-border)] rounded-2xl">No recent announcements</p>
+                    ) : (
+                       skill.notices?.filter(Boolean).map((notice: any) => (
+                         <div key={notice.id} className="p-5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl space-y-3 relative group">
+                            <div className="flex justify-between items-start">
+                               <p className="text-[8px] font-black uppercase tracking-widest opacity-40">{new Date(notice.created_at).toLocaleDateString()}</p>
+                               {isOwner && (
+                                 <button 
+                                   onClick={() => setNoticeToDelete(notice.id)}
+                                   disabled={isDeletingNotice === notice.id}
+                                   className="p-1.5 text-red-500 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 rounded-lg transition-all"
+                                 >
+                                   <Trash2 size={12} />
+                                 </button>
+                               )}
+                            </div>
+                            <p className="text-[11px] font-medium leading-relaxed italic opacity-80">"{notice.content}"</p>
+                            <div className="flex items-center gap-2 pt-1">
+                               <Avatar src={notice.author?.avatar_url} name={notice.author?.name} size="xs" />
+                               <span className="text-[8px] font-black uppercase opacity-60">From {notice.author?.name}</span>
+                            </div>
+                         </div>
+                       ))
+                    )}
+                 </div>
+               </motion.div>
+             )}
+           </AnimatePresence>
 
             {/* Expert Admin Panel */}
             {isOwner && (
