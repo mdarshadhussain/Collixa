@@ -7,6 +7,7 @@ export default function CustomCursor() {
   const [isHovered, setIsHovered] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const [activeTheme, setActiveTheme] = useState<'light' | 'dark'>('light')
+  const [isDesktop, setIsDesktop] = useState(false)
 
   // Use motion values for better performance
   const mouseX = useMotionValue(0)
@@ -22,7 +23,13 @@ export default function CustomCursor() {
   const trailY = useSpring(mouseY, { damping: 40, stiffness: 150 })
 
   useEffect(() => {
+    // Check if the device has a precise pointer (like a mouse)
+    const mql = window.matchMedia('(pointer: fine)')
+    setIsDesktop(mql.matches)
+
     const handleMouseMove = (e: MouseEvent) => {
+      if (!mql.matches) return
+      
       mouseX.set(e.clientX)
       mouseY.set(e.clientY)
       if (!isVisible) setIsVisible(true)
@@ -39,6 +46,8 @@ export default function CustomCursor() {
     }
 
     const handleMouseOver = (e: MouseEvent) => {
+      if (!mql.matches) return
+
       const target = e.target as HTMLElement
       if (
         target.tagName === 'BUTTON' ||
@@ -54,7 +63,9 @@ export default function CustomCursor() {
     }
 
     const handleMouseLeave = () => setIsVisible(false)
-    const handleMouseEnter = () => setIsVisible(true)
+    const handleMouseEnter = () => {
+      if (mql.matches) setIsVisible(true)
+    }
 
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseover', handleMouseOver)
@@ -69,7 +80,7 @@ export default function CustomCursor() {
     }
   }, [mouseX, mouseY, isVisible, activeTheme])
 
-  if (!isVisible) return null
+  if (!isDesktop || !isVisible) return null
 
   // Pink (#FF85BB) for dark backgrounds, Blue (#021A54) for light backgrounds
   const primaryColor = activeTheme === 'dark' ? '#FF85BB' : '#021A54'

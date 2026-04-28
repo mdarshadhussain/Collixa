@@ -11,6 +11,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { storageService, supabase, API_URL } from '@/lib/supabase'
 import CreditPurchaseModal from './CreditPurchaseModal'
 import ThemeToggle from './ThemeToggle'
+import { useTheme } from 'next-themes'
 
 export default function Header() {
   const router = useRouter()
@@ -26,6 +27,14 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const { user, logout, isAuthenticated, isAdmin, viewMode, toggleViewMode, token } = useAuth()
+  const { theme, setTheme } = useTheme()
+
+  // Force light mode on landing page
+  useEffect(() => {
+    if (isLandingPage && theme === 'dark') {
+      setTheme('light')
+    }
+  }, [isLandingPage, theme, setTheme])
 
   const fetchUnreadCount = async () => {
     try {
@@ -73,6 +82,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await logout()
+    setUnreadCount(0)
     router.push('/')
   }
 
@@ -90,7 +100,15 @@ export default function Header() {
     { label: 'Process', href: '#process', icon: LayoutDashboard },
   ]
 
-  const navItems = isLandingPage ? landingNavItems : mainNavItems
+  const authenticatedLandingItems = [
+    { label: 'About', href: '#features', icon: LayoutDashboard },
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Wallet', href: '/credits', icon: Zap },
+  ]
+
+  const navItems = isLandingPage 
+    ? (isAuthenticated ? authenticatedLandingItems : landingNavItems) 
+    : mainNavItems
 
   // Style helpers
   const headerBackground = scrolled 
@@ -104,13 +122,19 @@ export default function Header() {
       initial={{ y: 0 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-[100] w-full transition-all duration-500 ${headerBackground} ${headerTextColor}`}
+      className={`fixed top-0 left-0 right-0 z-[100] w-full transition-all duration-500 ${headerTextColor} 
+        ${isLandingPage ? 'bg-[var(--lp-bg)]' : 'bg-[var(--color-bg-primary)]'}
+        ${scrolled ? 'shadow-sm' : ''}
+      `}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 w-full flex justify-between items-center py-2 md:py-4">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 md:px-12 w-full flex justify-between items-center py-3 lg:py-4 transition-all duration-500 border-b ${scrolled ? 'border-[var(--color-border)]' : 'border-transparent'}`}>
         
+        {/* Left balance for mobile center logo */}
+        <div className="lg:hidden w-10 h-10 invisible" aria-hidden="true" />
+
         {/* ─── LOGO ─── */}
-        <Link href="/" className="flex items-center gap-3 sm:gap-4 group">
-          <span className={`tracking-[-0.05em] text-2xl sm:text-3xl transition-colors font-['Nunito'] font-[800] ${isLandingPage ? 'text-[var(--lp-text)]' : 'text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]'}`}>Collixa.</span>
+        <Link href="/" className="flex items-center gap-2 sm:gap-4 group max-lg:absolute max-lg:left-1/2 max-lg:-translate-x-1/2">
+          <span className={`tracking-[-0.05em] text-[26px] sm:text-3xl transition-all font-['Nunito'] font-[900] ${isLandingPage ? 'text-[var(--lp-text)]' : 'text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]'}`}>Collixa.</span>
         </Link>
 
         {/* ─── RIGHT ACTION CLUSTER (Nav + Button) ─── */}
@@ -246,20 +270,31 @@ export default function Header() {
                       </Link>
 
                       <Link 
-                        href="/my-collaborations" 
+                        href="/credits" 
                         onClick={() => setShowProfileMenu(false)}
                         className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5"
                       >
                         <Zap size={16} />
-                        <span className="text-[13px] font-semibold">My Intents</span>
+                        <span className="text-[13px] font-semibold">Wallet</span>
+                      </Link>
+
+                      <Link 
+                        href="/my-collaborations" 
+                        onClick={() => setShowProfileMenu(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-black/5"
+                      >
+                        <FileText size={16} />
+                        <span className="text-[13px] font-semibold">Intent</span>
                       </Link>
 
                       <div className="h-[1px] bg-black/5 my-2" />
 
-                      <div className="flex items-center justify-between px-4 py-2 hover:bg-black/5 rounded-xl transition-colors">
-                        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">Dark Mode</span>
-                        <ThemeToggle />
-                      </div>
+                      {!isLandingPage && (
+                        <div className="flex items-center justify-between px-4 py-2 hover:bg-black/5 rounded-xl transition-colors">
+                          <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">Dark Mode</span>
+                          <ThemeToggle />
+                        </div>
+                      )}
 
                       <button 
                         onClick={handleLogout}
@@ -288,21 +323,6 @@ export default function Header() {
 
         {/* ─── MOBILE CONTROLS ─── */}
         <div className="flex lg:hidden items-center gap-2 sm:gap-3">
-          {isAuthenticated && user && (
-            <Link href="/profile" className="mr-1 relative">
-              <Avatar 
-                name={user.name} 
-                src={user.avatar_url ? storageService.getPublicUrl(user.avatar_url) : undefined} 
-                size="sm" 
-                className="w-9 h-9 sm:w-10 sm:h-10 border border-[var(--color-border)]" 
-              />
-              {unreadCount > 0 && (
-                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black flex items-center justify-center rounded-full border-2 border-[var(--color-bg-primary)] shadow-lg">
-                    {unreadCount}
-                 </div>
-              )}
-            </Link>
-          )}
           <div className="flex items-center gap-2">
             {isAuthenticated && isAdmin && (
               <button
@@ -324,8 +344,35 @@ export default function Header() {
                 <span>{viewMode === 'admin' ? 'User' : 'Admin'}</span>
               </button>
             )}
-            <button className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-              {isOpen ? <X size={18} /> : <Menu size={18} />}
+            
+            <button 
+              className="relative flex items-center justify-center cursor-pointer active:scale-95 transition-transform" 
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isAuthenticated && user ? (
+                <div className="relative">
+                  <Avatar 
+                    name={user.name} 
+                    src={user.avatar_url ? storageService.getPublicUrl(user.avatar_url) : undefined} 
+                    size="sm" 
+                    className={`w-9 h-9 sm:w-10 sm:h-10 border transition-all ${isOpen ? 'border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/20' : 'border-[var(--color-border)]'}`} 
+                  />
+                  {unreadCount > 0 && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black flex items-center justify-center rounded-full border-2 border-[var(--color-bg-primary)] shadow-lg">
+                      {unreadCount}
+                    </div>
+                  )}
+                  {isOpen && (
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center backdrop-blur-[2px]">
+                      <X size={16} className="text-white" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--color-inverse-bg)] text-[var(--color-inverse-text)] rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all">
+                  {isOpen ? <X size={18} /> : <Menu size={18} />}
+                </div>
+              )}
             </button>
           </div>
         </div>
@@ -352,7 +399,7 @@ export default function Header() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute right-3 top-20 sm:right-6 sm:top-24 w-[min(86vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-3 shadow-2xl"
+              className="absolute right-2 top-[60px] sm:right-6 sm:top-24 w-[min(92vw,320px)] bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[2rem] p-4 shadow-2xl backdrop-blur-3xl bg-opacity-98"
             >
               <div className="flex justify-between items-center mb-3 px-1">
                 <span className="font-serif font-black text-xl text-[var(--color-text-primary)]">Navigation</span>
@@ -362,12 +409,18 @@ export default function Header() {
               </div>
 
               <nav className="flex flex-col gap-1.5">
-                {[
-                  ...(isLandingPage ? landingNavItems : mainNavItems),
-                  { label: 'Rewards', href: '/rewards', icon: Award },
+                {(isLandingPage && isAuthenticated ? [
+                  { label: 'About', href: '#features', icon: LayoutDashboard },
+                  { label: 'View Profile', href: '/profile', icon: User },
                   { label: 'Notifications', onClick: () => setIsDrawerOpen(true), icon: Bell, count: unreadCount },
-                  { label: 'Profile Settings', href: '/profile', icon: User },
-                ].map((item) => {
+                  { label: 'Platform Dashboard', href: '/dashboard', icon: LayoutDashboard },
+                  { label: 'Wallet', href: '/credits', icon: Zap },
+                ] : [
+                  ...(isLandingPage ? landingNavItems : mainNavItems),
+                  { label: 'Rewards', href: isAuthenticated ? '/rewards' : '/auth', icon: Award },
+                  { label: 'Notifications', onClick: isAuthenticated ? () => setIsDrawerOpen(true) : () => router.push('/auth'), icon: Bell, count: isAuthenticated ? unreadCount : 0 },
+                  { label: 'Profile Settings', href: isAuthenticated ? '/profile' : '/auth', icon: User },
+                ]).map((item) => {
                   const Icon = item.icon
                   const isButton = !!item.onClick
                   
@@ -377,7 +430,7 @@ export default function Header() {
                         <Icon size={15} className="text-[var(--color-accent)]" />
                         {item.label}
                       </div>
-                      {item.count !== undefined && item.count > 0 && (
+                      {item.count !== undefined && item.count > 0 && isAuthenticated && (
                         <span className="bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">
                           {item.count}
                         </span>

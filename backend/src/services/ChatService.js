@@ -257,8 +257,7 @@ export class ChatService {
       .select('id')
       .eq('type', 'DIRECT')
       .eq('status', 'ACCEPTED')
-      .or(`participant_1.eq.${senderId},participant_2.eq.${senderId}`)
-      .or(`participant_1.eq.${recipient.id},participant_2.eq.${recipient.id}`)
+      .or(`and(participant_1.eq.${senderId},participant_2.eq.${recipient.id}),and(participant_1.eq.${recipient.id},participant_2.eq.${senderId})`)
       .maybeSingle();
 
     if (existing) {
@@ -389,8 +388,7 @@ export class ChatService {
       .select('*')
       .eq('type', 'DIRECT')
       .eq('status', 'ACCEPTED')
-      .or(`participant_1.eq.${userId1},participant_2.eq.${userId1}`)
-      .or(`participant_1.eq.${userId2},participant_2.eq.${userId2}`)
+      .or(`and(participant_1.eq.${userId1},participant_2.eq.${userId2}),and(participant_1.eq.${userId2},participant_2.eq.${userId1})`)
       .maybeSingle();
 
     if (findError?.message?.includes('schema cache')) {
@@ -420,8 +418,7 @@ export class ChatService {
       .select('*')
       .eq('type', 'DIRECT')
       .eq('status', 'PENDING')
-      .or(`participant_1.eq.${userId1},participant_2.eq.${userId1}`)
-      .or(`participant_1.eq.${userId2},participant_2.eq.${userId2}`)
+      .or(`and(participant_1.eq.${userId1},participant_2.eq.${userId2}),and(participant_1.eq.${userId2},participant_2.eq.${userId1})`)
       .maybeSingle();
 
     if (pending) {
