@@ -8,30 +8,12 @@ import ScrollToTop from '@/components/ScrollToTop'
 import CustomCursor from '@/components/CustomCursor'
 import LegalModal from '@/components/LegalModal'
 
-// Lazy load sections below the fold
-const HeroSection = dynamic(() => import('@/components/landing/HeroSection'), {
-  ssr: true, // Keep hero SSR-friendly for SEO
-})
-
-const LogoTicker = dynamic(() => import('@/components/landing/LogoTicker'), {
-  ssr: true,
-})
-
-const FeatureGrid = dynamic(() => import('@/components/landing/FeatureGrid'), {
-  ssr: false, // Performance: Load features on client
-})
-
-const BenefitCardsSection = dynamic(() => import('@/components/landing/BenefitCards'), {
-  ssr: false,
-})
-
-const HowItWorksSection = dynamic(() => import('@/components/landing/HowItWorks'), {
-  ssr: false,
-})
-
-const FinalCTASection = dynamic(() => import('@/components/landing/FinalCTA'), {
-  ssr: false,
-})
+import HeroSection from '@/components/landing/HeroSection'
+import LogoTicker from '@/components/landing/LogoTicker'
+import FeatureGrid from '@/components/landing/FeatureGrid'
+import BenefitCardsSection from '@/components/landing/BenefitCards'
+import HowItWorksSection from '@/components/landing/HowItWorks'
+import FinalCTASection from '@/components/landing/FinalCTA'
 
 export default function LandingPage() {
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false)

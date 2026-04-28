@@ -5,6 +5,7 @@ interface AvatarProps {
   src?: string
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   className?: string
+  onClick?: (e: React.MouseEvent) => void
 }
 
 const AVATAR_PRESETS = [
@@ -17,6 +18,7 @@ export default function Avatar({
   src,
   size = 'md',
   className = '',
+  onClick,
 }: AvatarProps) {
   const [imgError, setImgError] = useState(false)
 
@@ -39,7 +41,10 @@ export default function Avatar({
   const finalSrc = src && !imgError ? src : fallbackPreset
 
   return (
-    <div className={`relative rounded-full overflow-hidden border border-[var(--color-border)] shrink-0 aspect-square ${sizes[size]} ${className}`}>
+    <div 
+      className={`relative rounded-full overflow-hidden border border-[var(--color-border)] shrink-0 aspect-square ${sizes[size]} ${className}`}
+      onClick={onClick}
+    >
       <img
         src={finalSrc}
         alt={name}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -58,6 +59,12 @@ export default function SkillDetailPage() {
   const [reviewTarget, setReviewTarget] = useState<any | null>(null)
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
   const [submittingReview, setSubmittingReview] = useState(false)
+  const [manageGroupSession, setManageGroupSession] = useState<any | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const isOwner = user?.id === skill?.user_id
   const isMember = skill?.members?.some((m: any) => m?.id === user?.id)
@@ -75,7 +82,7 @@ export default function SkillDetailPage() {
     } catch (err) {
       console.error('Failed to fetch reviews:', err)
     }
-  }, [user])
+  }, [user?.id])
 
   const fetchTribeData = useCallback(async (skillId: string) => {
     try {
@@ -98,7 +105,7 @@ export default function SkillDetailPage() {
 
   const fetchSkillDetail = useCallback(async () => {
     try {
-      setLoading(true)
+
       const res = await skillService.getSkillDetail(id as string)
       if (res.success) {
         setSkill(res.data)
@@ -202,7 +209,52 @@ export default function SkillDetailPage() {
     }
   }
 
-  const renderSessionAction = (session: any) => {
+  const renderSessionAction = (session: any, isPopupContext = false) => {
+    if (session.type === 'GROUP_SCHEDULED') {
+        const targetTime = new Date(session.isoTime).getTime();
+        let hasUnconfirmed = true;
+
+        if (skill?.members?.length > 0) {
+            const unconfirmedMembers = skill.members.filter((member: any) => {
+                const materialized = expertSessions.find(s => 
+                    s.exchange?.skill_id === skill?.id && 
+                    String(s.sender_id) === String(member.id) &&
+                    Math.abs(new Date(s.scheduled_time).getTime() - targetTime) < 60000
+                );
+                return !materialized || !materialized.receiver_confirmed;
+            });
+            hasUnconfirmed = unconfirmedMembers.length > 0;
+        }
+
+        if (!session.isExpired) {
+            return (
+                <button 
+                  onClick={handleStartClassroom}
+                  className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                >
+                  <Video size={14} /> Start Meeting
+                </button>
+            );
+        } else {
+            return (
+                <div className="flex gap-2 w-full">
+                    <button 
+                      disabled
+                      className="flex-1 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
+                    >
+                      <Video size={14} /> Meeting Ended
+                    </button>
+                    <button 
+                        onClick={() => setManageGroupSession(session)}
+                        className="flex-1 py-3 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                    >
+                        {hasUnconfirmed ? <><CheckCircle2 size={14} /> Mark as Done</> : <><Sparkles size={14} /> Leave Feedback</>}
+                    </button>
+                </div>
+            );
+        }
+    }
+
     const isMaterialized = session.id && !session.id.startsWith('teach-slot');
     
     // Determine role based on session IDs or tribe ownership (for virtual slots)
@@ -262,44 +314,42 @@ export default function SkillDetailPage() {
 
     // PENDING/LIVE PHASE
     if (!isConfirmedByMe) {
-        // If it's time to join the meeting and I haven't marked it as done yet
-        // BUT if the host has already marked it done, student should transition to Mark Done immediately
-        if (!session.isExpired && !( !isTeacher && isConfirmedByOther )) {
-            return (
-                <button 
-                  onClick={handleStartClassroom}
-                  className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
-                >
-                  <Video size={14} /> {isTeacher ? 'Start Meeting' : 'Join Meeting'}
-                </button>
-            );
-        }
-
-        // If host hasn't confirmed yet (for student)
-        if (!isTeacher && !session.receiver_confirmed) {
-            return (
-                <div className="flex-1 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2 opacity-60">
-                    <Clock size={12} /> Awaiting Host Confirmation
+        if (!session.isExpired && !(!isTeacher && isConfirmedByOther)) {
+             return (
+                 <button 
+                   onClick={handleStartClassroom}
+                   className="flex-1 py-3 bg-[var(--color-inverse-bg)] text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                 >
+                   <Video size={14} /> {isTeacher ? 'Start Meeting' : 'Join Meeting'}
+                 </button>
+             );
+        } else {
+             return (
+                <div className="flex gap-2 w-full">
+                    {!isPopupContext && (
+                        <button 
+                          disabled
+                          className="flex-1 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
+                        >
+                          <Video size={14} /> Meeting Ended
+                        </button>
+                    )}
+                    <button 
+                        disabled={processingId !== null || (!isMaterialized && !session.exchangeId)}
+                        onClick={() => isMaterialized ? handleCompleteSession(session.id) : handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
+                        className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/5 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                    >
+                        {processingId === (isMaterialized ? session.id : (session.exchangeId + (new Date(session.displayTime).toISOString()))) 
+                        ? '...' 
+                        : (!isMaterialized && !session.exchangeId ? 'Awaiting Members' : (
+                            <>
+                            <Check size={14} /> Mark Done
+                            </>
+                        ))}
+                    </button>
                 </div>
-            );
+             );
         }
-
-        // Otherwise, show Mark Done (if expired or if host has already confirmed)
-        return (
-            <button 
-                disabled={processingId !== null || (!isMaterialized && !session.exchangeId)}
-                onClick={() => isMaterialized ? handleCompleteSession(session.id) : handleCompleteRecurringSession(session.exchangeId, session.displayTime)}
-                className="flex-1 py-3 border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/5 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-            >
-                {processingId === (isMaterialized ? session.id : (session.exchangeId + (new Date(session.displayTime).toISOString()))) 
-                ? '...' 
-                : (!isMaterialized && !session.exchangeId ? 'Awaiting Members' : (
-                    <>
-                    <Check size={14} /> Mark Done
-                    </>
-                ))}
-            </button>
-        );
     }
 
     return null;
@@ -329,42 +379,34 @@ export default function SkillDetailPage() {
           const sessionDate = new Date(isoTime);
           
           if (isOwner) {
-            // FOR OWNER: Show one card per member for each scheduled slot
+            // FOR OWNER: Add materialized sessions to the set to prevent manual duplicates
             skill.members?.forEach((member: any) => {
               const materialized = expertSessions.find(s => 
                 s.exchange?.skill_id === skill.id && 
                 String(s.sender_id) === String(member.id) &&
                 Math.abs(new Date(s.scheduled_time).getTime() - targetTime) < 60000
               );
-              
               if (materialized) {
-                materializedIds.add(materialized.id);
-                if (materialized.status === 'COMPLETED' && reviewedSessionIds.includes(materialized.id)) return;
-                scheduledSlots.push({
-                   ...materialized,
-                   id: materialized.id,
-                   displayName: `TEACHING ${member.name}: ${skill.name}`,
-                   displayTime: isoTime,
-                   type: 'SCHEDULED',
-                   status: materialized.status
-                });
-              } else {
-                const isWithin24HoursPast = sessionDate.getTime() > (now.getTime() - 86400000);
-                const isFuture = sessionDate.getTime() > now.getTime();
-
-                if (isFuture || isWithin24HoursPast) {
-                  scheduledSlots.push({
-                    id: `teach-slot-${skill.id}-${idx}-${member.id}`,
-                    exchangeId: member.exchange_id,
-                    displayName: `TEACHING ${member.name}: ${skill.name}`,
-                    displayTime: isoTime,
-                    type: 'SCHEDULED',
-                    status: 'UPCOMING',
-                    isExpired: sessionDate.getTime() < (now.getTime() - 7200000)
-                  })
-                }
+                  materializedIds.add(materialized.id);
               }
             });
+
+            // FOR OWNER: Show one card for the scheduled slot
+            const isWithin24HoursPast = sessionDate.getTime() > (now.getTime() - 86400000);
+            const isFuture = sessionDate.getTime() > now.getTime();
+
+            if (isFuture || isWithin24HoursPast) {
+              scheduledSlots.push({
+                id: `teach-slot-group-${skill.id}-${idx}`,
+                displayTime: isoTime,
+                displayName: `TEACHING: ${skill.name}`,
+                type: 'GROUP_SCHEDULED',
+                status: 'UPCOMING',
+                isExpired: sessionDate.getTime() < (now.getTime() - 7200000),
+                slotIdx: idx,
+                isoTime: isoTime
+              });
+            }
           } else {
             // FOR STUDENT: Show only their own card
             const materialized = expertSessions.find(s => 
@@ -408,23 +450,54 @@ export default function SkillDetailPage() {
               exchangeId: myExchangeId,
               displayName: isOwner ? `TEACHING: ${skill.name}` : skill.name,
               displayTime: slot,
-              type: 'RECURRING',
-              status: 'UPCOMING'
+              type: isOwner ? 'GROUP_SCHEDULED' : 'RECURRING',
+              status: 'UPCOMING',
+              slotIdx: idx,
+              isoTime: new Date().toISOString() // Fallback for legacy
             })
         }
       })
     }
 
     // Manual sessions (sessions in expertSessions that were NOT part of the schedule)
-    const manualSessions = expertSessions.filter((s) => {
+    const unmaterializedSessions = expertSessions.filter((s) => {
        if (materializedIds.has(s.id)) return false;
        return s.status !== 'COMPLETED' || !reviewedSessionIds.includes(s.id);
-    }).map(s => ({
-      ...s,
-      type: 'MANUAL',
-      displayTime: s.scheduled_time,
-      displayName: isOwner ? `TEACHING ${s.sender?.name || 'Student'}: ${skill.name}` : skill.name
-    }))
+    });
+
+    const manualSessions: any[] = [];
+    if (isOwner) {
+       const groupedByTime = new Map();
+       unmaterializedSessions.forEach(s => {
+           const t = s.scheduled_time;
+           if (!groupedByTime.has(t)) groupedByTime.set(t, []);
+           groupedByTime.get(t).push(s);
+       });
+
+       groupedByTime.forEach((sessions, time) => {
+           const sessionDate = new Date(time);
+           manualSessions.push({
+               id: `teach-slot-group-manual-${time}`,
+               displayTime: time,
+               displayName: `TEACHING: ${skill.name}`,
+               type: 'GROUP_SCHEDULED',
+               status: 'UPCOMING',
+               isExpired: sessionDate.getTime() < (now.getTime() - 7200000),
+               slotIdx: `manual-${time}`,
+               isoTime: time
+           });
+       });
+    } else {
+       unmaterializedSessions.forEach(s => {
+          manualSessions.push({
+            ...s,
+            type: 'MANUAL',
+            displayTime: s.scheduled_time,
+            displayName: skill.name,
+            isExpired: new Date(s.scheduled_time).getTime() < (now.getTime() - 7200000)
+          });
+       });
+    }
 
     return [...manualSessions, ...scheduledSlots]
       .sort((a, b) => {
@@ -462,7 +535,7 @@ export default function SkillDetailPage() {
       setIsStartingChat(targetUserId)
       const conv = await conversationService.getOrCreateDirectConversation(user.id, targetUserId)
       if (conv) {
-        router.push(`/chat?id=${conv.id}`)
+        window.location.href = `/chat?id=${conv.id}`
       }
     } catch (err) {
       console.error(err)
@@ -539,7 +612,7 @@ export default function SkillDetailPage() {
               variant="outline" 
               className="rounded-full border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)]"
               onClick={() => {
-                router.push(`/chat?id=${skill.conversation_id || ''}`)
+                window.location.href = `/chat?id=${skill.conversation_id || ''}`
               }}
             >
               <MessageCircle size={18} className="mr-2" /> Group Chat
@@ -563,28 +636,28 @@ export default function SkillDetailPage() {
           
           {/* Hero Section */}
           <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="space-y-4 flex-1">
+            <div className="flex flex-col gap-6">
+              <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <Badge variant="accent" className="text-[9px] px-3 py-1">{skill.category}</Badge>
-                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest opacity-60">
+                  <Badge variant="accent" className="text-[10px] px-3 py-1 shadow-sm">{skill.category}</Badge>
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[9px] font-black uppercase tracking-widest opacity-80">
                     <ShieldCheck size={12} className="text-[var(--color-accent)]" />
                     Verified Expertise
                   </div>
-                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest opacity-60">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[9px] font-black uppercase tracking-widest opacity-80">
                     <Star size={12} className="text-yellow-500 fill-yellow-500" />
                     {skill.avg_rating || '5.0'} ({skill.review_count || 0} Reviews)
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl md:text-5xl font-serif font-black tracking-tighter leading-tight">
+                <div className="flex items-start justify-between gap-4">
+                  <h1 className="text-4xl md:text-5xl font-serif font-black tracking-tighter leading-tight max-w-2xl">
                     {skill.name}
                   </h1>
                   {isOwner && (
                     <button 
                       onClick={() => setShowEditModal(true)}
-                      className="p-2.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] transition-all shadow-md"
+                      className="shrink-0 p-2.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl text-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] transition-all shadow-md mt-1"
                       title="Edit Tribe Parameters"
                     >
                       <Edit2 size={18} />
@@ -596,33 +669,23 @@ export default function SkillDetailPage() {
                   "{skill.description}"
                 </p>
               </div>
+            </div>
+          </div>
 
-              {/* High-Impact Pricing Badge */}
-              <div className="shrink-0">
-                <div className="p-6 bg-[var(--color-accent)] text-black rounded-[2.5rem] shadow-2xl shadow-[var(--color-accent)]/20 relative overflow-hidden group hover:scale-105 transition-all duration-500">
-                   <div className="absolute top-0 right-0 p-2 opacity-10 -mr-2 -mt-2 rotate-12">
-                     <Sparkles size={60} className="text-black" />
-                   </div>
-                   <div className="relative z-10 text-center md:text-left">
-                      <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Exchange Value</p>
-                      <div className="flex items-baseline justify-center md:justify-start gap-1">
-                        <span className="text-4xl font-serif font-black">
-                           {skill.session_fee === 0 ? 'FREE' : (skill.session_fee || 20)}
-                        </span>
-                        {skill.session_fee !== 0 && <span className="text-xs font-black uppercase">Creds</span>}
-                      </div>
-                      <p className="text-[9px] font-black uppercase tracking-widest opacity-60">per session</p>
-                      
-                      {skill.session_fee !== 0 && (
-                        <div className="mt-3 pt-3 border-t border-black/10">
-                           <p className="text-[10px] font-bold">
-                             {(skill.schedule?.length || 0) * (skill.session_fee || 20)} <span className="opacity-60">TOTAL PROGRAM</span>
-                           </p>
-                        </div>
-                      )}
-                   </div>
-                </div>
-              </div>
+          {/* Mobile Exchange Value Focus Card */}
+          <div className="block lg:hidden">
+            <div className="p-8 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-xl relative overflow-hidden group shadow-2xl transition-all hover:-translate-y-1 hover:shadow-[0_1.5rem_4rem_-1rem_rgba(0,0,0,0.3)] cursor-default">
+               <div className="absolute top-0 right-0 p-6 opacity-10 -mr-4 -mt-4 transition-transform group-hover:rotate-12 group-hover:scale-110 duration-500">
+                  <Sparkles size={80} />
+               </div>
+               <div className="relative z-10 flex flex-col items-center text-center space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80">Exchange Value</p>
+                  <div className="flex items-baseline justify-center gap-1.5 text-[var(--color-bg-primary)]">
+                     <span className="text-6xl font-serif font-black leading-none tracking-tighter drop-shadow-md">{skill.session_fee === 0 ? 'FREE' : (skill.session_fee || 20)}</span>
+                     {skill.session_fee !== 0 && <span className="text-sm font-black uppercase tracking-widest opacity-90">Creds</span>}
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Per Session</p>
+               </div>
             </div>
           </div>
 
@@ -654,7 +717,7 @@ export default function SkillDetailPage() {
                 <Calendar size={16} />
               </div>
               <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Schedule</p>
-              <p className="text-base font-serif font-black">{skill.schedule?.length || 0} Slots</p>
+              <p className="text-base font-serif font-black">{tribeExpertSessions?.length || 0} Slots</p>
             </div>
           </div>
 
@@ -703,14 +766,14 @@ export default function SkillDetailPage() {
                ) : (
                  <div className="col-span-full p-12 text-center bg-[var(--color-bg-secondary)]/50 border border-dashed border-[var(--color-border)] rounded-[3rem] space-y-4">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-40 italic">No scheduled slots</p>
-                    {isParticipant && (
+                    {isOwner && (
                       <Button 
                         variant="outline" 
                         size="sm" 
                         className="rounded-full"
                         onClick={handleStartClassroom}
                       >
-                        <Video size={14} className="mr-2" /> {isOwner ? 'Start Ad-hoc Session' : 'Join Classroom'}
+                        <Video size={14} className="mr-2" /> Start Ad-hoc Session
                       </Button>
                     )}
                  </div>
@@ -758,6 +821,21 @@ export default function SkillDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-8">
+           {/* Exchange Value Focus Card (Desktop Only) */}
+           <div className="hidden lg:block p-8 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] rounded-xl relative overflow-hidden group shadow-2xl transition-all hover:-translate-y-1 hover:shadow-[0_1.5rem_4rem_-1rem_rgba(0,0,0,0.3)] cursor-default">
+              <div className="absolute top-0 right-0 p-6 opacity-10 -mr-4 -mt-4 transition-transform group-hover:rotate-12 group-hover:scale-110 duration-500">
+                 <Sparkles size={80} />
+              </div>
+              <div className="relative z-10 flex flex-col items-center text-center space-y-3">
+                 <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80">Exchange Value</p>
+                 <div className="flex items-baseline justify-center gap-1.5 text-[var(--color-bg-primary)]">
+                    <span className="text-6xl font-serif font-black leading-none tracking-tighter drop-shadow-md">{skill.session_fee === 0 ? 'FREE' : (skill.session_fee || 20)}</span>
+                    {skill.session_fee !== 0 && <span className="text-sm font-black uppercase tracking-widest opacity-90">Creds</span>}
+                 </div>
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Per Session</p>
+              </div>
+           </div>
+
            {/* AI Insight */}
            <AIMatchInsight 
              type="skill"
@@ -1019,6 +1097,75 @@ export default function SkillDetailPage() {
         skill={selectedSkillForRequest}
       />
 
+
+
+      {manageGroupSession && isMounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setManageGroupSession(null)} />
+          <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[2.5rem] p-8 w-full max-w-2xl relative z-10 shadow-2xl max-h-[80vh] overflow-y-auto">
+            <button onClick={() => setManageGroupSession(null)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-black/5 transition-colors">
+              <X size={20} />
+            </button>
+            <h2 className="text-2xl font-serif font-black mb-2">Manage Session</h2>
+            <p className="text-xs opacity-60 mb-6 font-bold tracking-widest uppercase">{new Date(manageGroupSession.isoTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
+            
+            <div className="space-y-4">
+               {skill?.members?.map((member: any) => {
+                  const targetTime = new Date(manageGroupSession.isoTime).getTime();
+                  const materialized = expertSessions.find(s => 
+                    s.exchange?.skill_id === skill.id && 
+                    String(s.sender_id) === String(member.id) &&
+                    Math.abs(new Date(s.scheduled_time).getTime() - targetTime) < 60000
+                  );
+                  
+                  const isSessionExpired = new Date(manageGroupSession.isoTime).getTime() < (new Date().getTime() - 7200000);
+                  let memberSession;
+                  if (materialized) {
+                    memberSession = {
+                       ...materialized,
+                       id: materialized.id,
+                       displayName: member.name,
+                       displayTime: manageGroupSession.isoTime,
+                       type: 'SCHEDULED',
+                       status: materialized.status,
+                       isExpired: isSessionExpired
+                    };
+                  } else {
+                    memberSession = {
+                      id: `teach-slot-${skill.id}-${manageGroupSession.slotIdx}-${member.id}`,
+                      exchangeId: member.exchange_id,
+                      displayName: member.name,
+                      displayTime: manageGroupSession.isoTime,
+                      type: 'SCHEDULED',
+                      status: 'UPCOMING',
+                      isExpired: isSessionExpired
+                    };
+                  }
+
+                  return (
+                    <div key={member.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl gap-4">
+                       <div className="flex items-center gap-3">
+                          <Avatar src={member.avatar_url} name={member.name} size="sm" />
+                          <span className="text-xs font-bold tracking-tight">{member.name}</span>
+                       </div>
+                       <div className="w-full sm:w-56 flex">
+                          {renderSessionAction(memberSession, true)}
+                       </div>
+                    </div>
+                  )
+               })}
+               
+               {(!skill?.members || skill.members.length === 0) && (
+                 <div className="p-8 text-center border border-dashed border-[var(--color-border)] rounded-2xl opacity-50">
+                    <p className="text-xs font-bold uppercase tracking-widest">No students joined yet</p>
+                 </div>
+               )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <AddSkillModal 
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
@@ -1041,9 +1188,9 @@ export default function SkillDetailPage() {
         loading={!!isDeletingNotice}
       />
 
-      {reviewTarget && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setReviewTarget(null)} />
+      {reviewTarget && isMounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setReviewTarget(null)} />
           <div className="relative w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2rem] p-8 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-serif font-black">Session Feedback</h3>
@@ -1072,7 +1219,8 @@ export default function SkillDetailPage() {
               Post Feedback
             </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

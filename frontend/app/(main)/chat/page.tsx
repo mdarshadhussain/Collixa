@@ -640,8 +640,7 @@ export default function ChatPage() {
       const data = await res.json()
       if (data.success) {
         setShowMembersModal(false)
-        router.push(`/chat?id=${data.data.id}`)
-        // The URL change will trigger the useEffect to load the conversation
+        window.location.href = `/chat?id=${data.data.id}`
       }
     } catch (err) {
       console.error('Failed to start direct chat:', err)
@@ -818,7 +817,7 @@ export default function ChatPage() {
                     if (groupFilter === 'ALL') return true;
                     
                     // Intents have an intent_id associated with them
-                    if (groupFilter === 'INTENT') return c.intent_id !== null && c.intent_id !== undefined && c.intent_id !== '';
+                    if (groupFilter === 'INTENT') return c.intent_id !== null && c.intent_id !== undefined;
                     
                     // Tribes (Skills) are groups without an intent_id
                     if (groupFilter === 'SKILL') return !c.intent_id;
@@ -1441,9 +1440,12 @@ export default function ChatPage() {
 
                               {/* Chat Action (Always visible on hover for non-self users) */}
                               {p.id !== user?.id && (
-                                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all shadow-inner">
+                                 <button 
+                                    onClick={(e) => { e.stopPropagation(); handleStartDirectChat(p.id); }}
+                                    className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all shadow-inner"
+                                 >
                                     <MessageCircle size={14} />
-                                 </div>
+                                 </button>
                               )}
                            </div>
                         </div>

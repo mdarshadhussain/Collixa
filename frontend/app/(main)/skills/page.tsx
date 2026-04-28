@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2, Users, Layers, Sparkles, BookOpen, Clock, MessageCircle, Video } from 'lucide-react'
+import { Search, Star, Filter, ArrowRight, Plus, CalendarClock, CheckCircle2, X, Link2, Edit2, Trash2, Loader2, Users, Layers, Sparkles, BookOpen, Clock, MessageCircle, Video, Calendar } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import CustomDateTimePicker from '@/components/CustomDateTimePicker'
 import Card from '@/components/Card'
@@ -48,6 +48,11 @@ export default function SkillsPage() {
     isOpen: false,
     skillId: ''
   })
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const CATEGORIES = ['All', 'Development', 'Design', 'Marketing', 'Data Science', 'Writing', 'Business', 'Other']
 
@@ -440,8 +445,11 @@ export default function SkillsPage() {
           if (typeof slot === 'object' && slot.date && slot.time) {
             const displayTime = `${slot.date}T${slot.time}:00`
             
-            // Check if this recurring slot has been materialized into a session
-            const materialized = sessions.find(s => s.exchange_id === tribe.exchange_id && s.scheduled_time === displayTime);
+            const targetTime = new Date(displayTime).getTime()
+            const materialized = sessions.find(s => 
+              s.exchange_id === tribe.exchange_id && 
+              Math.abs(new Date(s.scheduled_time).getTime() - targetTime) < 60000
+            );
             
             if (materialized) {
                // If materialized and reviewed, skip
@@ -811,17 +819,17 @@ export default function SkillsPage() {
                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40 py-10 text-center border border-[var(--color-border)] rounded-[2.5rem]">No upcoming teaching slots</p>
                  ) : (
                    expertSessions.map(session => (
-                     <div key={session.id} className="p-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-3xl space-y-4">
+                     <div key={session.id} className="p-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-3xl space-y-4 hover:border-[var(--color-accent)]/50 transition-all shadow-sm">
                        <div className="flex justify-between items-start">
                          <div>
                            <h4 className="text-[11px] font-black uppercase tracking-widest">{session.displayName}</h4>
-                           <p className="text-[9px] opacity-60 mt-1">{new Date(session.displayTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                           <p className="text-[9px] opacity-60 mt-1.5">{isMounted ? new Date(session.displayTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Loading time...'}</p>
                          </div>
                          <span className="px-3 py-1 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/20 rounded-full text-[8px] font-black uppercase">
                             {session.type.includes('RECURRING') ? 'RECURRING' : 'MANUAL'}
                          </span>
                        </div>
-                       <div className="flex gap-3">
+                       <div className="flex gap-3 pt-2">
                           {renderSessionAction(session)}
                        </div>
                      </div>
@@ -849,27 +857,30 @@ export default function SkillsPage() {
                  ) : (
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                       {myJoinedTribes.map(skill => (
-                        <div key={skill.id} className="p-8 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[3rem] space-y-6 hover:border-[var(--color-accent)] transition-all">
-                           <div className="flex items-center gap-4">
-                              <Avatar src={skill.user?.avatar_url} name={skill.user?.name} size="md" />
-                              <div>
-                                 <h3 className="text-2xl font-serif font-black">{skill.name}</h3>
-                                 <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Expert: {skill.user?.name}</p>
+                        <div key={skill.id} className="p-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-3xl space-y-6 hover:border-[var(--color-accent)] hover:shadow-[0_1rem_3rem_-1rem_rgba(var(--color-accent-rgb),0.2)] transition-all group relative overflow-hidden">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-accent)]/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform group-hover:scale-150 duration-700" />
+                           <div className="flex items-center gap-4 relative z-10">
+                              <div className="ring-2 ring-[var(--color-bg-primary)] ring-offset-2 ring-offset-[var(--color-bg-secondary)] rounded-full shrink-0">
+                                <Avatar src={skill.user?.avatar_url} name={skill.user?.name} size="md" />
+                              </div>
+                              <div className="min-w-0">
+                                 <h3 className="text-xl font-serif font-black truncate">{skill.name}</h3>
+                                 <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mt-1 truncate">Expert: <span className="text-[var(--color-accent)]">{skill.user?.name}</span></p>
                               </div>
                            </div>
-                           <div className="grid grid-cols-2 gap-4">
+                           <div className="grid grid-cols-2 gap-3 relative z-10">
                               <button 
-                                onClick={() => router.push(`/chat?id=${skill.conversation_id || ''}`)}
-                                className="py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-all shadow-sm"
+                                onClick={() => window.location.href = `/chat?id=${skill.conversation_id || ''}`}
+                                className="py-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-accent-soft)] transition-colors shadow-sm"
                               >
                                  <MessageCircle size={14} /> Group Chat
                               </button>
                               <a 
                                 href={skill.meeting_link || '#'} 
                                 target="_blank" 
-                                className="py-4 bg-[var(--color-accent)] text-black rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg shadow-[var(--color-accent)]/20"
+                                className="py-3.5 bg-[var(--color-accent)] text-black rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-[var(--color-accent)]/30 transition-all hover:-translate-y-0.5"
                               >
-                                 Join Meeting
+                                 <Video size={14} /> Join Meeting
                               </a>
                            </div>
                         </div>
@@ -887,17 +898,20 @@ export default function SkillsPage() {
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-40 py-12 text-center border border-[var(--color-border)] rounded-[2.5rem]">No upcoming sessions</p>
                     ) : (
                       upcomingSessions.map(session => (
-                        <div key={session.id} className="p-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-3xl space-y-4">
+                        <div key={session.id} className="p-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl space-y-4 hover:border-[var(--color-accent)]/50 hover:shadow-lg transition-all group">
                            <div className="flex justify-between items-start">
                               <div>
-                                 <h4 className="text-[11px] font-black uppercase tracking-widest">{session.displayName}</h4>
-                                 <p className="text-[9px] opacity-60 mt-1">{new Date(session.displayTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                                 <h4 className="text-[11px] font-black uppercase tracking-widest group-hover:text-[var(--color-accent)] transition-colors">{session.displayName}</h4>
+                                 <p className="text-[9px] font-bold opacity-50 mt-1.5 flex items-center gap-1.5">
+                                   <Calendar size={10} /> 
+                                   {isMounted ? new Date(session.displayTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Loading schedule...'}
+                                 </p>
                               </div>
-                              <span className="px-3 py-1 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/20 rounded-full text-[8px] font-black uppercase">
+                              <span className="px-3 py-1 bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/20 rounded-full text-[8px] font-black uppercase shrink-0">
                                 {session.type === 'RECURRING' ? 'RECURRING' : 'LIVE SOON'}
                               </span>
                            </div>
-                           <div className="flex gap-3">
+                           <div className="flex gap-3 pt-2">
                               {renderSessionAction(session)}
                            </div>
                         </div>

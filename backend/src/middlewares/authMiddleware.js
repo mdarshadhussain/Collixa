@@ -14,6 +14,16 @@ export const authMiddleware = async (req, res, next) => {
 
     const token = authHeader.substring(7); // Remove "Bearer " prefix
 
+    if (!token || token === 'null' || token === 'undefined') {
+      return res.status(401).json({ error: 'Missing or invalid authorization header' });
+    }
+
+    // Validate JWT structure
+    const segments = token.split('.');
+    if (segments.length !== 3) {
+      return res.status(401).json({ error: 'Invalid JWT format' });
+    }
+
     try {
       // Use Supabase to verify the token and get user auth data
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
@@ -100,6 +110,18 @@ export const optionalAuthMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.substring(7);
+    if (!token || token === 'null' || token === 'undefined') {
+      req.user = null;
+      return next();
+    }
+
+    // Validate JWT structure
+    const segments = token.split('.');
+    if (segments.length !== 3) {
+      req.user = null;
+      return next();
+    }
+
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !authUser) {

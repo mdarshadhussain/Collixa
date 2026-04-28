@@ -124,14 +124,7 @@ export default function FeatureGrid() {
               className="text-[var(--lp-bg)] text-[48px] md:text-[64px] leading-[1] font-bold font-[var(--font-lp-serif)]"
             />
           </div>
-          <div className="hidden md:block">
-            <Typewriter 
-              text="Come on in and meet a few of the remarkable ways we help you build."
-              align="right"
-              speed={0.01}
-              className="text-[var(--lp-bg)] opacity-60 text-[16px] max-w-[300px] leading-relaxed italic"
-            />
-          </div>
+
         </div>
 
         {/* 2x3 Grid */}
