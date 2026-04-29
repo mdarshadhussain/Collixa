@@ -58,7 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (response.ok) {
             const data = await response.json();
             setUser(data.user);
-            const adminStatus = ADMIN_EMAILS.includes(data.user.email);
+            const userEmail = data.user.email?.toLowerCase();
+            const adminStatus = ADMIN_EMAILS.map(e => e.toLowerCase()).includes(userEmail) || data.user.role === 'ADMIN';
             setIsAdmin(adminStatus);
             if (adminStatus) {
               const savedViewMode = localStorage.getItem('collixa_view_mode') as 'admin' | 'user';

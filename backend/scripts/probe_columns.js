@@ -10,12 +10,12 @@ async function probe() {
   const { data, error } = await supabase
     .from('credit_transactions')
     .select('*')
-    .limit(1);
+    .eq('type', 'ADMIN_ADD');
   
-  if (data && data.length > 0) {
-    console.log('Columns in credit_transactions:', Object.keys(data[0]));
+  if (data) {
+    console.log('ADMIN_ADD transactions:', data);
   } else {
-    console.log('No data in credit_transactions to probe columns.');
+    console.log('Failed to fetch ADMIN_ADD:', error);
   }
 }
 

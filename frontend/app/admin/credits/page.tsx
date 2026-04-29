@@ -35,6 +35,43 @@ export default function AdminCredits() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const { refreshUser } = useAuth()
+  
+  const formatDescription = (tx: CreditTransaction) => {
+    if (!tx.description) {
+      if (tx.type === 'PURCHASE') return 'Credit Purchase'
+      if (tx.type === 'ACHIEVEMENT') return 'Achievement Reward'
+      if (tx.type === 'TRANSFER') return 'Peer Credit Transfer'
+      if (tx.type === 'EARN') return 'Earned from intent'
+      if (tx.type === 'SPEND') return 'Spent on intent'
+      if (tx.type === 'ADMIN_ADD') return 'Admin Credit Addition'
+      if (tx.type === 'ADMIN_DEDUCT') return 'Admin Credit Deduction'
+      return tx.type || 'Transaction'
+    }
+
+    if (tx.description.trim().startsWith('{') && tx.description.trim().endsWith('}')) {
+      try {
+        const parsed = JSON.parse(tx.description)
+        if (parsed.isRedemption) {
+          const provider = parsed.provider || 'Gift Card'
+          const cardId = parsed.cardId ? `(${parsed.cardId})` : ''
+          return `Redeemed ${provider} ${cardId}`
+        }
+        if (parsed.achievementTitle) {
+          return `Achievement: ${parsed.achievementTitle}`
+        }
+        if (parsed.intentTitle) {
+          return `Intent: ${parsed.intentTitle}`
+        }
+        if (parsed.reason) {
+          return parsed.reason
+        }
+      } catch (e) {
+        // Fail silently, return fallback
+      }
+    }
+
+    return tx.description
+  }
 
   const fetchData = async () => {
     try {
@@ -231,7 +268,7 @@ export default function AdminCredits() {
                       </span>
                     </td>
                     <td className="hidden lg:table-cell px-6 py-4 text-xs text-[var(--color-text-secondary)] italic">
-                      {transaction.description}
+                      {formatDescription(transaction)}
                     </td>
                     <td className="hidden sm:table-cell px-6 py-4 text-right">
                       <span className="text-[10px] text-[var(--color-text-secondary)] font-medium">

@@ -90,6 +90,7 @@ export default function ChatPage() {
   const [meetingTitle, setMeetingTitle] = useState('')
   const [meetingDateTime, setMeetingDateTime] = useState('')
   const [isSchedulingMeeting, setIsSchedulingMeeting] = useState(false)
+  const [isGroupFilterOpen, setIsGroupFilterOpen] = useState(false)
   
   const router = useRouter()
   
@@ -711,8 +712,8 @@ export default function ChatPage() {
         setSelectedConversation(conv)
         setMobileShowConversations(false)
       }}
-      className={`w-full text-left p-6 border-b border-slate-100 hover:bg-slate-50 transition-all group relative ${
-        selectedConversation?.id === conv.id ? 'bg-white' : ''
+      className={`w-full text-left p-6 border-b border-[var(--color-border)] hover:bg-[var(--color-bg-primary)] transition-all group relative ${
+        selectedConversation?.id === conv.id ? 'bg-[var(--color-bg-primary)]' : ''
       }`}
     >
       {selectedConversation?.id === conv.id && (
@@ -722,19 +723,19 @@ export default function ChatPage() {
         <div className="relative">
           <Avatar name={conv.name} src={conv.avatar} size="md" />
           {conv.status === 'online' && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--color-bg-secondary)]"></div>
           )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
-            <span className="text-sm font-bold text-slate-700 truncate">{conv.name}</span>
+            <span className="text-sm font-bold text-[var(--color-text-primary)] truncate">{conv.name}</span>
             {conv.unread > 0 && (
               <span className="px-2 py-0.5 min-w-[1.25rem] text-center text-[8px] font-bold bg-pink-400 text-white rounded-full">
                 {conv.unread}
               </span>
             )}
           </div>
-          <p className="text-[10px] text-slate-400 truncate font-medium italic">{conv.lastMessage}</p>
+          <p className="text-[10px] text-[var(--color-text-secondary)] truncate font-medium italic">{conv.lastMessage}</p>
         </div>
       </div>
     </button>
@@ -745,7 +746,7 @@ export default function ChatPage() {
       <div className="h-[calc(100vh-160px)] flex gap-4 overflow-hidden relative">
             
             <div
-              className={`w-full md:w-80 lg:w-96 bg-white border border-slate-100 rounded-[2.5rem] flex flex-col overflow-hidden shadow-sm transition-all ${
+              className={`w-full md:w-80 lg:w-96 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] flex flex-col overflow-hidden shadow-sm transition-all ${
                 mobileShowConversations ? 'flex' : 'hidden md:flex'
               }`}
             >
@@ -753,13 +754,13 @@ export default function ChatPage() {
                 {/* Top Search + Plus Icon */}
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-400 transition-colors opacity-40" size={16} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] group-focus-within:text-pink-400 transition-colors opacity-40" size={16} />
                     <input
                       type="text"
                       placeholder="SEARCH NODE..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] focus:border-pink-300 outline-none transition-all placeholder:text-slate-300"
+                      className="w-full pl-10 pr-4 py-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-[9px] font-bold uppercase tracking-[0.2em] focus:border-pink-300 outline-none transition-all placeholder:text-[var(--color-text-secondary)]/50 text-[var(--color-text-primary)]"
                     />
                   </div>
                   <button 
@@ -771,16 +772,16 @@ export default function ChatPage() {
                 </div>
 
                 {/* Tabs for Groups/Direct */}
-                <div className="flex p-1 bg-white border border-slate-100 rounded-full shadow-sm">
+                <div className="flex p-1 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full shadow-sm">
                   <button 
                     onClick={() => setActiveTab('GROUPS')}
-                    className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${activeTab === 'GROUPS' ? 'bg-pink-400 text-white shadow-md' : 'text-slate-400 hover:text-pink-400'}`}
+                    className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${activeTab === 'GROUPS' ? 'bg-pink-400 text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-pink-400'}`}
                   >
                     Groups
                   </button>
                   <button 
                     onClick={() => setActiveTab('DIRECT')}
-                    className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${activeTab === 'DIRECT' ? 'bg-pink-400 text-white shadow-md' : 'text-slate-400 hover:text-pink-400'}`}
+                    className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${activeTab === 'DIRECT' ? 'bg-pink-400 text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-pink-400'}`}
                   >
                     Direct
                   </button>
@@ -788,17 +789,49 @@ export default function ChatPage() {
 
                 {/* Optional Group Filter Dropdown */}
                 {activeTab === 'GROUPS' && (
-                  <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center justify-between px-2 relative">
                     <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">Filter Type</span>
-                    <select 
-                      value={groupFilter}
-                      onChange={(e) => setGroupFilter(e.target.value as any)}
-                      className="bg-transparent text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] outline-none cursor-pointer"
-                    >
-                      <option value="ALL">All Nodes</option>
-                      <option value="INTENT">Intents</option>
-                      <option value="SKILL">Tribes</option>
-                    </select>
+                    
+                    <div className="relative">
+                      <button 
+                        onClick={() => setIsGroupFilterOpen(!isGroupFilterOpen)}
+                        className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)] outline-none cursor-pointer"
+                      >
+                        {groupFilter === 'ALL' ? 'All Nodes' : groupFilter === 'INTENT' ? 'Intents' : 'Tribes'}
+                        <ChevronDown size={12} className={`transition-transform duration-300 ${isGroupFilterOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      <AnimatePresence>
+                        {isGroupFilterOpen && (
+                          <>
+                            <div className="fixed inset-0 z-[30]" onClick={() => setIsGroupFilterOpen(false)} />
+                            <motion.div 
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 5 }}
+                              className="absolute right-0 top-full mt-2 w-32 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl shadow-xl z-[40] py-1 overflow-hidden"
+                            >
+                              {[
+                                { value: 'ALL', label: 'All Nodes' },
+                                { value: 'INTENT', label: 'Intents' },
+                                { value: 'SKILL', label: 'Tribes' }
+                              ].map(opt => (
+                                <button 
+                                  key={opt.value}
+                                  onClick={() => {
+                                    setGroupFilter(opt.value as any)
+                                    setIsGroupFilterOpen(false)
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-[8px] font-black uppercase tracking-[0.2em] transition-all ${groupFilter === opt.value ? 'bg-[var(--color-accent-soft)]/20 text-[var(--color-accent)]' : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-primary)]'}`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 )}
               </div>
@@ -843,10 +876,10 @@ export default function ChatPage() {
               </div>
             </div>
 
-            <div className={`flex-1 flex flex-col bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
+            <div className={`flex-1 flex flex-col bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[2.5rem] overflow-hidden shadow-sm ${!mobileShowConversations ? 'flex' : 'hidden md:flex'}`}>
               {selectedConversation ? (
                 <>
-                  <div className="px-4 md:px-8 py-3 md:py-6 border-b border-slate-100 flex items-center justify-between bg-white/50 backdrop-blur-md z-10">
+                  <div className="px-4 md:px-8 py-3 md:py-6 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg-secondary)]/50 backdrop-blur-md z-10">
                     <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                       <button 
                         onClick={() => setMobileShowConversations(true)} 
@@ -865,7 +898,7 @@ export default function ChatPage() {
                         className="cursor-pointer group/title min-w-0 flex-1" 
                         onClick={() => selectedConversation?.chatType === 'GROUP' ? setShowMembersModal(true) : (selectedConversation.otherUserId && router.push(`/user?uid=${selectedConversation.otherUserId}`))}
                       >
-                        <h3 className="text-sm md:text-lg font-bold tracking-tight text-slate-800 truncate">
+                        <h3 className="text-sm md:text-lg font-bold tracking-tight text-[var(--color-text-primary)] truncate">
                           {selectedConversation?.name}
                         </h3>
                       </div>
@@ -1095,7 +1128,7 @@ export default function ChatPage() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <div className="p-3 md:p-8 bg-white/30 backdrop-blur-xl border-t border-slate-100 relative">
+                  <div className="p-3 md:p-8 bg-[var(--color-bg-secondary)]/30 backdrop-blur-xl border-t border-[var(--color-border)] relative">
                     <div className="max-w-4xl mx-auto flex gap-2 md:gap-4 items-center">
                       <div className="relative">
                         <AnimatePresence>
@@ -1104,17 +1137,17 @@ export default function ChatPage() {
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            className="absolute bottom-full left-0 mb-6 w-64 bg-white/95 backdrop-blur-2xl border border-slate-100 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden z-30"
+                            className="absolute bottom-full left-0 mb-6 w-64 bg-[var(--color-bg-secondary)]/95 backdrop-blur-2xl border border-[var(--color-border)] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden z-30"
                           >
                             <div className="p-3 space-y-1">
                               <div className="relative w-full group">
-                                <button className="w-full flex items-center gap-4 p-4 hover:bg-blue-50 rounded-2xl transition-all text-slate-700">
-                                  <div className="p-2.5 bg-blue-50 text-blue-500 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                <button className="w-full flex items-center gap-4 p-4 hover:bg-[var(--color-bg-primary)] rounded-2xl transition-all text-[var(--color-text-primary)]">
+                                  <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition-all">
                                     <ImageIcon size={18} />
                                   </div>
                                   <div className="text-left">
-                                    <p className="text-sm font-bold text-slate-800">Photos</p>
-                                    <p className="text-[10px] text-slate-400 font-medium">Share images</p>
+                                    <p className="text-sm font-bold text-[var(--color-text-primary)]">Photos</p>
+                                    <p className="text-[10px] text-[var(--color-text-secondary)] font-medium">Share images</p>
                                   </div>
                                 </button>
                                 <input 
@@ -1134,14 +1167,14 @@ export default function ChatPage() {
                                   handleSendLocation()
                                 }}
                                 disabled={isSendingLocation}
-                                className="w-full flex items-center gap-4 p-4 hover:bg-green-50 rounded-2xl transition-all group disabled:opacity-50 text-slate-700"
+                                className="w-full flex items-center gap-4 p-4 hover:bg-[var(--color-bg-primary)] rounded-2xl transition-all group disabled:opacity-50 text-[var(--color-text-primary)]"
                               >
-                                <div className="p-2.5 bg-green-50 text-green-500 rounded-2xl group-hover:bg-green-500 group-hover:text-white transition-all">
+                                <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-all">
                                   {isSendingLocation ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
                                 </div>
                                 <div className="text-left">
-                                  <p className="text-sm font-bold text-slate-800">Current location</p>
-                                  <p className="text-[10px] text-slate-400 font-medium">Share GPS coords</p>
+                                  <p className="text-sm font-bold text-[var(--color-text-primary)]">Current location</p>
+                                  <p className="text-[10px] text-[var(--color-text-secondary)] font-medium">Share GPS coords</p>
                                 </div>
                               </button>
 
@@ -1152,14 +1185,14 @@ export default function ChatPage() {
                                   setShowPlusMenu(false)
                                   setShowLocationSearch(true)
                                 }}
-                                className="w-full flex items-center gap-4 p-4 hover:bg-purple-50 rounded-2xl transition-all group text-slate-700"
+                                className="w-full flex items-center gap-4 p-4 hover:bg-[var(--color-bg-primary)] rounded-2xl transition-all group text-[var(--color-text-primary)]"
                               >
-                                <div className="p-2.5 bg-purple-50 text-purple-500 rounded-2xl group-hover:bg-purple-500 group-hover:text-white transition-all">
+                                <div className="p-2.5 bg-purple-500/10 text-purple-500 rounded-2xl group-hover:bg-purple-500 group-hover:text-white transition-all">
                                   <Search size={18} />
                                 </div>
                                 <div className="text-left">
-                                  <p className="text-sm font-bold text-slate-800">Search location</p>
-                                  <p className="text-[10px] text-slate-400 font-medium">Find any place</p>
+                                  <p className="text-sm font-bold text-[var(--color-text-primary)]">Search location</p>
+                                  <p className="text-[10px] text-[var(--color-text-secondary)] font-medium">Find any place</p>
                                 </div>
                               </button>
 
@@ -1170,14 +1203,14 @@ export default function ChatPage() {
                                   setShowPlusMenu(false)
                                   setShowMeetingModal(true)
                                 }}
-                                className="w-full flex items-center gap-4 p-4 hover:bg-orange-50 rounded-2xl transition-all group text-slate-700"
+                                className="w-full flex items-center gap-4 p-4 hover:bg-[var(--color-bg-primary)] rounded-2xl transition-all group text-[var(--color-text-primary)]"
                               >
-                                <div className="p-2.5 bg-orange-50 text-orange-500 rounded-2xl group-hover:bg-orange-500 group-hover:text-white transition-all">
+                                <div className="p-2.5 bg-orange-500/10 text-orange-500 rounded-2xl group-hover:bg-orange-500 group-hover:text-white transition-all">
                                   <Calendar size={18} />
                                 </div>
                                 <div className="text-left">
-                                  <p className="text-sm font-bold text-slate-800">Schedule meeting</p>
-                                  <p className="text-[10px] text-slate-400 font-medium">Set a collab time</p>
+                                  <p className="text-sm font-bold text-[var(--color-text-primary)]">Schedule meeting</p>
+                                  <p className="text-[10px] text-[var(--color-text-secondary)] font-medium">Set a collab time</p>
                                 </div>
                               </button>
                             </div>
@@ -1210,7 +1243,7 @@ export default function ChatPage() {
                             }
                           }}
                           rows={1}
-                          className="w-full px-4 md:px-8 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-full text-xs md:text-sm focus:border-pink-200 outline-none resize-none min-h-[44px] md:min-h-[56px] max-h-32 custom-scrollbar flex items-center text-slate-600 placeholder:text-slate-300"
+                          className="w-full px-4 md:px-8 py-3 md:py-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-full text-xs md:text-sm focus:border-pink-200 outline-none resize-none min-h-[44px] md:min-h-[56px] max-h-32 custom-scrollbar flex items-center text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]/50"
                           style={{ height: 'auto' }}
                         />
                       </div>

@@ -110,8 +110,8 @@ export default function FeatureGrid() {
   ]
 
   return (
-    <section id="features" data-cursor-theme="dark" className="bg-[var(--lp-text)] py-32 px-16 md:px-32 relative overflow-hidden">
-      <div className="max-w-[1200px] mx-auto">
+    <section id="features" data-cursor-theme="dark" className="bg-[var(--lp-text)] py-32 px-8 md:px-16 relative overflow-hidden">
+      <div className="max-w-[1400px] mx-auto">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-24">
           <div className="max-w-2xl">
@@ -121,14 +121,14 @@ export default function FeatureGrid() {
             />
             <Typewriter 
               text="Built for intent, ready for whatever is next."
-              className="text-[var(--lp-bg)] text-[48px] md:text-[64px] leading-[1] font-bold font-[var(--font-lp-serif)]"
+              className="text-[var(--lp-bg)] text-[32px] md:text-[64px] leading-[1.1] font-bold font-[var(--font-lp-serif)]"
             />
           </div>
 
         </div>
 
         {/* 2x3 Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-48 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-24 lg:gap-x-48 gap-y-48 items-start">
           {features.map((feature, idx) => (
             <FeatureItem key={feature.title} feature={feature} idx={idx} />
           ))}

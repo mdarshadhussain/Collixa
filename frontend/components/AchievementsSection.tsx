@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Lock, Star, Target, Trophy, Briefcase, MessageSquare, Megaphone, Share2, PiggyBank, Award, Compass, Loader2, X, Footprints, Lightbulb, Crown, Users, Wrench, CheckCircle2, Handshake, PenLine, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Lock, Star, Target, Trophy, Briefcase, MessageSquare, Megaphone, Share2, PiggyBank, Award, Compass, Loader2, X, Footprints, Lightbulb, Crown, Users, Wrench, CheckCircle2, PenLine, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { API_URL } from '@/lib/supabase'
 
@@ -10,7 +10,7 @@ const iconMap: { [key: string]: React.ElementType } = {
   Lightbulb,
   Crown,
   Star,
-  Handshake,
+  Handshake: Users,
   Target,
   Trophy,
   Wrench,
@@ -226,8 +226,8 @@ export default function AchievementsSection({ userId, variant = 'full' }: { user
       {/* Header */}
       <div className="mb-6 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="relative z-10">
-          <h2 className="text-2xl sm:text-4xl font-serif font-black text-[var(--color-text-primary)] mb-1 sm:mb-2 tracking-tighter italic leading-none uppercase">Achievements</h2>
-          <p className="text-[10px] sm:text-xs font-black text-[var(--color-text-secondary)] opacity-40 uppercase tracking-[0.2em] flex items-center gap-2">
+          <h2 className="text-2xl sm:text-4xl font-serif font-black text-current mb-1 sm:mb-2 tracking-tighter italic leading-none uppercase">Achievements</h2>
+          <p className="text-[10px] sm:text-xs font-black text-current opacity-60 uppercase tracking-[0.2em] flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
             Unlock milestones to earn network credits
           </p>
@@ -327,14 +327,14 @@ export default function AchievementsSection({ userId, variant = 'full' }: { user
       {/* ─── THE ASCENT TRACKER ─── */}
       <div className="mt-2 sm:mt-4 px-1 sm:px-2 relative z-10">
          <div className="flex items-center gap-2 sm:gap-4">
-            <span className="text-[7px] sm:text-[10px] font-black text-[var(--color-text-secondary)] opacity-10 uppercase tracking-[0.3em]">Start</span>
+            <span className="text-[7px] sm:text-[10px] font-black text-current opacity-30 uppercase tracking-[0.3em]">Start</span>
             <div className="flex-1 h-[1px] sm:h-[2px] bg-[var(--color-border)] rounded-full relative overflow-hidden">
                <motion.div 
                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-[var(--color-accent)] to-blue-500 shadow-[0_0_10px_rgba(var(--color-accent-rgb),0.5)]"
                  style={{ width: `${scrollProgress}%` }}
                />
             </div>
-            <span className="text-[7px] sm:text-[10px] font-black text-[var(--color-text-secondary)] opacity-10 uppercase tracking-[0.3em]">End</span>
+            <span className="text-[7px] sm:text-[10px] font-black text-current opacity-30 uppercase tracking-[0.3em]">End</span>
          </div>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { Users, Briefcase, Star, Calendar, Coins, TrendingUp, Activity, ShieldAlert } from 'lucide-react'
+import { Users, Briefcase, Star, Calendar, Coins, TrendingUp, Activity, ShieldAlert, Award } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -12,6 +12,7 @@ interface DashboardStats {
   totalTribes: number
   totalSessions: number
   totalCredits: number
+  totalAchievements: number
   activeUsers: number
   newUsersToday: number
 }
@@ -53,7 +54,7 @@ export default function AdminDashboard() {
     { name: 'Total Tribes', value: stats?.totalTribes || 0, icon: Star, color: 'bg-purple-500' },
     { name: 'Active Sessions', value: stats?.totalSessions || 0, icon: Calendar, color: 'bg-orange-500' },
     { name: 'Total Credits', value: stats?.totalCredits || 0, icon: Coins, color: 'bg-amber-500' },
-    { name: 'New Users Today', value: stats?.newUsersToday || 0, icon: TrendingUp, color: 'bg-pink-500' },
+    { name: 'Earned Awards', value: stats?.totalAchievements || 0, icon: Award, color: 'bg-indigo-500' },
   ]
 
   if (loading) {
@@ -112,9 +113,11 @@ export default function AdminDashboard() {
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {[
               { href: '/admin/approvals', label: 'Approvals', color: 'bg-amber-500', icon: ShieldAlert },
-              { href: '/admin/users', label: 'Manage Users', color: 'bg-[var(--color-accent)]' },
-              { href: '/admin/intents', label: 'Manage Intents', color: 'bg-[var(--color-accent)]' },
-              { href: '/admin/tribes', label: 'Manage Tribes', color: 'bg-[var(--color-accent)]' },
+              { href: '/admin/users', label: 'Manage Users', color: 'bg-[var(--color-accent)]', icon: Users },
+              { href: '/admin/credits', label: 'Manage Wallet', color: 'bg-[var(--color-accent)]', icon: Coins },
+              { href: '/admin/achievements', label: 'Achievements', color: 'bg-[var(--color-accent)]', icon: Award },
+              { href: '/admin/intents', label: 'Manage Intents', color: 'bg-[var(--color-accent)]', icon: Briefcase },
+              { href: '/admin/tribes', label: 'Manage Tribes', color: 'bg-[var(--color-accent)]', icon: Star },
             ].map((action) => {
               const ActionIcon = action.icon;
               return (

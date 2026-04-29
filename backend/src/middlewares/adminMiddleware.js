@@ -12,8 +12,9 @@ export const adminMiddleware = async (req, res, next) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    // Check if user email is in admin list
-    const isAdmin = ADMIN_EMAILS.includes(req.user.email);
+    // Check if user email is in admin list or has admin role
+    const userEmail = req.user.email?.toLowerCase();
+    const isAdmin = ADMIN_EMAILS.map(e => e.toLowerCase()).includes(userEmail) || req.user.role === 'ADMIN';
 
     if (!isAdmin) {
       return res.status(403).json({ 

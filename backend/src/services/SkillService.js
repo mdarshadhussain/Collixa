@@ -392,6 +392,38 @@ export class SkillService {
     if (skill.user_id !== userId) {
       throw new Error('You are not authorized to delete this skill');
     }
+
+    // Delete linked conversation if it exists
+    if (skill.conversation_id) {
+      try {
+        const client = SkillModel.getClient();
+        await client.from('conversation_participants').delete().eq('conversation_id', skill.conversation_id);
+        await client.from('messages').delete().eq('conversation_id', skill.conversation_id);
+        await client.from('conversations').delete().eq('id', skill.conversation_id);
+      } catch (err) {
+        console.error('Failed to delete conversation linked to skill:', err);
+      }
+    } else {
+      // Fallback: search by title
+      try {
+        const { data: conv } = await SkillModel.getClient()
+          .from('conversations')
+          .select('id')
+          .eq('type', 'GROUP')
+          .eq('title', `Tribe: ${skill.name}`)
+          .maybeSingle();
+
+        if (conv) {
+          const client = SkillModel.getClient();
+          await client.from('conversation_participants').delete().eq('conversation_id', conv.id);
+          await client.from('messages').delete().eq('conversation_id', conv.id);
+          await client.from('conversations').delete().eq('id', conv.id);
+        }
+      } catch (err) {
+        console.error('Failed to delete conversation linked to skill (fallback):', err);
+      }
+    }
+
     return await SkillModel.delete(skillId);
   }
 

@@ -17,6 +17,24 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.addEventListener('unhandledrejection', function(event) {
+                if (event.reason && (String(event.reason.message).includes('MetaMask') || String(event.reason.stack).includes('MetaMask'))) {
+                  event.preventDefault();
+                }
+              });
+              window.addEventListener('error', function(event) {
+                if (String(event.message).includes('MetaMask') || String(event.filename).includes('nkbihfbeogaeaoehlefnkodbefgpgknn')) {
+                  event.preventDefault();
+                }
+              });
+            `
+          }}
+        />
+      </head>
       <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           <AuthProvider>

@@ -10,7 +10,7 @@ const ADMIN_EMAILS = ['admin@collixa.space'];
 /**
  * Check if email is admin
  */
-const isAdminEmail = (email) => ADMIN_EMAILS.includes(email);
+const isAdminEmail = (email) => email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase());
 
 // Log initialization status
 if (!supabaseAdmin) {
@@ -61,7 +61,12 @@ export class AdminController {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today);
 
-      if (usersError || intentsError || tribesError || sessionsError || creditsError) {
+      // Get total achievements unlocked
+      const { count: totalAchievements, error: achievementsError } = await client
+        .from('user_achievements')
+        .select('*', { count: 'exact', head: true });
+
+      if (usersError || intentsError || tribesError || sessionsError || creditsError || achievementsError) {
         throw new Error('Failed to fetch stats');
       }
 
@@ -73,6 +78,7 @@ export class AdminController {
           totalTribes: totalTribes || 0,
           totalSessions: totalSessions || 0,
           totalCredits: totalCredits,
+          totalAchievements: totalAchievements || 0,
           newUsersToday: newUsersToday || 0,
         }
       });
@@ -635,8 +641,7 @@ export class AdminController {
           *,
           user:users(id, name, email)
         `)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -682,8 +687,8 @@ export class AdminController {
         .insert([{
           user_id: userId,
           amount: amount,
-          type: 'ADMIN_ADD'
-          // description: reason || 'Admin credit addition' // Temporarily disabled until schema is updated
+          type: 'ADMIN_ADD',
+          description: reason || 'Admin credit addition'
         }]);
 
       if (transactionError) {
@@ -743,8 +748,8 @@ export class AdminController {
         .insert([{
           user_id: userId,
           amount: -amount,
-          type: 'ADMIN_DEDUCT'
-          // description: reason || 'Admin credit deduction' // Temporarily disabled until schema is updated
+          type: 'ADMIN_DEDUCT',
+          description: reason || 'Admin credit deduction'
         }]);
 
       if (transactionError) {

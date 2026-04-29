@@ -84,7 +84,7 @@ export default function IntentsPage() {
              <Plus size={120} className="text-[var(--color-accent)]" />
           </div>
           
-          <div className="space-y-3 max-w-2xl relative z-10">
+          <div className="space-y-3 max-w-none relative z-10">
             <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-accent)] block mb-2 opacity-70">Synergy Portal</span>
             <h2 className="text-2xl sm:text-4xl md:text-6xl font-serif font-black tracking-tighter leading-[1.1] md:leading-none text-[var(--color-text-primary)]">
               <Typewriter text="Join the best minds together." speed={0.05} delay={0.1} />

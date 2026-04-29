@@ -25,7 +25,7 @@ function CheckoutContent() {
     name: '',
     cardNumber: '',
     expiry: '',
-    cvc: ''
+    cvv: ''
   })
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -51,7 +51,7 @@ function CheckoutContent() {
       }
     }
 
-    if (field === 'cvc') {
+    if (field === 'cvv') {
       const digitsOnly = value.replace(/\D/g, '')
       if (digitsOnly.length > 3) return
       formattedValue = digitsOnly
@@ -68,8 +68,8 @@ function CheckoutContent() {
       setError('Card number must be 16 digits')
       return
     }
-    if (formData.cvc.length !== 3) {
-      setError('CVC must be exactly 3 digits')
+    if (formData.cvv.length !== 3) {
+      setError('CVV must be exactly 3 digits')
       return
     }
 
@@ -114,16 +114,16 @@ function CheckoutContent() {
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans">
       <Header />
       
-      <main className="max-w-5xl mx-auto px-4 py-6 md:py-12">
+      <main className="max-w-5xl lg:max-w-[1300px] mx-auto px-4 py-6 md:py-12 lg:py-24 min-h-[calc(100vh-80px)] flex items-center">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-black uppercase tracking-widest animate-pulse">
             Error: {error}
           </div>
         )}
-        <div className="flex flex-col lg:flex-row gap-6 md:gap-10 items-start">
+        <div className="flex flex-col lg:flex-row gap-6 md:gap-16 lg:gap-24 items-stretch lg:items-center justify-between w-full">
           
           {/* ─── LEFT: ORDER SUMMARY ─── */}
-          <div className="w-full lg:flex-1 space-y-6 md:space-y-8">
+          <div className="w-full lg:flex-1 lg:max-w-[600px] space-y-6 md:space-y-8">
             <button 
               onClick={() => router.back()}
               className="group flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.4em] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all"
@@ -175,7 +175,7 @@ function CheckoutContent() {
           </div>
 
           {/* ─── RIGHT: PAYMENT FORM ─── */}
-          <div className="w-full lg:w-[400px]">
+          <div className="w-full lg:w-[480px]">
             <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] p-5 sm:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-lg">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="text-center mb-5 md:mb-6">
@@ -223,14 +223,14 @@ function CheckoutContent() {
                       />
                     </div>
                     <div>
-                      <label className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-2 mb-1 block">CVC</label>
+                      <label className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-secondary)] ml-2 mb-1 block">CVV</label>
                       <input 
                         required
                         type="text" 
                         placeholder="000"
                         className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl px-4 md:px-5 py-3 text-[11px] md:text-xs font-mono focus:border-[var(--color-accent)] outline-none transition-all"
-                        value={formData.cvc}
-                        onChange={(e) => handleInputChange('cvc', e.target.value)}
+                        value={formData.cvv}
+                        onChange={(e) => handleInputChange('cvv', e.target.value)}
                       />
                     </div>
                   </div>
