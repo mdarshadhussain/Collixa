@@ -44,7 +44,7 @@ export class AdminController {
 
       // Get total sessions count (scheduled sessions)
       const { count: totalSessions, error: sessionsError } = await client
-        .from('skill_sessions')
+        .from('sessions')
         .select('*', { count: 'exact', head: true });
 
       // Get total credits in system
@@ -560,20 +560,35 @@ export class AdminController {
       const client = getClient();
 
       const { data: sessions, error } = await client
-        .from('skill_sessions')
+        .from('sessions')
         .select(`
           *,
-          skill:skills(id, name),
-          learner:users!skill_sessions_learner_id_fkey(id, name, email),
-          teacher:users!skill_sessions_teacher_id_fkey(id, name, email)
+          exchange:skill_exchanges(
+            id,
+            skill:skills(id, name)
+          ),
+          learner:users!sessions_sender_id_fkey(id, name, email),
+          teacher:users!sessions_receiver_id_fkey(id, name, email)
         `)
-        .order('scheduled_at', { ascending: false });
+        .order('scheduled_time', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[AdminController] Error fetching sessions:', error);
+        throw error;
+      }
+
+      // Map to frontend format
+      const mappedSessions = (sessions || []).map(s => ({
+        ...s,
+        scheduled_at: s.scheduled_time,
+        skill: s.exchange?.skill || { name: 'Deleted Tribe' },
+        learner: s.learner,
+        teacher: s.teacher
+      }));
 
       return res.status(200).json({
         success: true,
-        data: sessions || []
+        data: mappedSessions
       });
     } catch (error) {
       next(error);
@@ -589,8 +604,8 @@ export class AdminController {
       const client = getClient();
 
       const { error } = await client
-        .from('skill_sessions')
-        .update({ status: 'COMPLETED', updated_at: new Date().toISOString() })
+        .from('sessions')
+        .update({ status: 'COMPLETED' })
         .eq('id', id);
 
       if (error) throw error;
@@ -613,8 +628,8 @@ export class AdminController {
       const client = getClient();
 
       const { error } = await client
-        .from('skill_sessions')
-        .update({ status: 'CANCELLED', updated_at: new Date().toISOString() })
+        .from('sessions')
+        .update({ status: 'CANCELLED' })
         .eq('id', id);
 
       if (error) throw error;
