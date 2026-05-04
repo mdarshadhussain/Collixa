@@ -162,6 +162,22 @@ export default function ChatPage() {
             otherUserId: other?.id
           }
         })
+
+        const { data: unreadData } = await supabase
+          .from('messages')
+          .select('conversation_id')
+          .eq('is_read', false)
+          .neq('sender_id', user.id)
+          .in('conversation_id', mapped.map(c => c.id));
+
+        const unreadCounts = (unreadData || []).reduce((acc: any, curr) => {
+          acc[curr.conversation_id] = (acc[curr.conversation_id] || 0) + 1;
+          return acc;
+        }, {});
+
+        mapped.forEach(c => {
+          c.unread = unreadCounts[c.id] || 0;
+        });
         
         setConversations(mapped)
         
@@ -286,6 +302,7 @@ export default function ChatPage() {
     
     const markRead = async () => {
       await messageService.markAsRead(selectedConversation.id)
+      setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, unread: 0 } : c))
     }
     markRead()
     
